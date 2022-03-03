@@ -1,0 +1,53 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sql", "Sql\Sql.csproj", "{5A9A7A3C-0431-465E-8F0E-6D756218CF1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Json", "Json\Json.csproj", "{E6B814A2-D476-4718-90F6-0749C760E83B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rpc", "Rpc\Rpc.csproj", "{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{806B647D-6FCB-4006-B19D-0EA2E4B01E06}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RpcServer", "RpcServer\RpcServer.csproj", "{8909E3FE-9937-4D69-BADC-AA62464F2400}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{95F21584-3D73-420D-BBDD-4A1676D997DB}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		README.md = README.md
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A9A7A3C-0431-465E-8F0E-6D756218CF1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A9A7A3C-0431-465E-8F0E-6D756218CF1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A9A7A3C-0431-465E-8F0E-6D756218CF1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A9A7A3C-0431-465E-8F0E-6D756218CF1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6B814A2-D476-4718-90F6-0749C760E83B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6B814A2-D476-4718-90F6-0749C760E83B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6B814A2-D476-4718-90F6-0749C760E83B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6B814A2-D476-4718-90F6-0749C760E83B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{806B647D-6FCB-4006-B19D-0EA2E4B01E06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{806B647D-6FCB-4006-B19D-0EA2E4B01E06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{806B647D-6FCB-4006-B19D-0EA2E4B01E06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{806B647D-6FCB-4006-B19D-0EA2E4B01E06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8909E3FE-9937-4D69-BADC-AA62464F2400}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8909E3FE-9937-4D69-BADC-AA62464F2400}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8909E3FE-9937-4D69-BADC-AA62464F2400}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8909E3FE-9937-4D69-BADC-AA62464F2400}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
