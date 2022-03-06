@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 using Newtonsoft.Json;
 
@@ -177,18 +178,26 @@ public enum Command {
 
 // [JsonObjectAttribute( NamingStrategyType = typeof( LowerCaseNamingStrategy ) )]
 public class DataContainer<T> {
+    
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
     public IList<T> Data { get; set; }
 }
 
 /// <summary> wrap with `DataContainer`</summary>
 public record Response {
+    [System.Text.Json.Serialization.JsonPropertyName("service")]
     public Service Service = Service.LEVELONE_FUTURES;
 
-    [ JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [ Newtonsoft.Json.JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(InstantUnixTimeMillisecondsConverter))]
     public Instant Timestamp { get; set; }
 
+    
+    [System.Text.Json.Serialization.JsonPropertyName("command")]
     public Command Command = Command.SUBS;
 
+    [System.Text.Json.Serialization.JsonPropertyName("content")]
     public IList<ResponseContent> Content { get; set; }
 }
 
@@ -267,13 +276,15 @@ public record ResponseContent {
 
     /// <summary>Trade time of the last quote in milliseconds since epoch</summary>
     [ JsonProperty( "10" ) ]
-    [ JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [ Newtonsoft.Json.JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [System.Text.Json.Serialization.JsonConverter(typeof(InstantUnixTimeMillisecondsConverter))]
     [ System.Text.Json.Serialization.JsonPropertyName( "10" ) ]
     public Instant QuoteTime { get; set; }
 
     /// <summary>Trade time of the last trade in milliseconds since epoch</summary>
     [ JsonProperty( "11" ) ]
-    [ JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [ Newtonsoft.Json.JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [System.Text.Json.Serialization.JsonConverter(typeof(InstantUnixTimeMillisecondsConverter))]
     [ System.Text.Json.Serialization.JsonPropertyName( "11" ) ]
     public Instant TradeTime { get; set; }
 
@@ -401,7 +412,7 @@ public record ResponseContent {
     /// Milliseconds since epoch
     /// </summary>
     [ JsonProperty( "35" ) ]
-    [ JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
+    [ Newtonsoft.Json.JsonConverter( typeof(NodaTimeUnixMillisecondTimestampConverter) ) ]
     public Instant? FutureExpirationDate { get; set; }
 
 
@@ -410,18 +421,33 @@ public record ResponseContent {
     public bool? Delayed { get; set; }
 
     /// <summary>Ticker symbol in upper case.  example: `/ES`</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("key")]
     public string Key { get; set; }
 }
 
-public class TestWssResponse {
-    public Service Service { get; set; }
-    public Command Command { get; set; }
+public record TestWssResponse {
+    [System.Text.Json.Serialization.JsonPropertyName("service")]
+    public Service Service = Service.LEVELONE_FUTURES;
+
+    [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(InstantUnixTimeMillisecondsConverter))]
     public Instant Timestamp { get; set; }
+
+    
+    [System.Text.Json.Serialization.JsonPropertyName("command")]
+    public Command Command = Command.SUBS;
+
+    [System.Text.Json.Serialization.JsonPropertyName("requestid")]
     public string? RequestId { get; set; }
 }
 
-public class TestRootContainer {
+
+
+public record TestRootContainer {
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
     public IList<TestWssResponse>? Data { get; set; }
 }
+
+
 
 #pragma warning restore CS8618

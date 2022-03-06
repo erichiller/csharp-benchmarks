@@ -17,6 +17,14 @@ public class ScalarsFloatClass {
     public float  Value { get; set; }
 }
 
+public class ScalarsFloatClassWithInitProperties {
+    internal const string JSON = ScalarsFloat.JSON;
+
+    public int    Id    { get; init; }
+    public string Name  { get; init; }
+    public float  Value { get; init; }
+}
+
 public class ScalarsFloatClassFields {
     internal const string JSON = ScalarsFloat.JSON;
 

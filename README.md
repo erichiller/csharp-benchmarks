@@ -71,18 +71,60 @@ sudo dotnet run -c RELEASE
 
 
 ### Deserialize
-| Method                                                   | Iterations |       Mean |    Error |   StdDev |    Gen 0 |    Gen 1 |   Gen 2 | Allocated |
-|----------------------------------------------------------|------------|-----------:|---------:|---------:|---------:|---------:|--------:|----------:|
-| NewtonsoftJson_Deserialize_Scalars_Float                 | 1000       | 3,332.6 us | 14.01 us | 10.94 us | 734.3750 | 234.3750 |       - |  3,375 KB |
-| NewtonsoftJson_Deserialize_Scalars_Decimal               | 1000       | 3,324.3 us | 18.16 us | 16.99 us | 718.7500 | 273.4375 |       - |  3,344 KB |
-| NewtonsoftJson_Deserialize_Scalars_NodaTime              | 1000       | 3,471.5 us |  9.48 us |  8.86 us | 867.1875 |   3.9063 |       - |  4,000 KB |
-| NewtonsoftJson_Deserialize_NestedObjects_NodaTime        | 1000       | 5,566.5 us | 35.59 us | 33.29 us | 960.9375 |  54.6875 |       - |  4,578 KB |
-| NewtonsoftJson_Deserialize_NestedObjects_Arrays_NodaTime | 1000       | 9,110.4 us | 40.24 us | 35.67 us | 921.8750 | 203.1250 | 46.8750 |  5,586 KB |
-| SystemTextJson_Deserialize_Scalars_Float                 | 1000       |   687.2 us |  2.46 us |  2.30 us |  60.5469 |  19.5313 |       - |    281 KB |
-| SystemTextJson_Deserialize_Scalars_Decimal               | 1000       |   690.4 us |  1.49 us |  1.32 us |  66.4063 |  21.4844 |       - |    313 KB |
-| SystemTextJson_Deserialize_Scalars_NodaTime              | 1000       |   991.1 us |  4.09 us |  3.82 us | 156.2500 |  50.7813 |       - |    727 KB |
-| SystemTextJson_Deserialize_NestedObjects_NodaTime        | 1000       | 1,717.7 us |  4.09 us |  3.82 us | 250.0000 | 117.1875 |       - |  1,328 KB |
-| SystemTextJson_Deserialize_NestedObjects_Arrays_NodaTime | 1000       | 3,085.4 us |  7.64 us |  7.15 us | 339.8438 | 167.9688 |       - |  2,086 KB |
+
+#### `System.Text.Json` Deserialization Tests
+
+Note that `record` types **are much slower than `class` types.
+Also, `[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]` only `JsonSerializerContext` **do not improve performance at all**.
+
+| Method                                              | Iterations |  Mean [us] | Error [us] | StdDev [us] |    Gen 0 |    Gen 1 | Allocated [B] |
+|-----------------------------------------------------|------------|-----------:|-----------:|------------:|---------:|---------:|--------------:|
+| Scalars_Decimal_Class                               | 1000       |   549.6 us |    2.59 us |     2.16 us |  21.4844 |   6.8359 |     104,025 B |
+| Scalars_Float_Class                                 | 1000       |   556.3 us |    3.22 us |     2.86 us |  18.5547 |   5.8594 |      88,025 B |
+| Scalars_Float_Class_SourceGen                       | 1000       |   556.3 us |    5.08 us |     4.75 us |  18.5547 |   5.8594 |      88,025 B |
+| Scalars_Float_Class_Fields_SourceGen                | 1000       |   565.9 us |    2.49 us |     2.08 us |  18.5547 |   5.8594 |      88,025 B |
+| Scalars_Decimal_Class_SourceGen                     | 1000       |   568.8 us |    3.26 us |     3.05 us |  21.4844 |   6.8359 |     104,025 B |
+| Scalars_Decimal_Record                              | 1000       |   688.6 us |    5.67 us |     5.31 us |  66.4063 |  21.4844 |     320,025 B |
+| Scalars_Float_Record                                | 1000       |   691.8 us |    4.21 us |     3.73 us |  60.5469 |  19.5313 |     288,025 B |
+| Scalars_NodaTime_Class                              | 1000       |   696.9 us |    1.64 us |     1.54 us |  41.9922 |  13.6719 |     200,025 B |
+| Scalars_NodaTime_Class_SourceGen                    | 1000       |   713.6 us |    9.58 us |     8.96 us |  41.9922 |  13.6719 |     200,025 B |
+| Scalars_NodaTime_Class_ConverterAttribute           | 1000       |   714.8 us |    6.14 us |     5.45 us |  41.9922 |  13.6719 |     200,025 B |
+| Scalars_NodaTime_ConverterAttribute_Class_SourceGen | 1000       |   728.4 us |    7.44 us |     6.96 us |  41.9922 |  13.6719 |     200,025 B |
+| Scalars_NodaTime_Record                             | 1000       |   856.9 us |   10.38 us |     9.20 us |  87.8906 |  29.2969 |     416,025 B |
+| NestedObjects_NodaTime_Class                        | 1000       | 1,277.3 us |    2.15 us |     2.01 us | 117.1875 |  52.7344 |     696,026 B |
+| NestedObjects_NodaTime_Class_SourceGen              | 1000       | 1,305.0 us |   16.88 us |    15.79 us | 117.1875 |  48.8281 |     696,026 B |
+| NestedObjects_NodaTime_Record                       | 1000       | 1,568.7 us |   18.70 us |    16.57 us | 181.6406 |  80.0781 |   1,032,026 B |
+| NestedObjects_Arrays_NodaTime_Class                 | 1000       | 2,317.0 us |   21.91 us |    17.10 us | 160.1563 |  78.1250 |   1,016,027 B |
+| NestedObjects_Arrays_NodaTime_Class_SourceGen       | 1000       | 2,327.5 us |   25.29 us |    22.42 us | 160.1563 |  78.1250 |   1,016,027 B |
+| NestedObjects_Arrays_NodaTime_Record                | 1000       | 2,939.7 us |   58.74 us |    69.92 us | 234.3750 | 117.1875 |   1,480,027 B |
+
+
+This table shows that it is not just `init`  properties that slow deserialization down. The mere use of `record` types uses **a large amount more of memory**,
+and takes about 25% longer.
+
+| Method                                 | Iterations | Mean [us] | Error [us] | StdDev [us] |   Gen 0 |   Gen 1 | Allocated [B] |
+|----------------------------------------|------------|----------:|-----------:|------------:|--------:|--------:|--------------:|
+| Scalars_Float_Class_WithInitProperties | 1000       |  546.7 us |    1.64 us |     1.54 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_SourceGen          | 1000       |  555.8 us |    3.15 us |     2.63 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class                    | 1000       |  557.3 us |    3.91 us |     3.47 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Fields_SourceGen   | 1000       |  557.9 us |    5.55 us |     5.19 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Record                   | 1000       |  702.8 us |    8.10 us |     7.58 us | 60.5469 | 19.5313 |     288,025 B |
+
+
+#### LevelOne
+
+
+| Method                                                                               | Iterations | LevelOneJsonFile | WithSourceGenerationContext |      Mean |     Error |    StdDev |    Median |     Gen 0 |    Gen 1 | Allocated |
+|--------------------------------------------------------------------------------------|------------|------------------|-----------------------------|----------:|----------:|----------:|----------:|----------:|---------:|----------:|
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne                         | 1000       | Single           | True                        |  7.090 ms | 0.1403 ms | 0.2635 ms |  6.960 ms |  632.8125 |  15.6250 |      3 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne                         | 1000       | Single           | False                       |  7.209 ms | 0.0503 ms | 0.0446 ms |  7.185 ms |  632.8125 |  15.6250 |      3 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions | 1000       | Single           | True                        |  7.278 ms | 0.0257 ms | 0.0240 ms |  7.268 ms |  632.8125 |  15.6250 |      3 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions | 1000       | Single           | False                       |  7.407 ms | 0.0401 ms | 0.0375 ms |  7.414 ms |  632.8125 |  15.6250 |      3 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions | 1000       | Multiple         | True                        | 49.775 ms | 0.1507 ms | 0.1336 ms | 49.722 ms | 4100.0000 | 200.0000 |     18 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne                         | 1000       | Multiple         | False                       | 50.411 ms | 0.6371 ms | 0.5960 ms | 50.180 ms | 4090.9091 | 181.8182 |     18 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne                         | 1000       | Multiple         | True                        | 50.712 ms | 0.2609 ms | 0.2441 ms | 50.655 ms | 4100.0000 | 200.0000 |     18 MB |
+| SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions | 1000       | Multiple         | False                       | 51.048 ms | 0.6626 ms | 0.5874 ms | 50.848 ms | 4100.0000 | 200.0000 |     18 MB |
+
 
 
 ### Deserialize with Read-ahead for Type determination

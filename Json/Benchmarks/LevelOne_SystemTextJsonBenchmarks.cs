@@ -8,14 +8,14 @@ using System.Text.Json.Serialization;
 
 using BenchmarkDotNet.Attributes;
 
-using Common;
+using Benchmarks.Common;
 
 using NodaTime.Serialization.SystemTextJson;
 
 namespace Benchmarks.Json;
 
 [ Config( typeof(BenchmarkConfig) ) ]
-[ ReturnValueValidator(failOnError: true)]
+[ ReturnValueValidator( failOnError: true ) ]
 public partial class LevelOneJsonBenchmarks {
     // ReSharper disable once UnassignedField.Global
     // ReSharper disable once MemberCanBePrivate.Global
@@ -23,15 +23,14 @@ public partial class LevelOneJsonBenchmarks {
     public int Iterations = 1;
 
 
-    // ReSharper disable once UnassignedField.Global
-    // ReSharper disable once MemberCanBePrivate.Global
-    // ReSharper disable once FieldCanBeMadeReadOnly.Global
-    [ Params(
-        "Single",
-        "Multiple" 
-    ) ]
-    // public string LevelOneJsonFile = "Single";
-    public string LevelOneJsonFile;
+    // // ReSharper disable once UnassignedField.Global
+    // // ReSharper disable once MemberCanBePrivate.Global
+    // // ReSharper disable once FieldCanBeMadeReadOnly.Global
+    // [ Params(
+    //     "Single",
+    //     "Multiple" 
+    // ) ]
+    public string LevelOneJsonFile = "Single";
 
 
     [ Params(
@@ -53,6 +52,7 @@ public partial class LevelOneJsonBenchmarks {
         .ConfigureForNodaTime( NodaTime.DateTimeZoneProviders.Tzdb );
 
     private LevelOneSourceGenerationContext _levelOneSourceGenerationContext;
+    private LevelOneSourceGenerationContext _levelOneSourceGenerationContextWithoutOptions = new LevelOneSourceGenerationContext();
 
     public LevelOneJsonBenchmarks( ) {
         _levelOneSourceGenerationContext = new LevelOneSourceGenerationContext( _options );
@@ -80,24 +80,9 @@ public partial class LevelOneJsonBenchmarks {
     }
 
 
-    // [ Benchmark ] // this is without read-ahead type determination
-    // public int SystemTextJson_JsonSerializer_Deserialize_LevelOne( ) {
-    // string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
-    //     // var results    = new DataContainer<Response>[ Iterations ];
-    //     int count = 0;
-    //     for ( int i = 0 ; i < Iterations ; i++ ) {
-    //         foreach ( var result in (System.Text.Json.JsonSerializer.Deserialize<DataContainer<Response>>( jsonString, systemTextJsonOptions ) ?? throw new NullReferenceException()).Data ) {
-    //             count++;
-    //         }
-    //     }
-    //
-    //     return count;
-    // }
-
-
     [ Benchmark ]
     public int SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne( ) {
-        string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
 
         int count = 0;
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -107,10 +92,10 @@ public partial class LevelOneJsonBenchmarks {
             TestRootContainer rootContainer;
             if ( WithSourceGenerationContext ) {
                 rootContainer = JsonSerializer.Deserialize<TestRootContainer>( stream, _levelOneSourceGenerationContext.TestRootContainer )
-                                    ?? throw new JsonException();
+                                ?? throw new JsonException();
             } else {
                 rootContainer = JsonSerializer.Deserialize<TestRootContainer>( stream, _options )
-                                    ?? throw new JsonException();
+                                ?? throw new JsonException();
             }
 
             if ( rootContainer.Data is not null && rootContainer.Data.Count > 0 && rootContainer.Data.First().Service == Service.LEVELONE_FUTURES ) {
@@ -131,10 +116,57 @@ public partial class LevelOneJsonBenchmarks {
         return count;
     }
 
+    // SystemTextJson_ReadAhead_Deserialize_LevelOne . JsonSerializer
+
+    [ Benchmark ]
+    public int SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions( ) {
+        // public List<Response?> SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne_SourceGenWithoutOptions( ) {
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+
+        // List<Response?> responses = new ();
+        int count = 0;
+        for ( int i = 0 ; i < Iterations ; i++ ) {
+            byte[]    bytes  = Encoding.UTF8.GetBytes( jsonString );
+            using var stream = new MemoryStream( bytes );
+
+            TestRootContainer rootContainer;
+            if ( WithSourceGenerationContext ) {
+                rootContainer = JsonSerializer.Deserialize<TestRootContainer>( stream, _levelOneSourceGenerationContextWithoutOptions.TestRootContainer )
+                                ?? throw new JsonException();
+            } else {
+                rootContainer = JsonSerializer.Deserialize<TestRootContainer>( stream, _options )
+                                ?? throw new JsonException();
+            }
+
+
+            if ( rootContainer.Data is not null && rootContainer.Data.Count > 0 && rootContainer.Data.First().Service == Service.LEVELONE_FUTURES ) {
+                stream.Seek( 0, SeekOrigin.Begin );
+                // try {
+                foreach ( var result in ( ( WithSourceGenerationContext
+                                              ? System.Text.Json.JsonSerializer.Deserialize<DataContainer<Response>>( stream, _levelOneSourceGenerationContextWithoutOptions.DataContainerResponse )
+                                              : System.Text.Json.JsonSerializer.Deserialize<DataContainer<Response>>( stream, _options )
+                                          )
+                                          ?? throw new NullReferenceException() ).Data ) {
+                    count++;
+                    // responses.Add( result );
+                }
+                // } catch ( NullReferenceException ex ) {
+                //     System.Console.WriteLine(System.Text.Json.JsonSerializer.Deserialize<DataContainer<Response>>( stream, _levelOneSourceGenerationContextWithoutOptions.DataContainerResponse ));
+                //     throw;
+                // }
+            } else {
+                throw new Exception( $"Data was not detected: {rootContainer}" );
+            }
+        }
+
+        return count;
+        // return responses;
+    }
+    
     [ Benchmark ]
     public int SystemTextJson_JsonDocument_ReadAhead_Deserialize_JsonSerializerSingle_LevelOne( ) {
         int    count      = 0;
-        string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
 
         for ( int i = 0 ; i < Iterations ; i++ ) {
             byte[]    bytes  = Encoding.UTF8.GetBytes( jsonString );
@@ -174,7 +206,7 @@ public partial class LevelOneJsonBenchmarks {
 
         return count;
     }
-    
+
 
     private static bool checkIfDataServiceLevelOne( MemoryStream stream ) {
         var buffer = new byte[ 4096 ];
@@ -212,7 +244,7 @@ public partial class LevelOneJsonBenchmarks {
     [ Benchmark ]
     public int SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerSingle_LevelOne( ) {
         int    count      = 0;
-        string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
 
         for ( int i = 0 ; i < Iterations ; i++ ) {
             byte[]    bytes  = Encoding.UTF8.GetBytes( jsonString );
@@ -243,7 +275,7 @@ public partial class LevelOneJsonBenchmarks {
 
         int count = 0;
 
-        string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
 
         for ( int i = 0 ; i < Iterations ; i++ ) {
             byte[]    bytes  = Encoding.UTF8.GetBytes( jsonString );
@@ -309,7 +341,7 @@ public partial class LevelOneJsonBenchmarks {
                     int bytesRead = stream.Read( objectReaderBuffer.AsSpan( leftover.Length ) );
                     stream.Seek( -bytesRead, SeekOrigin.Current );
                     Utf8JsonReader objectReader = new Utf8JsonReader( objectReaderBuffer, isFinalBlock: reader.IsFinalBlock, state: default );
-                    
+
                     if ( ( WithSourceGenerationContext
                             ? System.Text.Json.JsonSerializer.Deserialize<Response>( ref objectReader, _levelOneSourceGenerationContext.Response )
                             : System.Text.Json.JsonSerializer.Deserialize<Response>( ref objectReader, _options )

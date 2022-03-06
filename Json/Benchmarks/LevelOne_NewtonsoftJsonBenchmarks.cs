@@ -14,7 +14,7 @@ public partial class LevelOneJsonBenchmarks {
     
     [ Benchmark ]
     public int NewtonsoftJson_Deserialize_ReadAhead_LevelOne( ) {
-        string jsonString = System.IO.File.ReadAllText( $"./LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
+        string jsonString = System.IO.File.ReadAllText( $"./Data/LevelOneFuturesResponse_{LevelOneJsonFile}.json" );
 
         int count = 0;
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -29,7 +29,7 @@ public partial class LevelOneJsonBenchmarks {
             // byte[]    bytes  = Encoding.UTF8.GetBytes( jsonString );
             // using var stream = new MemoryStream( bytes );
             if ( receivedObject.ContainsKey( "data" ) && receivedObject["data"] is JArray receivedData && (string?)(receivedData.First?[ "service" ]) == nameof( Service.LEVELONE_FUTURES ) ){
-                foreach ( var result in ( JsonConvert.DeserializeObject<DataContainer<Response>>( jsonString, NewtonsoftJsonBenchmarks.JsonNetSettings ) ?? throw new NullReferenceException() ).Data ) {
+                foreach ( var result in ( JsonConvert.DeserializeObject<DataContainer<Response>>( jsonString, NewtonsoftJsonDeserializationBasic.JsonNetSettings ) ?? throw new NullReferenceException() ).Data ) {
                     count++;
                 }
             } else {

@@ -5,7 +5,7 @@ using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 
-using Common;
+using Benchmarks.Common;
 
 using Microsoft.EntityFrameworkCore;
 

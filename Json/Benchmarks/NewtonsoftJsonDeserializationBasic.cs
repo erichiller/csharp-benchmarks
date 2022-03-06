@@ -4,7 +4,7 @@ using System.Text;
 
 using BenchmarkDotNet.Attributes;
 
-using Common;
+using Benchmarks.Common;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -15,7 +15,7 @@ using NodaTime.Serialization.JsonNet;
 namespace Benchmarks.Json;
 
 [ Config( typeof(BenchmarkConfig) ) ]
-public class NewtonsoftJsonBenchmarks {
+public class NewtonsoftJsonDeserializationBasic {
     public static readonly JsonSerializerSettings JsonNetSettings = new JsonSerializerSettings().ConfigureForNodaTime( DateTimeZoneProviders.Tzdb );
 
     // ReSharper disable once UnassignedField.Global

@@ -19,7 +19,13 @@
   <ItemGroup>
     <!-- https://docs.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2019 -->
     <None Update="*.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="LevelOneFuturesResponse_Single.json">
+    <None Update="Benchmarks\LevelOneFuturesResponseContentOnly.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\LevelOneFuturesResponse_Multiple.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\LevelOneFuturesResponse_Single.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -28,8 +34,6 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(OS)' == 'Windows_NT'" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="NodaTime" Version="3.0.9" />
     <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />

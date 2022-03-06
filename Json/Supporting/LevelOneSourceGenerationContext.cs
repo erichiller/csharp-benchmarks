@@ -6,7 +6,9 @@ using Benchmarks.Json;
 namespace Benchmarks.Json; 
 
 
-[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSourceGenerationOptions(
+    GenerationMode = JsonSourceGenerationMode.Metadata
+    )]
 [JsonSerializable(typeof(List<Response>))]
 [JsonSerializable(typeof(DataContainer<Response>))]
 [JsonSerializable(typeof(TestRootContainer))]
