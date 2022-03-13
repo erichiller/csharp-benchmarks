@@ -64,3 +64,26 @@ public class ScalarsFloatClassInitPartialConstructor {
     public string Name  { get; init; }
     public float  Value { get; init; }
 }
+
+
+public class ScalarsFloatClassSetConstructor {
+    internal const string JSON = ScalarsFloatRecord.JSON;
+
+    public ScalarsFloatClassSetConstructor( int id, string name, float value ) =>
+        ( Id, Name, Value ) = ( id, name, value );
+
+    public int    Id    { get; set; }
+    public string Name  { get; set; }
+    public float  Value { get; set; }
+}
+
+public class ScalarsFloatClassSetPartialConstructor {
+    internal const string JSON = ScalarsFloatRecord.JSON;
+
+    public ScalarsFloatClassSetPartialConstructor( int id ) =>
+        ( Id ) = ( id );
+
+    public int    Id    { get; set; }
+    public string Name  { get; set; }
+    public float  Value { get; set; }
+}

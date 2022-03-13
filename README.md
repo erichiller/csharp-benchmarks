@@ -112,19 +112,21 @@ Also, `[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Me
 
 
 This table shows that it is not just `init`  properties, or `record` types that slow deserialization down, it is the use of *Constructors* that causes **a significant increase in memory utilization**,
-and takes about 25% longer.
+and takes about 25% longer. Furthermore, Source Generators do not help.
 
 | Method                                               | Iterations |  Mean [us] | Error [us] | StdDev [us] |   Gen 0 |   Gen 1 | Allocated [B] |
 |------------------------------------------------------|------------|-----------:|-----------:|------------:|--------:|--------:|--------------:|
-| Scalars_Float_Record_Init_No_Constructor             | 1000       |   550.5 us |    2.71 us |     2.53 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Init_NoConstructor               | 1000       |   550.8 us |    1.99 us |     1.87 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Set_NoConstructor                | 1000       |   560.2 us |    1.10 us |     0.92 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Set_NoConstructor_SourceGen      | 1000       |   564.1 us |    2.60 us |     2.31 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Fields_NoConstructor_SourceGen   | 1000       |   573.6 us |    1.80 us |     1.50 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Set_NoConstructor_ReturningCount | 1000       |   589.6 us |    3.92 us |     3.27 us | 16.6016 |       - |      80,001 B |
-| Scalars_Float_Class_Init_Constructor                 | 1000       |   694.2 us |    3.63 us |     3.22 us | 60.5469 | 19.5313 |     288,025 B |
-| Scalars_Float_Record_Init_Constructor                | 1000       |   717.1 us |    2.01 us |     1.88 us | 60.5469 | 19.5313 |     288,025 B |
-| Scalars_Float_Class_Init_PartialConstructor          | 1000       | 1,009.5 us |    1.62 us |     1.44 us | 62.5000 | 19.5313 |     296,026 B |
+| Scalars_Float_Record_Init_No_Constructor             | 1000       |   555.0 us |    3.55 us |     3.15 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor                | 1000       |   558.3 us |    1.97 us |     1.84 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Init_NoConstructor               | 1000       |   561.5 us |    1.93 us |     1.71 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor_SourceGen      | 1000       |   561.6 us |    3.38 us |     2.99 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor_ReturningCount | 1000       |   563.8 us |    2.52 us |     2.35 us | 16.6016 |       - |      80,001 B |
+| Scalars_Float_Class_Fields_NoConstructor_SourceGen   | 1000       |   574.1 us |    1.24 us |     1.10 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Init_Constructor                 | 1000       |   708.4 us |    3.35 us |     3.13 us | 60.5469 | 19.5313 |     288,025 B |
+| Scalars_Float_Record_Init_Constructor                | 1000       |   711.4 us |    4.61 us |     4.32 us | 60.5469 | 19.5313 |     288,025 B |
+| Scalars_Float_Class_Set_Constructor_SourceGen        | 1000       |   747.5 us |    1.10 us |     0.92 us | 62.5000 | 20.5078 |     296,025 B |
+| Scalars_Float_Class_Init_PartialConstructor          | 1000       |   969.8 us |    4.03 us |     3.36 us | 62.5000 | 19.5313 |     296,026 B |
+| Scalars_Float_Class_Set_PartialConstructor_SourceGen | 1000       | 1,010.1 us |    4.40 us |     3.67 us | 56.6406 | 17.5781 |     272,027 B |
 
 
 ##### LevelOne

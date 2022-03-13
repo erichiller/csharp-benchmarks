@@ -40,8 +40,8 @@ public partial class SystemTextJsonDeserializationBasic {
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "No Constructor" ) ]
-    public ScalarsFloatRecordInitNoConstructor[] Scalars_Float_Record_Init_No_Constructor( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "NoConstructor" ) ]
+    public ScalarsFloatRecordInitNoConstructor[] Scalars_Float_Record_Init_NoConstructor( ) {
         ScalarsFloatRecordInitNoConstructor[] results = new ScalarsFloatRecordInitNoConstructor[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
             results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatRecordInitNoConstructor>( ScalarsFloatRecordInitNoConstructor.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();

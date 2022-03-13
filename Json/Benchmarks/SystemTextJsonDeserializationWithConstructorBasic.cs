@@ -68,4 +68,31 @@ public partial class SystemTextJsonDeserializationBasic {
     }
 
     #endregion
+    
+    #region Deserialize Classes with Constructors using SourceGeneratorContext
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "Constructor", "SourceGen" ) ]
+    public ScalarsFloatClassSetConstructor[] Scalars_Float_Class_Set_Constructor_SourceGen( ) {
+        ScalarsFloatClassSetConstructor[] results = new ScalarsFloatClassSetConstructor[ Iterations ];
+        for ( int i = 0 ; i < Iterations ; i++ ) {
+            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClassSetConstructor>( ScalarsFloatClassSetConstructor.JSON, _sourceGenerationContextWithoutOptions.ScalarsFloatClassSetConstructor ) ?? throw new NullReferenceException();
+        }
+
+        return results;
+    }
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "PartialConstructor", "SourceGen" ) ]
+    public ScalarsFloatClassSetPartialConstructor[] Scalars_Float_Class_Set_PartialConstructor_SourceGen( ) {
+        ScalarsFloatClassSetPartialConstructor[] results = new ScalarsFloatClassSetPartialConstructor[ Iterations ];
+        for ( int i = 0 ; i < Iterations ; i++ ) {
+            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClassSetPartialConstructor>( ScalarsFloatClassSetPartialConstructor.JSON, _sourceGenerationContextWithoutOptions.ScalarsFloatClassSetPartialConstructor ) ?? throw new NullReferenceException();
+        }
+
+        return results;
+    }
+
+    
+    #endregion
 }
