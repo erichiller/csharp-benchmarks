@@ -15,7 +15,17 @@ public record NestedObjectArrayNodaTime( int Id, string Name, ScalarsNodaTime[] 
 public class NestedObjectArrayNodaTimeClass {
     internal const string JSON = NestedObjectArrayNodaTime.JSON;
     
-    public int                  Id    { get; set; }
-    public string               Name  { get; set; }
+    public int                    Id    { get; set; }
+    public string                 Name  { get; set; }
     public ScalarsNodaTimeClass[] Value { get; set; }
+}
+
+public class NestedObjectArrayNodaTimeClassInitConstructor {
+    internal const string JSON = NestedObjectArrayNodaTime.JSON;
+    
+    public NestedObjectArrayNodaTimeClassInitConstructor( int id, string name, ScalarsNodaTimeClass[] value ) =>
+        ( Id, Name, Value ) = ( id, name, value );
+    public int    Id   { get; init; }
+    public string Name { get; init; }
+    public ScalarsNodaTimeClass[] Value { get; init; }
 }

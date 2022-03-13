@@ -15,3 +15,12 @@ public class NestedObjectNodaTimeClass {
     public string               Name  { get; set; }
     public ScalarsNodaTimeClass Value { get; set; }
 }
+public class NestedObjectNodaTimeClassInitConstructor {
+    internal const string JSON = NestedObjectNodaTime.JSON;
+    
+    public NestedObjectNodaTimeClassInitConstructor( int id, string name, ScalarsNodaTimeClass value ) =>
+        ( Id, Name, Value ) = ( id, name, value );
+    public int Id { get; init; }
+    public string Name { get; init; }
+    public ScalarsNodaTimeClass Value { get; init; }
+}

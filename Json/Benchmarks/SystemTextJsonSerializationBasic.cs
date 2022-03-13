@@ -11,7 +11,7 @@ using NodaTime.Serialization.SystemTextJson;
 namespace Benchmarks.Json;
 
 [ Config( typeof(BenchmarkConfig) ) ]
-public class SystemTextJsonSerializationBasic {
+public partial class SystemTextJsonSerializationBasic {
     // ReSharper disable once UnassignedField.Global
     // ReSharper disable once MemberCanBePrivate.Global
     [ Params( 1000 ) ]
@@ -23,16 +23,18 @@ public class SystemTextJsonSerializationBasic {
     #region Serialize
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Init", "Constructor" ) ]
     public string[] SystemTextJson_Serialize_Scalars_Float( ) {
         string[] results = new string[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
-            results[ i ] = System.Text.Json.JsonSerializer.Serialize<ScalarsFloat>( new ScalarsFloat( 1, "Hello World", 9.127f ), _systemTextJsonOptions );
+            results[ i ] = System.Text.Json.JsonSerializer.Serialize<ScalarsFloatRecord>( new ScalarsFloatRecord( 1, "Hello World", 9.127f ), _systemTextJsonOptions );
         }
 
         return results;
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Init", "Constructor" ) ]
     public string[] SystemTextJson_Serialize_Scalars_Decimal( ) {
         string[] results = new string[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -43,6 +45,7 @@ public class SystemTextJsonSerializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Init", "Constructor" ) ]
     public string[] SystemTextJson_Serialize_Scalars_NodaTime( ) {
         string[] results = new string[ Iterations ];
         Instant  instant = Instant.FromDateTimeOffset( DateTimeOffset.UtcNow );
@@ -54,6 +57,7 @@ public class SystemTextJsonSerializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Init", "Constructor" ) ]
     public string[] SystemTextJson_Serialize_NestedObjects_NodaTime( ) {
         string[] results = new string[ Iterations ];
         Instant  instant = Instant.FromDateTimeOffset( DateTimeOffset.UtcNow );
@@ -65,6 +69,7 @@ public class SystemTextJsonSerializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Init", "Constructor" ) ]
     public string[] SystemTextJson_Serialize_NestedObjects_Arrays_NodaTime( ) {
         string[] results = new string[ Iterations ];
         Instant  instant = Instant.FromDateTimeOffset( DateTimeOffset.UtcNow );

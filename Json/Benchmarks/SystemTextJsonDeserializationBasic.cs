@@ -9,7 +9,7 @@ using Benchmarks.Common;
 namespace Benchmarks.Json;
 
 [ Config( typeof(BenchmarkConfig) ) ]
-public class SystemTextJsonDeserializationBasic {
+public partial class SystemTextJsonDeserializationBasic {
     
     // ReSharper disable once UnassignedField.Global
     // ReSharper disable once MemberCanBePrivate.Global
@@ -29,16 +29,29 @@ public class SystemTextJsonDeserializationBasic {
     #region Deserialize Records
 
     [ Benchmark ]
-    public ScalarsFloat[] Scalars_Float_Record( ) {
-        ScalarsFloat[] results = new ScalarsFloat[ Iterations ];
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "Constructor" ) ]
+    public ScalarsFloatRecord[] Scalars_Float_Record_Init_Constructor( ) {
+        ScalarsFloatRecord[] results = new ScalarsFloatRecord[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
-            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloat>( ScalarsFloat.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
+            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatRecord>( ScalarsFloatRecord.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
+        }
+
+        return results;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "No Constructor" ) ]
+    public ScalarsFloatRecordInitNoConstructor[] Scalars_Float_Record_Init_No_Constructor( ) {
+        ScalarsFloatRecordInitNoConstructor[] results = new ScalarsFloatRecordInitNoConstructor[ Iterations ];
+        for ( int i = 0 ; i < Iterations ; i++ ) {
+            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatRecordInitNoConstructor>( ScalarsFloatRecordInitNoConstructor.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
         }
 
         return results;
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "Constructor" ) ]
     public ScalarsDecimal[] Scalars_Decimal_Record( ) {
         ScalarsDecimal[] results = new ScalarsDecimal[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -51,6 +64,7 @@ public class SystemTextJsonDeserializationBasic {
     
     /* ScalarsNodaTime */
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "Constructor" ) ]
     public ScalarsNodaTime[] Scalars_NodaTime_Record( ) {
         ScalarsNodaTime[] results = new ScalarsNodaTime[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -61,6 +75,7 @@ public class SystemTextJsonDeserializationBasic {
     }
     
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record", "Init", "Constructor" ) ]
     public NestedObjectNodaTime[] NestedObjects_NodaTime_Record( ) {
         NestedObjectNodaTime[] results = new NestedObjectNodaTime[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -71,6 +86,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Record" , "Init", "Constructor" ) ]
     public NestedObjectArrayNodaTime[] NestedObjects_Arrays_NodaTime_Record( ) {
         NestedObjectArrayNodaTime[] results = new NestedObjectArrayNodaTime[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -87,7 +103,8 @@ public class SystemTextJsonDeserializationBasic {
     #region Deserialize Classes
 
     [ Benchmark ]
-    public ScalarsFloatClass[] Scalars_Float_Class( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor" ) ]
+    public ScalarsFloatClass[] Scalars_Float_Class_Set_NoConstructor( ) {
         ScalarsFloatClass[] results = new ScalarsFloatClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
             results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClass>( ScalarsFloatClass.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
@@ -97,9 +114,12 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
-    public int Scalars_Float_Class_ReturningCount( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class" , "Set", "NoConstructor" ) ]
+    public int Scalars_Float_Class_Set_NoConstructor_ReturningCount( ) { // TODO: this is just testing the test methodology, should it just count or should it return objects?
         int count = 0;
+        
         for ( int i = 0 ; i < Iterations ; i++ ) {
+            _ = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClass>( ScalarsFloatClass.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
             count++;
         }
 
@@ -107,7 +127,8 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
-    public ScalarsFloatClassWithInitProperties[] Scalars_Float_Class_WithInitProperties( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Init" , "NoConstructor" ) ]
+    public ScalarsFloatClassWithInitProperties[] Scalars_Float_Class_Init_NoConstructor( ) {
         ScalarsFloatClassWithInitProperties[] results = new ScalarsFloatClassWithInitProperties[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
             results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClassWithInitProperties>( ScalarsFloatClassWithInitProperties.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
@@ -115,8 +136,20 @@ public class SystemTextJsonDeserializationBasic {
 
         return results;
     }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Init" , "NoConstructor" ) ]
+    public ScalarsFloatClassInitPartialConstructor[] Scalars_Float_Class_Init_PartialConstructor( ) {
+        ScalarsFloatClassInitPartialConstructor[] results = new ScalarsFloatClassInitPartialConstructor[ Iterations ];
+        for ( int i = 0 ; i < Iterations ; i++ ) {
+            results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClassInitPartialConstructor>( ScalarsFloatClassInitPartialConstructor.JSON, _systemTextJsonOptions ) ?? throw new NullReferenceException();
+        }
+
+        return results;
+    }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class" ) ]
     public ScalarsDecimalClass[] Scalars_Decimal_Class( ) {
         ScalarsDecimalClass[] results = new ScalarsDecimalClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -129,6 +162,7 @@ public class SystemTextJsonDeserializationBasic {
     
     /* ScalarsNodaTime */
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class" ) ]
     public ScalarsNodaTimeClass[] Scalars_NodaTime_Class( ) {
         ScalarsNodaTimeClass[] results = new ScalarsNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -139,6 +173,7 @@ public class SystemTextJsonDeserializationBasic {
     }
     
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class" ) ]
     public NestedObjectNodaTimeClass[] NestedObjects_NodaTime_Class( ) {
         NestedObjectNodaTimeClass[] results = new NestedObjectNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -149,6 +184,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class" ) ]
     public NestedObjectArrayNodaTimeClass[] NestedObjects_Arrays_NodaTime_Class( ) {
         NestedObjectArrayNodaTimeClass[] results = new NestedObjectArrayNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -165,7 +201,8 @@ public class SystemTextJsonDeserializationBasic {
     #region Deserialize Classes with SourceGeneratorContext
 
     [ Benchmark ]
-    public ScalarsFloatClass[] Scalars_Float_Class_SourceGen( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen" ) ]
+    public ScalarsFloatClass[] Scalars_Float_Class_Set_NoConstructor_SourceGen( ) {
         ScalarsFloatClass[] results = new ScalarsFloatClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
             results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClass>( ScalarsFloatClass.JSON, _sourceGenerationContextWithoutOptions.ScalarsFloatClass ) ?? throw new NullReferenceException();
@@ -175,7 +212,8 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
-    public ScalarsFloatClassFields[] Scalars_Float_Class_Fields_SourceGen( ) {
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Fields", "NoConstructor", "SourceGen" ) ]
+    public ScalarsFloatClassFields[] Scalars_Float_Class_Fields_NoConstructor_SourceGen( ) {
         ScalarsFloatClassFields[] results = new ScalarsFloatClassFields[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
             results[ i ] = System.Text.Json.JsonSerializer.Deserialize<ScalarsFloatClassFields>( ScalarsFloatClassFields.JSON, _sourceGenerationContextWithFieldOptions.ScalarsFloatClassFields ) ?? throw new NullReferenceException();
@@ -185,6 +223,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen" ) ]
     public ScalarsDecimalClass[] Scalars_Decimal_Class_SourceGen( ) {
         ScalarsDecimalClass[] results = new ScalarsDecimalClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -195,6 +234,7 @@ public class SystemTextJsonDeserializationBasic {
     }
     
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen" ) ]
     public ScalarsNodaTimeClass[] Scalars_NodaTime_Class_SourceGen( ) {
         ScalarsNodaTimeClass[] results = new ScalarsNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -205,6 +245,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen", "ConverterAttribute" ) ]
     public ScalarsNodaTimeClassWithAttribute[] Scalars_NodaTime_ConverterAttribute_Class_SourceGen( ) {
         ScalarsNodaTimeClassWithAttribute[] results = new ScalarsNodaTimeClassWithAttribute[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -219,6 +260,7 @@ public class SystemTextJsonDeserializationBasic {
     /// Uses a <see cref="JsonConverterAttribute"/> on <see cref="ScalarsNodaTimeClassWithAttribute.Value"/> rather than <see cref="JsonSerializerOptions"/>
     /// </summary>
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen", "ConverterAttribute" ) ]
     public ScalarsNodaTimeClassWithAttribute[] Scalars_NodaTime_Class_ConverterAttribute( ) {
         ScalarsNodaTimeClassWithAttribute[] results = new ScalarsNodaTimeClassWithAttribute[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -229,6 +271,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen" ) ]
     public NestedObjectNodaTimeClass[] NestedObjects_NodaTime_Class_SourceGen( ) {
         NestedObjectNodaTimeClass[] results = new NestedObjectNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
@@ -239,6 +282,7 @@ public class SystemTextJsonDeserializationBasic {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "System.Text.Json", "Deserialize", "Class", "Set", "NoConstructor", "SourceGen" ) ]
     public NestedObjectArrayNodaTimeClass[] NestedObjects_Arrays_NodaTime_Class_SourceGen( ) {
         NestedObjectArrayNodaTimeClass[] results = new NestedObjectArrayNodaTimeClass[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {

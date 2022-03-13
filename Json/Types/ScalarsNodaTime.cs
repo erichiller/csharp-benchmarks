@@ -37,3 +37,12 @@ public class ScalarsNodaTimeClassWithAttribute {
     [ JsonConverter( typeof(InstantUnixTimeMillisecondsConverter) ) ]
     public NodaTime.Instant Value { get; set; }
 }
+
+public class ScalarsNodaTimeClassInitConstructor {
+    internal const string JSON = ScalarsNodaTime.JSON;
+    public ScalarsNodaTimeClassInitConstructor( int id, string name, NodaTime.Instant value ) =>
+        ( Id, Name, Value ) = ( id, name, value );
+    public int    Id   { get; init; }
+    public string Name { get; init; }
+    public NodaTime.Instant Value { get; init; }
+}

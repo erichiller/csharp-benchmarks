@@ -1,19 +1,29 @@
 # Use
 
-Run:
+Run all:
 ```powershell
 sudo dotnet run -c RELEASE
 ```
 
 ## Commandline Arguments
 
+### Any Categories
+Run any tests that have any of the properties provided in the argument `anyCategories`
 ```
---anyCategories Copy
+sudo dotnet run -c RELEASE -- --anyCategories Copy
+```
+
+### Filter
+
+```powershell
+sudo dotnet run -c RELEASE -- --filter="*SystemTextJsonDeserializationBasic*"
 ```
 
 ## Results
 
-### SQL Inserts
+### SQL
+
+#### SQL Inserts
 | Method                                               | ObjectsPerSave | SaveIterations |         Mean |       Error |      StdDev |       Median |       Gen 0 |       Gen 1 |      Gen 2 |    Allocated |
 |------------------------------------------------------|----------------|----------------|-------------:|------------:|------------:|-------------:|------------:|------------:|-----------:|-------------:|
 | EfCoreInsert                                         | 1              | 100            |     848.3 ms |    29.37 ms |    85.69 ms |     874.5 ms |   1000.0000 |           - |          - |     5,213 KB |
@@ -53,8 +63,10 @@ sudo dotnet run -c RELEASE
 | NpgsqlInsert_Batched_TypedValue                      | 1000           | 100            |   3,778.0 ms |    75.53 ms |   180.98 ms |   3,805.5 ms |  18000.0000 |   9000.0000 |          - |   113,900 KB |
 | NpgsqlCopy                                           | 1000           | 100            |   1,465.1 ms |    37.71 ms |   110.60 ms |   1,441.9 ms |   3000.0000 |           - |          - |    15,777 KB |
 
+### JSON
 
-### Serialize
+#### Serialize
+
 | Method                                                 | Iterations |       Mean |    Error |   StdDev |    Gen 0 |    Gen 1 |   Gen 2 | Allocated |
 |--------------------------------------------------------|------------|-----------:|---------:|---------:|---------:|---------:|--------:|----------:|
 | NewtonsoftJson_Serialize_Scalars_Float                 | 1000       | 2,465.6 us | 11.18 us | 10.46 us | 375.0000 | 125.0000 |       - |  1,828 KB |
@@ -70,9 +82,9 @@ sudo dotnet run -c RELEASE
 
 
 
-### Deserialize
+#### Deserialize
 
-#### `System.Text.Json` Deserialization Tests
+##### `System.Text.Json` Deserialization Tests
 
 Note that `record` types **are much slower than `class` types.
 Also, `[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]` only `JsonSerializerContext` **do not improve performance at all**.
@@ -99,19 +111,23 @@ Also, `[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Me
 | NestedObjects_Arrays_NodaTime_Record                | 1000       | 2,939.7 us |   58.74 us |    69.92 us | 234.3750 | 117.1875 |   1,480,027 B |
 
 
-This table shows that it is not just `init`  properties that slow deserialization down. The mere use of `record` types uses **a large amount more of memory**,
+This table shows that it is not just `init`  properties, or `record` types that slow deserialization down, it is the use of *Constructors* that causes **a significant increase in memory utilization**,
 and takes about 25% longer.
 
-| Method                                 | Iterations | Mean [us] | Error [us] | StdDev [us] |   Gen 0 |   Gen 1 | Allocated [B] |
-|----------------------------------------|------------|----------:|-----------:|------------:|--------:|--------:|--------------:|
-| Scalars_Float_Class_WithInitProperties | 1000       |  546.7 us |    1.64 us |     1.54 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_SourceGen          | 1000       |  555.8 us |    3.15 us |     2.63 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class                    | 1000       |  557.3 us |    3.91 us |     3.47 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Class_Fields_SourceGen   | 1000       |  557.9 us |    5.55 us |     5.19 us | 18.5547 |  5.8594 |      88,025 B |
-| Scalars_Float_Record                   | 1000       |  702.8 us |    8.10 us |     7.58 us | 60.5469 | 19.5313 |     288,025 B |
+| Method                                               | Iterations |  Mean [us] | Error [us] | StdDev [us] |   Gen 0 |   Gen 1 | Allocated [B] |
+|------------------------------------------------------|------------|-----------:|-----------:|------------:|--------:|--------:|--------------:|
+| Scalars_Float_Record_Init_No_Constructor             | 1000       |   550.5 us |    2.71 us |     2.53 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Init_NoConstructor               | 1000       |   550.8 us |    1.99 us |     1.87 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor                | 1000       |   560.2 us |    1.10 us |     0.92 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor_SourceGen      | 1000       |   564.1 us |    2.60 us |     2.31 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Fields_NoConstructor_SourceGen   | 1000       |   573.6 us |    1.80 us |     1.50 us | 18.5547 |  5.8594 |      88,025 B |
+| Scalars_Float_Class_Set_NoConstructor_ReturningCount | 1000       |   589.6 us |    3.92 us |     3.27 us | 16.6016 |       - |      80,001 B |
+| Scalars_Float_Class_Init_Constructor                 | 1000       |   694.2 us |    3.63 us |     3.22 us | 60.5469 | 19.5313 |     288,025 B |
+| Scalars_Float_Record_Init_Constructor                | 1000       |   717.1 us |    2.01 us |     1.88 us | 60.5469 | 19.5313 |     288,025 B |
+| Scalars_Float_Class_Init_PartialConstructor          | 1000       | 1,009.5 us |    1.62 us |     1.44 us | 62.5000 | 19.5313 |     296,026 B |
 
 
-#### LevelOne
+##### LevelOne
 
 
 | Method                                                                               | Iterations | LevelOneJsonFile | WithSourceGenerationContext |      Mean |     Error |    StdDev |    Median |     Gen 0 |    Gen 1 | Allocated |
@@ -127,9 +143,9 @@ and takes about 25% longer.
 
 
 
-### Deserialize with Read-ahead for Type determination
+#### Deserialize with Read-ahead for Type determination
 
-#### Multiple
+##### Multiple
 | Method                                                                            | Iterations |      Mean |    Error |   StdDev |      Gen 0 |     Gen 1 | Allocated |
 |-----------------------------------------------------------------------------------|------------|----------:|---------:|---------:|-----------:|----------:|----------:|
 | SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerSingle_LevelOne | 1000       |  29.72 ms | 0.196 ms | 0.174 ms |  4093.7500 |  187.5000 |     18 MB |
@@ -138,7 +154,7 @@ and takes about 25% longer.
 | SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerPer_LevelOne    | 1000       |  56.94 ms | 1.036 ms | 0.969 ms | 14444.4444 |  666.6667 |     65 MB |
 | NewtonsoftJson_Deserialize_ReadAhead_LevelOne                                     | 1000       | 171.16 ms | 1.438 ms | 1.345 ms | 24000.0000 | 2000.0000 |    112 MB |
 
-#### Single
+##### Single
 | Method                                                                            | Iterations | LevelOneJsonFile |      Mean |     Error |    StdDev |     Gen 0 |    Gen 1 | Allocated |
 |-----------------------------------------------------------------------------------|------------|------------------|----------:|----------:|----------:|----------:|---------:|----------:|
 | SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerSingle_LevelOne | 1000       | Single           |  4.815 ms | 0.0790 ms | 0.0739 ms | 1335.9375 |  23.4375 |      6 MB |
@@ -182,3 +198,5 @@ and takes about 25% longer.
 | SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerPer_LevelOne    | 1000       | Multiple         | False                       |  62.105 ms | 0.3797 ms | 0.3552 ms | 14875.0000 |  750.0000 |     67 MB |
 | SystemTextJson_Utf8JsonReader_ReadAhead_Deserialize_JsonSerializerPer_LevelOne    | 1000       | Multiple         | True                        |  62.628 ms | 0.8557 ms | 0.8004 ms | 14888.8889 |  555.5556 |     67 MB |
 | NewtonsoftJson_Deserialize_ReadAhead_LevelOne                                     | 1000       | Multiple         | False                       | 174.842 ms | 1.2252 ms | 1.1461 ms | 24000.0000 | 2000.0000 |    112 MB |
+
+***

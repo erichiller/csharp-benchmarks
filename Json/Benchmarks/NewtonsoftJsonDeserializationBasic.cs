@@ -27,7 +27,7 @@ public class NewtonsoftJsonDeserializationBasic {
     public string[] NewtonsoftJson_Serialize_Scalars_Float( ) {
         string[] results = new string[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
-            results[ i ] = JsonConvert.SerializeObject( new ScalarsFloat( 1, "Hello World", 9.127f ), JsonNetSettings );
+            results[ i ] = JsonConvert.SerializeObject( new ScalarsFloatRecord( 1, "Hello World", 9.127f ), JsonNetSettings );
         }
 
         return results;
@@ -81,10 +81,10 @@ public class NewtonsoftJsonDeserializationBasic {
 
 
     [ Benchmark ]
-    public ScalarsFloat[] NewtonsoftJson_Deserialize_Scalars_Float( ) {
-        ScalarsFloat[] results = new ScalarsFloat[ Iterations ];
+    public ScalarsFloatRecord[] NewtonsoftJson_Deserialize_Scalars_Float( ) {
+        ScalarsFloatRecord[] results = new ScalarsFloatRecord[ Iterations ];
         for ( int i = 0 ; i < Iterations ; i++ ) {
-            results[ i ] = JsonConvert.DeserializeObject<ScalarsFloat>( ScalarsFloat.JSON, JsonNetSettings ) ?? throw new NullReferenceException();
+            results[ i ] = JsonConvert.DeserializeObject<ScalarsFloatRecord>( ScalarsFloatRecord.JSON, JsonNetSettings ) ?? throw new NullReferenceException();
         }
 
         return results;
