@@ -1,1 +1,2 @@
+# Should include: { "ConnectionStrings": { "default": "Myconnectionstring" } } 
 appsettings.json

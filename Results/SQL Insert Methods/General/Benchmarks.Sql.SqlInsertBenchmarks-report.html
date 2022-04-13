@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>BenchmarkRun-joined-2022-04-11-21-44-43</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.13.1, OS=ubuntu 21.04
+Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
+.NET SDK=6.0.201
+  [Host]     : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
+  DefaultJob : .NET 6.0.3 (6.0.322.12309), X64 RyuJIT
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>                                                              Method</th><th>ObjectsPerSave</th><th>SaveIterations</th><th>Mean [ms]</th><th>Error [ms]</th><th>StdDev [ms]</th><th>Median [ms]</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated [B]</th>
+</tr>
+</thead><tbody><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>1</td><td>10</td><td>7.389 ms</td><td>0.3061 ms</td><td>0.8978 ms</td><td>7.422 ms</td><td>-</td><td>-</td><td>-</td><td>5,327 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>1</td><td>10</td><td>7.607 ms</td><td>0.2594 ms</td><td>0.7483 ms</td><td>7.572 ms</td><td>-</td><td>-</td><td>-</td><td>17,381 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>1</td><td>10</td><td>7.614 ms</td><td>0.2180 ms</td><td>0.6324 ms</td><td>7.609 ms</td><td>-</td><td>-</td><td>-</td><td>5,887 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>1</td><td>10</td><td>7.860 ms</td><td>0.2671 ms</td><td>0.7834 ms</td><td>7.839 ms</td><td>-</td><td>-</td><td>-</td><td>17,555 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>1</td><td>10</td><td>8.220 ms</td><td>0.3287 ms</td><td>0.9587 ms</td><td>8.249 ms</td><td>-</td><td>-</td><td>-</td><td>18,116 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>1</td><td>10</td><td>8.283 ms</td><td>0.2834 ms</td><td>0.8221 ms</td><td>8.245 ms</td><td>-</td><td>-</td><td>-</td><td>17,555 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>1</td><td>10</td><td>8.487 ms</td><td>0.3335 ms</td><td>0.9782 ms</td><td>8.488 ms</td><td>-</td><td>-</td><td>-</td><td>17,948 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>2</td><td>10</td><td>8.488 ms</td><td>0.3149 ms</td><td>0.8985 ms</td><td>8.385 ms</td><td>-</td><td>-</td><td>-</td><td>18,653 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>10</td><td>10</td><td>8.493 ms</td><td>0.3423 ms</td><td>0.9931 ms</td><td>8.380 ms</td><td>-</td><td>-</td><td>-</td><td>31,448 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>2</td><td>10</td><td>8.511 ms</td><td>0.4514 ms</td><td>1.2804 ms</td><td>8.399 ms</td><td>-</td><td>-</td><td>-</td><td>32,567 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>2</td><td>10</td><td>8.513 ms</td><td>0.2883 ms</td><td>0.8317 ms</td><td>8.467 ms</td><td>-</td><td>-</td><td>-</td><td>29,176 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>1</td><td>10</td><td>8.522 ms</td><td>0.3300 ms</td><td>0.9520 ms</td><td>8.435 ms</td><td>-</td><td>-</td><td>-</td><td>17,555 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>2</td><td>10</td><td>8.622 ms</td><td>0.3767 ms</td><td>1.0989 ms</td><td>8.471 ms</td><td>-</td><td>-</td><td>-</td><td>18,956 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>10</td><td>10</td><td>8.633 ms</td><td>0.4077 ms</td><td>1.1827 ms</td><td>8.622 ms</td><td>-</td><td>-</td><td>-</td><td>31,786 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>2</td><td>10</td><td>8.714 ms</td><td>0.2948 ms</td><td>0.8553 ms</td><td>8.771 ms</td><td>-</td><td>-</td><td>-</td><td>28,839 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>10</td><td>10</td><td>8.784 ms</td><td>0.3637 ms</td><td>1.0495 ms</td><td>8.683 ms</td><td>7.8125</td><td>-</td><td>-</td><td>45,433 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>2</td><td>10</td><td>8.830 ms</td><td>0.2743 ms</td><td>0.8001 ms</td><td>8.864 ms</td><td>-</td><td>-</td><td>-</td><td>29,156 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>2</td><td>10</td><td>8.866 ms</td><td>0.3034 ms</td><td>0.8753 ms</td><td>8.942 ms</td><td>-</td><td>-</td><td>-</td><td>29,164 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>1</td><td>10</td><td>8.884 ms</td><td>0.3914 ms</td><td>1.1417 ms</td><td>8.913 ms</td><td>-</td><td>-</td><td>-</td><td>17,399 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>1</td><td>10</td><td>9.077 ms</td><td>0.4424 ms</td><td>1.2764 ms</td><td>8.920 ms</td><td>-</td><td>-</td><td>-</td><td>16,988 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>1</td><td>10</td><td>9.491 ms</td><td>0.6669 ms</td><td>1.9558 ms</td><td>8.711 ms</td><td>-</td><td>-</td><td>-</td><td>31,078 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>1</td><td>10</td><td>9.673 ms</td><td>0.5675 ms</td><td>1.6464 ms</td><td>9.653 ms</td><td>-</td><td>-</td><td>-</td><td>17,385 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>2</td><td>10</td><td>9.787 ms</td><td>0.4636 ms</td><td>1.3226 ms</td><td>9.707 ms</td><td>46.8750</td><td>-</td><td>-</td><td>245,237 B</td>
+</tr><tr><td>EfCoreInsert</td><td>1</td><td>10</td><td>9.933 ms</td><td>0.4946 ms</td><td>1.4190 ms</td><td>9.874 ms</td><td>39.0625</td><td>-</td><td>-</td><td>215,468 B</td>
+</tr><tr><td>EfCoreInsert</td><td>2</td><td>10</td><td>10.320 ms</td><td>0.6146 ms</td><td>1.7534 ms</td><td>9.983 ms</td><td>62.5000</td><td>-</td><td>-</td><td>336,312 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>1</td><td>10</td><td>10.476 ms</td><td>0.7894 ms</td><td>2.3028 ms</td><td>9.846 ms</td><td>31.2500</td><td>-</td><td>-</td><td>169,061 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>10</td><td>10</td><td>11.432 ms</td><td>0.5864 ms</td><td>1.7106 ms</td><td>11.615 ms</td><td>15.6250</td><td>-</td><td>-</td><td>123,736 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>100</td><td>10</td><td>11.825 ms</td><td>0.6932 ms</td><td>2.0220 ms</td><td>11.457 ms</td><td>31.2500</td><td>-</td><td>-</td><td>175,842 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>10</td><td>10</td><td>12.099 ms</td><td>0.4814 ms</td><td>1.3811 ms</td><td>12.002 ms</td><td>15.6250</td><td>-</td><td>-</td><td>123,736 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>10</td><td>10</td><td>12.434 ms</td><td>0.5515 ms</td><td>1.6261 ms</td><td>12.431 ms</td><td>15.6250</td><td>-</td><td>-</td><td>123,733 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>100</td><td>10</td><td>12.541 ms</td><td>0.5640 ms</td><td>1.6182 ms</td><td>12.360 ms</td><td>31.2500</td><td>-</td><td>-</td><td>175,466 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>10</td><td>10</td><td>12.745 ms</td><td>0.4876 ms</td><td>1.4069 ms</td><td>12.610 ms</td><td>15.6250</td><td>-</td><td>-</td><td>122,136 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>100</td><td>10</td><td>13.212 ms</td><td>0.6042 ms</td><td>1.7529 ms</td><td>13.273 ms</td><td>31.2500</td><td>-</td><td>-</td><td>189,425 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>2</td><td>10</td><td>14.093 ms</td><td>0.5125 ms</td><td>1.4868 ms</td><td>13.875 ms</td><td>-</td><td>-</td><td>-</td><td>8,768 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>10</td><td>10</td><td>14.119 ms</td><td>1.3719 ms</td><td>3.9802 ms</td><td>13.029 ms</td><td>156.2500</td><td>31.2500</td><td>-</td><td>854,218 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>2</td><td>10</td><td>14.753 ms</td><td>0.4039 ms</td><td>1.1782 ms</td><td>14.612 ms</td><td>-</td><td>-</td><td>-</td><td>9,900 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>2</td><td>10</td><td>14.909 ms</td><td>0.4430 ms</td><td>1.2568 ms</td><td>14.879 ms</td><td>-</td><td>-</td><td>-</td><td>32,240 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>2</td><td>10</td><td>15.985 ms</td><td>0.5169 ms</td><td>1.5078 ms</td><td>15.896 ms</td><td>-</td><td>-</td><td>-</td><td>35,573 B</td>
+</tr><tr><td>EfCoreInsert</td><td>10</td><td>10</td><td>16.264 ms</td><td>0.8828 ms</td><td>2.5187 ms</td><td>16.154 ms</td><td>250.0000</td><td>62.5000</td><td>-</td><td>1,301,135 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>2</td><td>10</td><td>16.410 ms</td><td>0.5310 ms</td><td>1.5321 ms</td><td>16.597 ms</td><td>-</td><td>-</td><td>-</td><td>35,870 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>2</td><td>10</td><td>22.587 ms</td><td>1.1090 ms</td><td>3.2700 ms</td><td>22.349 ms</td><td>-</td><td>-</td><td>-</td><td>18,799 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>2</td><td>10</td><td>22.608 ms</td><td>0.5456 ms</td><td>1.5829 ms</td><td>22.554 ms</td><td>-</td><td>-</td><td>-</td><td>32,942 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>10</td><td>10</td><td>22.608 ms</td><td>0.5147 ms</td><td>1.5094 ms</td><td>22.583 ms</td><td>-</td><td>-</td><td>-</td><td>45,609 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>10</td><td>10</td><td>23.212 ms</td><td>0.7548 ms</td><td>2.2019 ms</td><td>22.914 ms</td><td>-</td><td>-</td><td>-</td><td>45,665 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>10</td><td>10</td><td>23.295 ms</td><td>1.0845 ms</td><td>3.1636 ms</td><td>22.958 ms</td><td>-</td><td>-</td><td>-</td><td>31,622 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>2</td><td>10</td><td>23.424 ms</td><td>0.7140 ms</td><td>2.1053 ms</td><td>23.305 ms</td><td>-</td><td>-</td><td>-</td><td>32,878 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>1</td><td>10</td><td>24.123 ms</td><td>0.7089 ms</td><td>2.0678 ms</td><td>23.942 ms</td><td>-</td><td>-</td><td>-</td><td>31,363 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>1</td><td>10</td><td>24.183 ms</td><td>0.7393 ms</td><td>2.1682 ms</td><td>23.925 ms</td><td>-</td><td>-</td><td>-</td><td>31,355 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>100</td><td>10</td><td>25.228 ms</td><td>0.7817 ms</td><td>2.2177 ms</td><td>25.214 ms</td><td>31.2500</td><td>-</td><td>-</td><td>189,586 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>100</td><td>10</td><td>25.234 ms</td><td>1.0066 ms</td><td>2.9204 ms</td><td>24.442 ms</td><td>-</td><td>-</td><td>-</td><td>189,838 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>1</td><td>10</td><td>25.257 ms</td><td>1.4324 ms</td><td>4.1783 ms</td><td>25.391 ms</td><td>-</td><td>-</td><td>-</td><td>17,211 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>100</td><td>10</td><td>25.653 ms</td><td>1.6145 ms</td><td>4.7097 ms</td><td>24.583 ms</td><td>-</td><td>-</td><td>-</td><td>175,651 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>100</td><td>10</td><td>27.672 ms</td><td>0.5437 ms</td><td>1.0983 ms</td><td>27.369 ms</td><td>250.0000</td><td>62.5000</td><td>-</td><td>1,192,568 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>100</td><td>10</td><td>27.709 ms</td><td>0.5485 ms</td><td>1.3558 ms</td><td>27.196 ms</td><td>230.7692</td><td>76.9231</td><td>-</td><td>1,176,658 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>100</td><td>10</td><td>28.009 ms</td><td>0.5511 ms</td><td>1.2440 ms</td><td>27.804 ms</td><td>250.0000</td><td>62.5000</td><td>-</td><td>1,192,568 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>100</td><td>10</td><td>28.756 ms</td><td>0.6222 ms</td><td>1.7752 ms</td><td>28.220 ms</td><td>250.0000</td><td>62.5000</td><td>-</td><td>1,192,562 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>100</td><td>10</td><td>52.924 ms</td><td>2.4648 ms</td><td>7.0721 ms</td><td>51.759 ms</td><td>1272.7273</td><td>636.3636</td><td>-</td><td>7,679,636 B</td>
+</tr><tr><td>EfCoreInsert</td><td>100</td><td>10</td><td>57.632 ms</td><td>2.0989 ms</td><td>6.1556 ms</td><td>56.418 ms</td><td>1888.8889</td><td>555.5556</td><td>-</td><td>12,126,790 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>10</td><td>10</td><td>70.377 ms</td><td>2.4523 ms</td><td>7.1534 ms</td><td>69.439 ms</td><td>-</td><td>-</td><td>-</td><td>36,398 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>10</td><td>10</td><td>71.967 ms</td><td>2.4015 ms</td><td>7.0053 ms</td><td>71.591 ms</td><td>-</td><td>-</td><td>-</td><td>41,987 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>10</td><td>10</td><td>73.697 ms</td><td>3.1551 ms</td><td>9.2533 ms</td><td>73.615 ms</td><td>-</td><td>-</td><td>-</td><td>150,576 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>1</td><td>100</td><td>75.151 ms</td><td>2.7974 ms</td><td>8.0712 ms</td><td>74.618 ms</td><td>-</td><td>-</td><td>-</td><td>41,957 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>1</td><td>100</td><td>76.903 ms</td><td>2.9750 ms</td><td>8.5358 ms</td><td>76.921 ms</td><td>-</td><td>-</td><td>-</td><td>36,383 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>1</td><td>100</td><td>77.455 ms</td><td>3.8609 ms</td><td>11.3234 ms</td><td>74.846 ms</td><td>-</td><td>-</td><td>-</td><td>150,792 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>10</td><td>10</td><td>79.085 ms</td><td>3.3097 ms</td><td>9.5491 ms</td><td>78.419 ms</td><td>-</td><td>-</td><td>-</td><td>176,528 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>10</td><td>10</td><td>80.709 ms</td><td>3.3258 ms</td><td>9.8062 ms</td><td>79.486 ms</td><td>-</td><td>-</td><td>-</td><td>178,097 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>1</td><td>100</td><td>80.829 ms</td><td>4.0552 ms</td><td>11.8293 ms</td><td>80.851 ms</td><td>-</td><td>-</td><td>-</td><td>168,211 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>1</td><td>100</td><td>81.071 ms</td><td>3.5500 ms</td><td>10.1283 ms</td><td>79.863 ms</td><td>-</td><td>-</td><td>-</td><td>172,562 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>1</td><td>100</td><td>81.926 ms</td><td>3.7293 ms</td><td>10.8195 ms</td><td>80.950 ms</td><td>-</td><td>-</td><td>-</td><td>170,928 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>1</td><td>100</td><td>82.569 ms</td><td>3.2659 ms</td><td>9.6297 ms</td><td>81.477 ms</td><td>-</td><td>-</td><td>-</td><td>172,528 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>1</td><td>100</td><td>82.621 ms</td><td>4.4623 ms</td><td>12.8748 ms</td><td>80.862 ms</td><td>-</td><td>-</td><td>-</td><td>303,965 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>1</td><td>100</td><td>84.430 ms</td><td>3.7234 ms</td><td>10.9787 ms</td><td>83.940 ms</td><td>-</td><td>-</td><td>-</td><td>172,504 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>10</td><td>100</td><td>84.444 ms</td><td>3.3412 ms</td><td>9.5325 ms</td><td>84.733 ms</td><td>-</td><td>-</td><td>-</td><td>315,991 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>1</td><td>100</td><td>84.691 ms</td><td>4.1951 ms</td><td>12.2374 ms</td><td>82.207 ms</td><td>-</td><td>-</td><td>-</td><td>178,097 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>2</td><td>100</td><td>85.341 ms</td><td>4.6991 ms</td><td>13.7817 ms</td><td>83.596 ms</td><td>-</td><td>-</td><td>-</td><td>187,933 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>1</td><td>100</td><td>86.282 ms</td><td>3.8741 ms</td><td>11.3009 ms</td><td>86.690 ms</td><td>-</td><td>-</td><td>-</td><td>176,509 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>10</td><td>100</td><td>87.022 ms</td><td>4.3142 ms</td><td>12.4473 ms</td><td>84.884 ms</td><td>-</td><td>-</td><td>-</td><td>450,018 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>1</td><td>100</td><td>88.900 ms</td><td>4.5950 ms</td><td>13.4039 ms</td><td>87.653 ms</td><td>-</td><td>-</td><td>-</td><td>171,806 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>2</td><td>100</td><td>89.231 ms</td><td>5.2517 ms</td><td>15.1523 ms</td><td>89.327 ms</td><td>-</td><td>-</td><td>-</td><td>184,658 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>2</td><td>100</td><td>91.654 ms</td><td>3.4918 ms</td><td>10.1858 ms</td><td>89.455 ms</td><td>-</td><td>-</td><td>-</td><td>288,528 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>2</td><td>100</td><td>92.092 ms</td><td>4.4397 ms</td><td>13.0209 ms</td><td>89.911 ms</td><td>-</td><td>-</td><td>-</td><td>285,362 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>2</td><td>100</td><td>92.487 ms</td><td>4.5390 ms</td><td>13.3121 ms</td><td>90.349 ms</td><td>-</td><td>-</td><td>-</td><td>288,562 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>2</td><td>100</td><td>92.570 ms</td><td>7.4119 ms</td><td>21.8542 ms</td><td>84.823 ms</td><td>-</td><td>-</td><td>-</td><td>319,798 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>2</td><td>100</td><td>93.614 ms</td><td>4.2055 ms</td><td>12.2010 ms</td><td>91.807 ms</td><td>-</td><td>-</td><td>-</td><td>288,528 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>10</td><td>100</td><td>94.887 ms</td><td>5.3361 ms</td><td>15.4809 ms</td><td>94.829 ms</td><td>-</td><td>-</td><td>-</td><td>312,895 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>2</td><td>100</td><td>96.493 ms</td><td>6.7871 ms</td><td>19.4734 ms</td><td>94.703 ms</td><td>333.3333</td><td>-</td><td>-</td><td>2,002,695 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>1</td><td>100</td><td>101.094 ms</td><td>7.9073 ms</td><td>22.8145 ms</td><td>99.576 ms</td><td>166.6667</td><td>-</td><td>-</td><td>1,246,628 B</td>
+</tr><tr><td>EfCoreInsert</td><td>2</td><td>100</td><td>113.414 ms</td><td>9.7419 ms</td><td>28.2631 ms</td><td>105.983 ms</td><td>2000.0000</td><td>-</td><td>-</td><td>10,190,424 B</td>
+</tr><tr><td>EfCoreInsert</td><td>1</td><td>100</td><td>121.109 ms</td><td>9.7366 ms</td><td>28.5557 ms</td><td>114.052 ms</td><td>1000.0000</td><td>166.6667</td><td>-</td><td>5,351,041 B</td>
+</tr><tr><td>NpgsqlCopyToPartitionTable</td><td>100</td><td>100</td><td>127.854 ms</td><td>7.5400 ms</td><td>21.5120 ms</td><td>125.006 ms</td><td>250.0000</td><td>-</td><td>-</td><td>1,756,354 B</td>
+</tr><tr><td>NpgsqlCopyAsync</td><td>100</td><td>100</td><td>128.236 ms</td><td>7.5311 ms</td><td>21.8492 ms</td><td>125.134 ms</td><td>400.0000</td><td>-</td><td>-</td><td>1,890,426 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>10</td><td>100</td><td>134.447 ms</td><td>8.0417 ms</td><td>23.4579 ms</td><td>133.638 ms</td><td>250.0000</td><td>-</td><td>-</td><td>1,218,212 B</td>
+</tr><tr><td>NpgsqlCopy</td><td>100</td><td>100</td><td>136.450 ms</td><td>9.8470 ms</td><td>28.5680 ms</td><td>132.015 ms</td><td>250.0000</td><td>-</td><td>-</td><td>1,753,522 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>10</td><td>100</td><td>136.510 ms</td><td>7.7405 ms</td><td>22.5794 ms</td><td>132.508 ms</td><td>200.0000</td><td>-</td><td>-</td><td>1,234,168 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>10</td><td>100</td><td>138.078 ms</td><td>7.7998 ms</td><td>22.8755 ms</td><td>136.154 ms</td><td>250.0000</td><td>-</td><td>-</td><td>1,234,212 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>10</td><td>100</td><td>138.723 ms</td><td>7.9501 ms</td><td>23.0648 ms</td><td>136.624 ms</td><td>250.0000</td><td>-</td><td>-</td><td>1,234,212 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>10</td><td>100</td><td>139.149 ms</td><td>11.4348 ms</td><td>32.6242 ms</td><td>135.089 ms</td><td>1400.0000</td><td>600.0000</td><td>-</td><td>8,034,198 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>2</td><td>100</td><td>144.550 ms</td><td>5.4019 ms</td><td>15.8427 ms</td><td>143.770 ms</td><td>-</td><td>-</td><td>-</td><td>82,148 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>2</td><td>100</td><td>151.648 ms</td><td>5.3719 ms</td><td>15.7548 ms</td><td>151.185 ms</td><td>-</td><td>-</td><td>-</td><td>298,876 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>2</td><td>100</td><td>151.798 ms</td><td>5.5228 ms</td><td>16.1974 ms</td><td>150.853 ms</td><td>-</td><td>-</td><td>-</td><td>70,932 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>2</td><td>100</td><td>160.169 ms</td><td>6.7772 ms</td><td>19.8763 ms</td><td>159.982 ms</td><td>-</td><td>-</td><td>-</td><td>352,696 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>2</td><td>100</td><td>164.546 ms</td><td>6.6332 ms</td><td>19.4540 ms</td><td>162.702 ms</td><td>-</td><td>-</td><td>-</td><td>355,812 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>1</td><td>100</td><td>214.436 ms</td><td>4.7337 ms</td><td>13.8083 ms</td><td>214.094 ms</td><td>-</td><td>-</td><td>-</td><td>307,456 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>1</td><td>100</td><td>214.573 ms</td><td>5.2939 ms</td><td>14.8445 ms</td><td>213.600 ms</td><td>-</td><td>-</td><td>-</td><td>305,640 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>2</td><td>100</td><td>215.386 ms</td><td>5.6785 ms</td><td>16.3837 ms</td><td>213.066 ms</td><td>-</td><td>-</td><td>-</td><td>321,648 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>2</td><td>100</td><td>219.073 ms</td><td>5.4352 ms</td><td>16.0259 ms</td><td>218.970 ms</td><td>-</td><td>-</td><td>-</td><td>322,845 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>10</td><td>100</td><td>221.900 ms</td><td>5.7014 ms</td><td>16.8106 ms</td><td>221.149 ms</td><td>-</td><td>-</td><td>-</td><td>451,147 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>10</td><td>100</td><td>223.887 ms</td><td>6.6759 ms</td><td>19.2616 ms</td><td>224.266 ms</td><td>-</td><td>-</td><td>-</td><td>451,155 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>10</td><td>100</td><td>227.737 ms</td><td>9.6472 ms</td><td>28.4449 ms</td><td>225.869 ms</td><td>-</td><td>-</td><td>-</td><td>314,061 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>2</td><td>100</td><td>228.556 ms</td><td>11.4511 ms</td><td>33.2219 ms</td><td>224.152 ms</td><td>-</td><td>-</td><td>-</td><td>185,877 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>1</td><td>100</td><td>229.591 ms</td><td>9.8735 ms</td><td>28.8014 ms</td><td>226.429 ms</td><td>-</td><td>-</td><td>-</td><td>169,816 B</td>
+</tr><tr><td>EfCoreInsert</td><td>10</td><td>100</td><td>250.450 ms</td><td>19.9844 ms</td><td>57.6594 ms</td><td>236.789 ms</td><td>10000.0000</td><td>1000.0000</td><td>-</td><td>48,867,088 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsync</td><td>100</td><td>100</td><td>252.574 ms</td><td>8.0473 ms</td><td>22.6976 ms</td><td>249.936 ms</td><td>333.3333</td><td>-</td><td>-</td><td>1,891,448 B</td>
+</tr><tr><td>NpgsqlCopyWithWorkAsyncConfigureAwaitFalse</td><td>100</td><td>100</td><td>252.948 ms</td><td>7.0243 ms</td><td>20.0406 ms</td><td>248.620 ms</td><td>333.3333</td><td>-</td><td>-</td><td>1,890,251 B</td>
+</tr><tr><td>NpgsqlCopyWithWork</td><td>100</td><td>100</td><td>265.488 ms</td><td>15.2679 ms</td><td>45.0178 ms</td><td>264.743 ms</td><td>333.3333</td><td>-</td><td>-</td><td>1,753,816 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue</td><td>100</td><td>100</td><td>268.199 ms</td><td>3.4410 ms</td><td>2.6865 ms</td><td>267.712 ms</td><td>2500.0000</td><td>500.0000</td><td>-</td><td>11,925,568 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_Value</td><td>100</td><td>100</td><td>270.015 ms</td><td>4.3197 ms</td><td>5.9128 ms</td><td>268.141 ms</td><td>2500.0000</td><td>500.0000</td><td>-</td><td>11,923,972 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value</td><td>100</td><td>100</td><td>270.315 ms</td><td>4.7210 ms</td><td>5.4367 ms</td><td>269.446 ms</td><td>2500.0000</td><td>500.0000</td><td>-</td><td>11,923,972 B</td>
+</tr><tr><td>NpgsqlInsert_Batched_TypedValue</td><td>100</td><td>100</td><td>273.341 ms</td><td>4.8191 ms</td><td>3.7624 ms</td><td>273.563 ms</td><td>2500.0000</td><td>500.0000</td><td>-</td><td>11,765,604 B</td>
+</tr><tr><td>EfCoreInsert_NoAutoDetectChanges_NoQueryTracking</td><td>100</td><td>100</td><td>532.815 ms</td><td>28.2682 ms</td><td>82.0113 ms</td><td>513.209 ms</td><td>12000.0000</td><td>3000.0000</td><td>-</td><td>75,483,952 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>100</td><td>10</td><td>713.710 ms</td><td>25.5601 ms</td><td>74.1545 ms</td><td>715.708 ms</td><td>-</td><td>-</td><td>-</td><td>346,888 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>100</td><td>10</td><td>738.062 ms</td><td>20.9958 ms</td><td>61.2456 ms</td><td>735.745 ms</td><td>-</td><td>-</td><td>-</td><td>1,483,816 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>100</td><td>10</td><td>741.285 ms</td><td>22.4201 ms</td><td>64.6871 ms</td><td>741.322 ms</td><td>-</td><td>-</td><td>-</td><td>402,904 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>10</td><td>100</td><td>744.936 ms</td><td>21.6972 ms</td><td>62.9474 ms</td><td>732.383 ms</td><td>-</td><td>-</td><td>-</td><td>402,720 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>10</td><td>100</td><td>748.416 ms</td><td>31.8767 ms</td><td>92.4801 ms</td><td>739.582 ms</td><td>-</td><td>-</td><td>-</td><td>1,483,632 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>10</td><td>100</td><td>755.461 ms</td><td>24.8008 ms</td><td>71.9515 ms</td><td>747.696 ms</td><td>-</td><td>-</td><td>-</td><td>346,888 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>100</td><td>10</td><td>774.169 ms</td><td>20.4970 ms</td><td>58.8098 ms</td><td>777.870 ms</td><td>-</td><td>-</td><td>-</td><td>1,777,368 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>100</td><td>10</td><td>807.361 ms</td><td>24.3752 ms</td><td>69.5438 ms</td><td>802.450 ms</td><td>-</td><td>-</td><td>-</td><td>1,761,184 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>10</td><td>100</td><td>828.554 ms</td><td>30.1801 ms</td><td>87.5578 ms</td><td>824.009 ms</td><td>-</td><td>-</td><td>-</td><td>1,761,368 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>10</td><td>100</td><td>839.155 ms</td><td>35.2622 ms</td><td>103.4180 ms</td><td>828.578 ms</td><td>-</td><td>-</td><td>-</td><td>1,777,368 B</td>
+</tr><tr><td>EfCoreInsert</td><td>100</td><td>100</td><td>1,056.022 ms</td><td>20.4512 ms</td><td>18.1295 ms</td><td>1,050.361 ms</td><td>89000.0000</td><td>25000.0000</td><td>1000.0000</td><td>483,597,072 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue_Prepared</td><td>100</td><td>100</td><td>7,235.320 ms</td><td>142.7902 ms</td><td>242.4685 ms</td><td>7,240.602 ms</td><td>-</td><td>-</td><td>-</td><td>3,442,368 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared</td><td>100</td><td>100</td><td>7,290.868 ms</td><td>145.3492 ms</td><td>300.1714 ms</td><td>7,242.689 ms</td><td>-</td><td>-</td><td>-</td><td>4,001,832 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async</td><td>100</td><td>100</td><td>7,472.041 ms</td><td>148.5431 ms</td><td>335.2866 ms</td><td>7,474.613 ms</td><td>3000.0000</td><td>-</td><td>-</td><td>14,798,648 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_TypedValue</td><td>100</td><td>100</td><td>7,880.655 ms</td><td>156.2698 ms</td><td>277.7694 ms</td><td>7,916.975 ms</td><td>3000.0000</td><td>-</td><td>-</td><td>17,601,032 B</td>
+</tr><tr><td>NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue</td><td>100</td><td>100</td><td>8,002.440 ms</td><td>159.5381 ms</td><td>356.8298 ms</td><td>8,048.477 ms</td><td>3000.0000</td><td>-</td><td>-</td><td>17,760,848 B</td>
+</tr></tbody></table>
+</body>
+</html>
