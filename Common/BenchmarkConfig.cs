@@ -7,6 +7,7 @@ using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Reports;
 
@@ -26,7 +27,8 @@ public class BenchmarkConfig : ManualConfig {
         
         // UnionRule = ConfigUnionRule.AlwaysUseLocal;
         WithSummaryStyle( new SummaryStyle(
-                              cultureInfo: CultureInfo.CurrentCulture,
+                              // cultureInfo: CultureInfo.CurrentCulture,
+                              cultureInfo: CultureInfo.CreateSpecificCulture("en-US"),
                               sizeUnit: SizeUnit.B,
                               printUnitsInHeader: true,
                               timeUnit: null,
@@ -42,6 +44,8 @@ public class BenchmarkConfig : ManualConfig {
             JsonExporter.Default //, // TODO: re-enable
             // RPlotExporter.Default // TODO: re-enable
         );
+        this.
+        AddJob( new Job( "Select" ) { Environment = { EnvironmentVariables = new[] { new EnvironmentVariable( "Autosummarize", "on" ) } } } );
         
         // AddLogger( new Logger1(), new Logger2() );
         AddLogger( new ILogger[] { new BenchmarkDotNet.Loggers.ConsoleLogger( ) } );

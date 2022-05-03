@@ -164,6 +164,62 @@ sudo dotnet run -c RELEASE -- --filter="*SystemTextJsonDeserializationBasic*"
 | NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue                | 100            | 100            | 8,002.440 ms | 159.5381 ms | 356.8298 ms | 8,048.477 ms |  3000.0000 |          - |         - |  17,760,848 B |
 
 
+##### With more complex `ComplexTestObject`
+
+With more columns, `COPY` take a clear lead.
+
+| Method                                                               | ObjectsPerSave | SaveIterations |  Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |      Gen 0 |     Gen 1 | Allocated [B] |
+|----------------------------------------------------------------------|----------------|----------------|-----------:|-----------:|------------:|------------:|-----------:|----------:|--------------:|
+| NpgsqlCopy                                                           | 2              | 10             |   5.979 ms |  0.1189 ms |   0.3112 ms |    5.961 ms |     7.8125 |         - |      39,648 B |
+| NpgsqlCopy                                                           | 10             | 10             |   6.607 ms |  0.1401 ms |   0.4066 ms |    6.522 ms |     7.8125 |         - |      65,947 B |
+| EfCoreInsert_NoAutoDetectChanges_NoQueryTracking                     | 2              | 10             |   8.307 ms |  0.2130 ms |   0.6042 ms |    8.108 ms |    62.5000 |         - |     357,288 B |
+| EfCoreInsert                                                         | 2              | 10             |   8.762 ms |  0.2378 ms |   0.6861 ms |    8.580 ms |    93.7500 |   15.6250 |     488,013 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared | 2              | 10             |  10.449 ms |  0.2485 ms |   0.7208 ms |   10.363 ms |          - |         - |      16,788 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue          | 2              | 10             |  10.827 ms |  0.3179 ms |   0.8595 ms |   10.563 ms |          - |         - |      66,718 B |
+| NpgSqlInsert_SingularCommand_TypedValue_Prepared                     | 2              | 10             |  10.965 ms |  0.2547 ms |   0.7390 ms |   10.984 ms |          - |         - |      13,340 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue           | 2              | 10             |  11.379 ms |  0.2447 ms |   0.7138 ms |   11.360 ms |          - |         - |      63,244 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue          | 2              | 10             |  11.386 ms |  0.2592 ms |   0.7436 ms |   11.355 ms |          - |         - |      64,681 B |
+| NpgSqlInsert_SingularCommand_TypedValue                              | 2              | 10             |  11.691 ms |  0.2690 ms |   0.7888 ms |   11.735 ms |          - |         - |      63,236 B |
+| EfCoreInsert_NoAutoDetectChanges_NoQueryTracking                     | 10             | 10             |  12.791 ms |  0.2402 ms |   0.5802 ms |   12.776 ms |   296.8750 |   93.7500 |   1,398,330 B |
+| EfCoreInsert                                                         | 10             | 10             |  14.690 ms |  0.2912 ms |   0.7824 ms |   14.621 ms |   421.8750 |  140.6250 |   2,043,450 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared | 10             | 10             |  51.719 ms |  1.1283 ms |   3.2913 ms |   51.210 ms |          - |         - |      71,274 B |
+| NpgSqlInsert_SingularCommand_TypedValue_Prepared                     | 10             | 10             |  52.791 ms |  1.3933 ms |   3.9977 ms |   52.458 ms |          - |         - |      54,397 B |
+| NpgSqlInsert_SingularCommand_TypedValue                              | 10             | 10             |  56.948 ms |  1.6744 ms |   4.7771 ms |   56.296 ms |          - |         - |     314,863 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue           | 10             | 10             |  57.287 ms |  1.5379 ms |   4.4372 ms |   56.967 ms |          - |         - |     314,852 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue          | 10             | 10             |  57.724 ms |  1.7283 ms |   5.0688 ms |   57.163 ms |          - |         - |     331,672 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue          | 10             | 10             |  57.882 ms |  1.5635 ms |   4.5608 ms |   56.830 ms |          - |         - |     322,006 B |
+| NpgsqlCopy                                                           | 2              | 100            |  59.376 ms |  1.4250 ms |   4.0886 ms |   58.194 ms |          - |         - |     394,348 B |
+| NpgsqlCopy                                                           | 10             | 100            |  64.760 ms |  1.5839 ms |   4.5953 ms |   64.288 ms |   125.0000 |         - |     658,007 B |
+| EfCoreInsert_NoAutoDetectChanges_NoQueryTracking                     | 2              | 100            |  77.698 ms |  1.5477 ms |   3.8254 ms |   77.009 ms |   571.4286 |  142.8571 |   3,109,686 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared | 2              | 100            | 100.856 ms |  2.0459 ms |   5.7370 ms |  100.128 ms |          - |         - |     139,357 B |
+| NpgSqlInsert_SingularCommand_TypedValue_Prepared                     | 2              | 100            | 101.461 ms |  1.9608 ms |   5.4335 ms |  100.726 ms |          - |         - |     105,698 B |
+| EfCoreInsert                                                         | 2              | 100            | 107.150 ms |  2.1401 ms |   5.9656 ms |  106.530 ms |  3000.0000 |  250.0000 |  14,931,716 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue          | 2              | 100            | 110.293 ms |  2.4828 ms |   7.2029 ms |  110.000 ms |          - |         - |     643,762 B |
+| NpgSqlInsert_SingularCommand_TypedValue                              | 2              | 100            | 111.390 ms |  2.2511 ms |   6.5664 ms |  111.212 ms |          - |         - |     629,325 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue          | 2              | 100            | 112.477 ms |  2.8215 ms |   8.0954 ms |  112.921 ms |          - |         - |     662,894 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue           | 2              | 100            | 114.620 ms |  3.7625 ms |  11.0347 ms |  112.522 ms |          - |         - |     629,496 B |
+| EfCoreInsert_NoAutoDetectChanges_NoQueryTracking                     | 10             | 100            | 123.373 ms |  2.1820 ms |   5.2699 ms |  122.051 ms |  2250.0000 |  500.0000 |  13,413,148 B |
+| EfCoreInsert                                                         | 10             | 100            | 245.048 ms |  4.8435 ms |   9.3318 ms |  242.024 ms | 14500.0000 | 1000.0000 |  72,427,752 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared | 10             | 100            | 510.520 ms |  9.5923 ms |  24.7608 ms |  513.620 ms |          - |         - |     684,200 B |
+| NpgSqlInsert_SingularCommand_TypedValue_Prepared                     | 10             | 100            | 516.918 ms | 10.2037 ms |  29.1116 ms |  515.552 ms |          - |         - |     516,104 B |
+| NpgSqlInsert_SingularCommand_TypedValue                              | 10             | 100            | 570.162 ms | 14.6747 ms |  42.5739 ms |  560.647 ms |          - |         - |   3,145,368 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue          | 10             | 100            | 571.702 ms | 15.2041 ms |  44.1099 ms |  576.605 ms |          - |         - |   3,313,368 B |
+| NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue          | 10             | 100            | 580.033 ms | 16.6669 ms |  48.8812 ms |  574.946 ms |          - |         - |   3,217,368 B |
+| NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue           | 10             | 100            | 584.305 ms | 14.5471 ms |  41.9716 ms |  584.282 ms |          - |         - |   3,145,368 B |
+
+
+##### `COPY` methods
+
+| Method                      | ObjectsPerSave | SaveIterations | Mean [ms] | Error [ms] | StdDev [ms] |    Gen 0 | Allocated [B] |
+|-----------------------------|----------------|----------------|----------:|-----------:|------------:|---------:|--------------:|
+| NpgsqlCopyWithTypesAsString | 2              | 100            |  75.23 ms |   4.911 ms |    14.32 ms |        - |     190,234 B |
+| NpgsqlCopy                  | 2              | 100            |  76.10 ms |   5.404 ms |    15.85 ms |        - |     190,281 B |
+| NpgsqlCopy                  | 100            | 100            | 107.51 ms |   6.757 ms |    19.71 ms | 333.3333 |   1,759,355 B |
+| NpgsqlCopyWithTypesAsString | 100            | 100            | 109.43 ms |   9.134 ms |    26.93 ms | 250.0000 |   1,759,418 B |
+
+***Non-significant difference between using `NpgsqlDbType` and `string` to provide `Copy()` with database type information.***
+
+
 ##### `NpgsqlConnection` time
 
 | Method                           | Iterations | Mean [ms] | Error [ms] | StdDev [ms] | Allocated [B] |
@@ -176,6 +232,19 @@ sudo dotnet run -c RELEASE -- --filter="*SystemTextJsonDeserializationBasic*"
 ##### Partition Tables
 
 _See `Results/` folder for details
+
+| Method                            | Iterations | RangeSize |   Mean [ms] | Error [ms] | StdDev [ms] | Allocated [B] |
+|-----------------------------------|------------|-----------|------------:|-----------:|------------:|--------------:|
+| 'B-Tree index on normal table'    | 200        | 1000      |    46.90 ms |   0.853 ms |    1.891 ms |     258,232 B |
+| 'B-Tree index on Partition Table' | 200        | 1000      |    50.96 ms |   0.986 ms |    1.316 ms |     270,842 B |
+| 'B-Tree index on normal table'    | 200        | 10000     |   194.49 ms |   3.386 ms |    3.002 ms |     258,968 B |
+| 'B-Tree index on Partition Table' | 200        | 10000     |   211.56 ms |   1.157 ms |    0.903 ms |     271,595 B |
+| 'BRIN index on Partition Table'   | 200        | 1000      |   417.49 ms |   4.821 ms |    4.509 ms |     271,768 B |
+| 'BRIN index on Partition Table'   | 200        | 10000     |   431.61 ms |   3.445 ms |    3.054 ms |     271,768 B |
+| 'B-Tree index on normal table'    | 200        | 100000    | 1,542.42 ms |   6.848 ms |    6.405 ms |     262,168 B |
+| 'B-Tree index on Partition Table' | 200        | 100000    | 1,703.65 ms |   1.790 ms |    1.495 ms |     271,768 B |
+| 'BRIN index on Partition Table'   | 200        | 100000    | 4,082.63 ms |  64.758 ms |   60.575 ms |     272,760 B |
+
 
 ###### Server `shared_memory` set to `128MB`
 
