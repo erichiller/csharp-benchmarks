@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sql", "Sql\Sql.csproj", "{5
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Json", "Json\Json.csproj", "{E6B814A2-D476-4718-90F6-0749C760E83B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rpc", "Rpc\Rpc.csproj", "{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rpc", "Rpc\Rpc\Rpc.csproj", "{0BEBA0AA-BE4F-4C78-A891-26FBE07B29EC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{806B647D-6FCB-4006-B19D-0EA2E4B01E06}"
 EndProject
@@ -22,7 +22,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rpc", "Rpc", "{560A4C33-3CE
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Worker", "Worker", "{0D7255BB-B59C-494F-BBDA-2530B6384736}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Definitions", "Rpc\Worker\Definitions\Definitions.csproj", "{FA28D34C-DBA4-435B-8D5A-E0A7ACA112C5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Rpc\Worker\Shared\Shared.csproj", "{FA28D34C-DBA4-435B-8D5A-E0A7ACA112C5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Rpc\Worker\Client\Client.csproj", "{F6EDE7E1-E6FD-45B3-A8AE-8811BBE3A3E7}"
 EndProject

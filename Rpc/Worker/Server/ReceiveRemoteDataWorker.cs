@@ -8,16 +8,16 @@ using Benchmarks.Rpc.Worker.Shared;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Benchmarks.Rpc.Worker.Client;
+namespace Benchmarks.Rpc.Worker.Server;
 
 public class ReceiveRemoteDataWorker : BackgroundService {
-    private readonly ILogger<ReceiveRemoteDataWorker>                        _logger;
-    private readonly Random                                                  _random;
-    private readonly System.Threading.Channels.ChannelWriter<CounterRequest> _channelWriter;
+    private readonly ILogger<ReceiveRemoteDataWorker>                      _logger;
+    private readonly Random                                                _random;
+    private readonly System.Threading.Channels.ChannelWriter<CounterReply> _channelWriter;
 
     private const int DELAY_MS = 1000;
 
-    public ReceiveRemoteDataWorker( ILogger<ReceiveRemoteDataWorker> logger, Channel<CounterRequest> channel ) {
+    public ReceiveRemoteDataWorker( ILogger<ReceiveRemoteDataWorker> logger, Channel<CounterReply> channel ) {
         _logger        = logger;
         _random        = new Random();
         _channelWriter = channel.Writer;
@@ -33,8 +33,8 @@ public class ReceiveRemoteDataWorker : BackgroundService {
             var count = _random.Next( 1, 10 );
 
             _logger.LogInformation( "Adding to Channel count {count} at: {time}", count, DateTimeOffset.Now );
-            var request = new CounterRequest { Count = count };
-            _channelWriter.TryWrite( request );
+            var reply = new CounterReply { Count = count };
+            _channelWriter.TryWrite( reply );
 
             await Task.Delay( DELAY_MS, stoppingToken );
         }

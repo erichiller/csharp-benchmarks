@@ -8,7 +8,7 @@ using System.ServiceModel;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Benchmarks.Rpc.Worker.Definitions;
+namespace Benchmarks.Rpc.Worker.Shared;
 
 /* worker service */
 

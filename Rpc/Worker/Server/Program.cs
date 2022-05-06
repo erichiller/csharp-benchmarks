@@ -1,3 +1,7 @@
+using System.Threading.Channels;
+
+using Benchmarks.Rpc.Worker.Shared;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +37,11 @@ public class Program {
  */
 public class Startup {
     public void ConfigureServices( IServiceCollection services ) {
+        
+        
+        services.AddSingleton<Channel<CounterReply>>( s => Channel.CreateBounded<CounterReply>( 5 ));
+        services.AddHostedService<ReceiveRemoteDataWorker>();
+        
         services.AddCodeFirstGrpc();
         services.AddSingleton<IncrementingCounter>();
     }

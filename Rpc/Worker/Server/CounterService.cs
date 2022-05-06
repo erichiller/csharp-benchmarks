@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Channels;
 
 using ProtoBuf.Grpc;
 
 using System.Threading.Tasks;
 
-using Benchmarks.Rpc.Worker.Definitions;
+using Benchmarks.Rpc.Worker.Shared;
 
 using Grpc.Core;
 
@@ -17,12 +18,14 @@ using ProtoBuf.Grpc.Internal;
 namespace Benchmarks.Rpc.Worker.Server;
 
 public class CounterService : ICounterService {
-    private readonly ILogger             _logger;
-    private readonly IncrementingCounter _counter;
+    private readonly ILogger                     _logger;
+    private readonly IncrementingCounter         _counter;
+    private readonly ChannelReader<CounterReply> _channelReader;
 
-    public CounterService( IncrementingCounter counter, ILoggerFactory loggerFactory ) {
-        _counter = counter;
-        _logger  = loggerFactory.CreateLogger<CounterService>();
+    public CounterService( IncrementingCounter counter, ILoggerFactory loggerFactory, Channel<CounterReply> channel ) {
+        _counter       = counter;
+        _logger        = loggerFactory.CreateLogger<CounterService>();
+        _channelReader = channel.Reader;
     }
 
     // public override Task<CounterReply> IncrementCount(Empty request, ServerCallContext context)
@@ -33,12 +36,8 @@ public class CounterService : ICounterService {
         return Task.FromResult( new CounterReply { Count = _counter.Count } );
     }
 
+    /* *********************************************************** */
 
-    /*
-     * Bidirectional Streaming
-     * IAsyncEnumerable
-     * https://github.com/protobuf-net/protobuf-net.Grpc/issues/234
-     */
     public async Task<CounterReply> AccumulateCount( IAsyncEnumerable<CounterRequest> requestStream, CallContext context ) {
         var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
         _logger.LogInformation( $"Connection id: {httpContext.Connection.Id}" );
@@ -50,7 +49,7 @@ public class CounterService : ICounterService {
 
         return new CounterReply { Count = _counter.Count };
     }
-    
+
     public Task<CounterReply> ClientToServerStream( IAsyncEnumerable<CounterRequest> requestStream, CallContext context ) {
         var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
         _logger.LogInformation( $"Connection id: {httpContext.Connection.Id}" );
@@ -58,13 +57,15 @@ public class CounterService : ICounterService {
         return AccumulateCount( requestStream, context.CancellationToken );
     }
 
+    /* *********************************************************** */
+
     public IAsyncEnumerable<CounterReply> ServerToClientStream( CounterRequest requestStream, CallContext context ) {
         var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
         _logger.LogInformation( $"Connection id: {httpContext.Connection.Id}" );
 
-        throw new NotImplementedException(); // URGENT
+        return _channelReader.ReadAllAsync( context.CancellationToken );
     }
-    
+
     /*
      * Bidirectional Streaming
      * IAsyncEnumerable
@@ -73,34 +74,9 @@ public class CounterService : ICounterService {
     public IAsyncEnumerable<CounterReply> BidirectionalStream( IAsyncEnumerable<CounterRequest> requestStream, CallContext context ) {
         var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
         _logger.LogInformation( $"Connection id: {httpContext.Connection.Id}" );
-        
+
         throw new NotImplementedException(); // TODO
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 }
 
 public class GrpcCallContextException : Exception { }

@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
-        <RootNamespace>Benchmarks.Rpc.Worker.Definitions</RootNamespace>
+        <RootNamespace>Benchmarks.Rpc.Worker.Shared</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
