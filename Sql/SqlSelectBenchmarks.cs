@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 using BenchmarkDotNet.Attributes;
 
@@ -24,7 +25,7 @@ public class SqlSelectBenchmarks {
     public virtual int Iterations { get; set; }
 
 
-    [ Params( 10_000 ) ]
+    [ Params( 1_000, 10_000, 100_000 ) ]
     // ReSharper disable once MemberCanBePrivate.Global
     // ReSharper disable once FieldCanBeMadeReadOnly.Global
     public virtual int RangeSize { get; set; }
@@ -58,6 +59,25 @@ public class SqlSelectBenchmarks {
     //     }
     // }
 
+    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBtreeIndex) ) ]
+    public void SetupPartitionTableBtreeIndex( ) {
+        using var              db           = new SqlBenchmarksDbContext();
+        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
+        dbConnection.Open();
+        dbConnection.TypeMapper.UseNodaTime();
+        SimpleTestObject.CreatePartitionTableBtreeIndex( dbConnection );
+        Thread.Sleep( 5000 );
+    }
+    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBrinIndex) ) ]
+    public void SetupPartitionTableBrinIndex( ) {
+        using var              db           = new SqlBenchmarksDbContext();
+        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
+        dbConnection.Open();
+        dbConnection.TypeMapper.UseNodaTime();
+        SimpleTestObject.CreatePartitionTableBrinIndex( dbConnection );
+        Thread.Sleep( 5000 );
+    }
+
 
 
 /* TODO:
@@ -73,7 +93,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
      ********************************************************
      */
 
-    [ Benchmark ]
+    [ Benchmark(Description = "B-Tree index on normal table") ]
     [ BenchmarkCategory( "Select", "B-Tree" ) ]
     public void SelectTableUsingIndex( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
@@ -88,9 +108,26 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
         }
     }
     
-    [ Benchmark ]
+    // [ Benchmark ]
+    [ Benchmark(Description = "B-Tree index on Partition Table") ]
+    [ BenchmarkCategory( "Select", "PartitionTable", "B-Tree" ) ]
+    public void SelectFromPartitionTableUsingBtreeIndex( ) {
+        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
+        connection.Open();
+        for ( int o = 0 ; o < Iterations ; o++ ) {
+            using ( var cmd = new NpgsqlCommand() { Connection = connection, CommandText = $"SELECT count(*) FROM public.test_object_partition_table WHERE id BETWEEN {_idRangeStart} AND {_idRangeEnd}" } ) {
+                using ( var reader = cmd.ExecuteReader() ) {
+                    reader.Read();
+                    int count = reader.GetInt32( 0 );
+                }
+            }
+        }
+    }
+    
+    // [ Benchmark ]
+    [ Benchmark(Description = "BRIN index on Partition Table") ]
     [ BenchmarkCategory( "Select", "PartitionTable", "BRIN" ) ]
-    public void SelectFromPartitionTableUsingIndex( ) {
+    public void SelectFromPartitionTableUsingBrinIndex( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
         for ( int o = 0 ; o < Iterations ; o++ ) {

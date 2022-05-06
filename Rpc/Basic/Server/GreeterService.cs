@@ -1,9 +1,10 @@
 ﻿using System.Threading.Tasks;
 
-using Benchmarks.Rpc.GrpcDefinitions;
+using Benchmarks.Rpc.Basic.Definitions;
+
 using ProtoBuf.Grpc;
 
-namespace Benchmarks.Rpc.Server;
+namespace Benchmarks.Rpc.Basic.Server;
 
 public class GreeterService : IGreeterService
 {

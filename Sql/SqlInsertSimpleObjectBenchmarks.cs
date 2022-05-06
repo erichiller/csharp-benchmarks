@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
 
 using Benchmarks.Common;
 
@@ -78,9 +77,7 @@ public class SqlInsertSimpleObjectBenchmarks {
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }
-        using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreatePartitionTable } ) {
-            cmd.ExecuteNonQuery();
-        }
+        SimpleTestObject.CreatePartitionTable( dbConnection );
     }
     
     private SimpleTestObject getNewObject( ) => SimpleTestObject.GetNewObject( _count );
@@ -269,7 +266,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
-        connection.TypeMapper.UseNodaTime(); // KILL ?
+        connection.TypeMapper.UseNodaTime();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -291,7 +288,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
-        connection.TypeMapper.UseNodaTime(); // KILL ?
+        connection.TypeMapper.UseNodaTime();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -313,7 +310,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     public void NpgsqlInsert_Batched_TypedValue( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
-        connection.TypeMapper.UseNodaTime(); // KILL ?
+        connection.TypeMapper.UseNodaTime();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -335,7 +332,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     public void NpgsqlCopy( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
-        connection.TypeMapper.UseNodaTime(); // KILL ?
+        connection.TypeMapper.UseNodaTime();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -352,11 +349,32 @@ public class SqlInsertSimpleObjectBenchmarks {
     }
     
     [ Benchmark ]
+    [ BenchmarkCategory( "Npgsql", "Copy" ) ]
+    public void NpgsqlCopyWithTypesAsString( ) {
+        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
+        connection.Open();
+        connection.TypeMapper.UseNodaTime();
+        for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
+            using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
+            for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
+                SimpleTestObject insertObject = getNewObject();
+                writer.StartRow();
+                writer.Write( insertObject.Id, dataTypeName: "integer" );
+                writer.Write( insertObject.Name, dataTypeName: "text" );
+                writer.Write( insertObject.Integers, "integer[]" );
+                writer.Write( insertObject.Datetime, "timestamp with time zone" );
+            }
+
+            writer.Complete();
+        }
+    }
+    
+    [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy", "PartitionTable" ) ]
     public void NpgsqlCopyToPartitionTable( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
-        connection.TypeMapper.UseNodaTime(); // KILL ?
+        connection.TypeMapper.UseNodaTime();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_object_partition_table (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {

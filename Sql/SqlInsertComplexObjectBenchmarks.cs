@@ -411,7 +411,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
             
             using var writer = connection.BeginBinaryImport( @"
                 COPY public.complex_test_objects 
-                    ( id, text_col, tz_col, int_col, dec_col1, dec_col2, text_array_col, int_array_col )
+                    ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col )
                 FROM STDIN (FORMAT BINARY)" );
             // Console.WriteLine($"SaveIterations = {SaveIterations}");
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -427,7 +427,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
                 writer.Write( npgsqlDbType: NpgsqlDbType.Integer, value: insertObject.IntCol );
                 writer.Write( npgsqlDbType: NpgsqlDbType.Numeric, value: insertObject.DecCol1 );
                 writer.Write( npgsqlDbType: NpgsqlDbType.Numeric, value: insertObject.DecCol2 );
-                // writer.Write( npgsqlDbType: NpgsqlDbType.Real, value: insertObject.FloatCol );
+                writer.Write( npgsqlDbType: NpgsqlDbType.Real, value: insertObject.FloatCol );
                 writer.Write( npgsqlDbType: NpgsqlDbType.Array | NpgsqlDbType.Text, value: insertObject.TextArrayCol );
                 writer.Write( npgsqlDbType: NpgsqlDbType.Array | NpgsqlDbType.Integer, value: insertObject.IntArrayCol );
             }

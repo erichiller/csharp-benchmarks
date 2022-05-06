@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using BenchmarkDotNet.Attributes;
 
@@ -53,10 +54,12 @@ public abstract class SqlInsertsSimpleObjectLargeTableBenchmarksBase {
 
 public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectLargeTableBenchmarksBase{
 
-    private int _count;
+    private int                             _count;
+    
+    public readonly List<TestObjectPartitionTableB> PreGenerated_TestObjectPartitionTableB;
 
-    [ GlobalSetup(Targets= new []{ nameof(NpgsqlCopy) } ) ]
-    public void GlobalSetup( ) {
+    [ GlobalSetup(Targets= new []{ nameof(NonPartitionTableSimpleTestObjectCopy) } ) ]
+    public void SimpleTestObjectNonPartitionTableSetup( ) {
         using var              db           = new SqlBenchmarksDbContext();
         using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
         dbConnection.Open();
@@ -80,6 +83,7 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
                     writer.Write( insertObject.Name, NpgsqlDbType.Text );
                     writer.Write( insertObject.Integers, NpgsqlDbType.Array | NpgsqlDbType.Integer );
                     writer.Write( insertObject.Datetime, NpgsqlDbType.TimestampTz );
+                    
                 }
 
                 writer.Complete();
@@ -87,11 +91,9 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
         }
     }
     
-    
-    
-    [ Benchmark ]
+    [ Benchmark(Description = "Copy to Non-Partition Table SimpleTestObject") ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
-    public void NpgsqlCopy( ) {
+    public void NonPartitionTableSimpleTestObjectCopy( ) {
         using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
         connection.Open();
         connection.TypeMapper.UseNodaTime(); // KILL ?
@@ -109,6 +111,64 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
             writer.Complete();
         }
     }
+    
+    
+    /* ********************************
+     * TestObjectB
+     **********************************/
+    
+    //
+    // [ GlobalSetup(Targets= new []{ nameof(NonPartitionTableTestObjectBCopy) } ) ]
+    // public void GlobalSetup( ) {
+    //     using var              db           = new SqlBenchmarksDbContext();
+    //     using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
+    //     dbConnection.Open();
+    //     dbConnection.TypeMapper.UseNodaTime();
+    //     using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
+    //         cmd.ExecuteNonQuery();
+    //     }
+    //
+    //     _count = 1;
+    //     if ( InitialTableObjects != 0 ) {
+    //         int objectsPerCopy = 1000; /* 1000 objects per COPY */
+    //         if ( InitialTableObjects % objectsPerCopy != 0 ) {
+    //             throw new Exception();
+    //         }
+    //         var objects = TestObjectPartitionTableB.GetNewObjects( InitialTableObjects );
+    //         for ( int o = 0 ; o < ( InitialTableObjects / objectsPerCopy ) ; o++ ) {
+    //             using var writer = dbConnection.BeginBinaryImport( "COPY public.test_objects_b (event_timestamp, event_key, numeric_value, smallint_value ) FROM STDIN (FORMAT BINARY)" );
+    //             for ( int i = 0 ; i < objectsPerCopy ; i++, _count++ ) {
+    //                 writer.StartRow();
+    //                 writer.Write( objects[ _count ].EventTimestamp, NpgsqlDbType.TimestampTz );
+    //                 writer.Write( objects[ _count ].EventKey, NpgsqlDbType.Text );
+    //                 writer.Write( objects[ _count ].NumericValue, NpgsqlDbType.Numeric );
+    //                 writer.Write( objects[ _count ].SmallintValue, NpgsqlDbType.Smallint );
+    //                 
+    //             }
+    //
+    //             writer.Complete();
+    //         }
+    //     }
+    // }
+    //
+    // [ Benchmark(Description = "Copy to Non-Partition Table TestObjectB") ]
+    // [ BenchmarkCategory( "Npgsql", "Copy" ) ]
+    // public void NonPartitionTableTestObjectBCopy( ) {
+    //     using NpgsqlConnection dbConnection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
+    //     dbConnection.Open();
+    //     dbConnection.TypeMapper.UseNodaTime(); // KILL ?
+    //     for ( int o = 0 ; o < SaveIterations ; o++ ) {            
+    //         using var writer = dbConnection.BeginBinaryImport( "COPY public.partition_table_b (event_timestamp, event_key, numeric_value, smallint_value ) FROM STDIN (FORMAT BINARY)" );
+    //         for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
+    //             writer.StartRow();
+    //             writer.Write( objects[objectCount].EventTimestamp, NpgsqlDbType.TimestampTz );
+    //             writer.Write( objects[objectCount].EventKey, NpgsqlDbType.Text );
+    //             writer.Write( objects[objectCount].NumericValue, NpgsqlDbType.Numeric );
+    //             writer.Write( objects[objectCount].SmallintValue, NpgsqlDbType.Smallint );
+    //         }
+    //         writer.Complete();
+    //     }
+    // }
     
     
     // TODO
@@ -135,30 +195,10 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
         using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
         dbConnection.Open();
         dbConnection.TypeMapper.UseNodaTime();
-        using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreatePartitionTable } ) {
-            cmd.ExecuteNonQuery();
-        }
 
         _count = 1;
         if ( InitialTableObjects != 0 ) {
-            int objectsPerCopy = 1000; /* 1000 objects per COPY */
-            if ( InitialTableObjects % objectsPerCopy != 0 ) {
-                throw new Exception();
-            }
-
-            for ( int o = 0 ; o < ( InitialTableObjects / objectsPerCopy ) ; o++ ) {
-                using var writer = dbConnection.BeginBinaryImport( "COPY public.test_object_partition_table (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
-                for ( int i = 0 ; i < objectsPerCopy ; i++, _count++ ) {
-                    SimpleTestObject insertObject = SimpleTestObject.GetNewObject( _count );
-                    writer.StartRow();
-                    writer.Write( insertObject.Id, NpgsqlDbType.Integer );
-                    writer.Write( insertObject.Name, NpgsqlDbType.Text );
-                    writer.Write( insertObject.Integers, NpgsqlDbType.Array | NpgsqlDbType.Integer );
-                    writer.Write( insertObject.Datetime, NpgsqlDbType.TimestampTz );
-                }
-
-                writer.Complete();
-            }
+            _count = SimpleTestObject.CreateAndPopulateIfNotExists( dbConnection, startId: _count, createCount: InitialTableObjects );
         }
     }
 

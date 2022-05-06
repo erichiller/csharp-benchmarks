@@ -90,9 +90,8 @@ public class SqlCopyAsyncBenchmarks {
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }
-        using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreatePartitionTable } ) {
-            cmd.ExecuteNonQuery();
-        }
+
+        SimpleTestObject.CreatePartitionTable( dbConnection );
         
         _count = 1;
         int objectsPerCopy = 1000; /* 1000 objects per COPY */

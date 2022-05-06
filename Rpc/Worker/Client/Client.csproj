@@ -4,15 +4,16 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <RootNamespace>Benchmarks.Rpc.Client</RootNamespace>
+        <RootNamespace>Benchmarks.Rpc.Worker.Client</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Grpc.Net.Client" Version="2.42.0" />
         <PackageReference Include="protobuf-net.Grpc" Version="1.0.152" />
+        <PackageReference Include="protobuf-net.Grpc.ClientFactory" Version="1.0.152" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\GrpcDefinitions\GrpcDefinitions.csproj" />
+        <ProjectReference Include="..\Definitions\Definitions.csproj" />
     </ItemGroup>
 </Project>

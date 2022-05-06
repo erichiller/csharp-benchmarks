@@ -40,30 +40,11 @@ public record ComplexTestObject {
             int_col int NOT NULL,
             dec_col1 decimal NOT NULL,
             dec_col2 decimal NOT NULL,
+            float_col float4 NOT NULL,
             text_array_col text[],
             int_array_col int[],
             CONSTRAINT pk_complex_test_object_id PRIMARY KEY (id)
         )
             TABLESPACE pg_default;
-			ALTER TABLE IF EXISTS public.test_objects_complex OWNER TO ""mkmrk-config-tests"";
             ";
-
-   //  public static string CreateSqlString = @"
-   //      DROP TABLE IF EXISTS public.complex_test_objects;
-   //      CREATE TABLE public.complex_test_objects
-   //      (
-   //          id integer NOT NULL,
-   //          text_col text NOT NULL,
-   //          tz_col timestamptz NOT NULL,
-   //          int_col int NOT NULL,
-   //          dec_col1 decimal NOT NULL,
-   //          dec_col2 decimal NOT NULL,
-   //          float_col float NOT NULL,
-   //          text_array_col text[],
-   //          int_array_col int[],
-   //          CONSTRAINT pk_complex_test_object_id PRIMARY KEY (id)
-   //      )
-   //          TABLESPACE pg_default;
-			// ALTER TABLE IF EXISTS public.test_objects_complex OWNER TO ""mkmrk-config-tests"";
-   //          ";
 }

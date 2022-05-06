@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <RootNamespace>Benchmarks.Rpc.Server</RootNamespace>
+        <RootNamespace>Benchmarks.Rpc.Worker.Server</RootNamespace>
     </PropertyGroup>
 
 
@@ -12,7 +12,7 @@
 </ItemGroup>
 
 <ItemGroup>
-    <ProjectReference Include="..\GrpcDefinitions\GrpcDefinitions.csproj" />
+    <ProjectReference Include="..\Definitions\Definitions.csproj" />
 </ItemGroup>
 
 </Project>
