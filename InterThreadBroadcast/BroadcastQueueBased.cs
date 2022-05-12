@@ -35,7 +35,7 @@ public class BroadcastPublisher : BackgroundService {
             _logger.LogDebug( $"Adding to Channel count {id} at: {DateTimeOffset.Now}" );
             var message = new ChannelMessage { Id = id, Property_1 = "some string" };
             // _channelWriter.TryWrite( message );
-            _broadcastQueue.Write( message );
+            await _broadcastQueue.WriteAsync( message, stoppingToken );
 
             await Task.Delay( 2000, stoppingToken );
             id++;
@@ -86,13 +86,12 @@ public class BroadcastSubscriber : BackgroundService {
 
     protected override async Task ExecuteAsync( CancellationToken stoppingToken ) {
         _logger.LogDebug( $"Starting to ReadChannel" );
-        while ( !stoppingToken.IsCancellationRequested ) {
+        while ( await _broadcastQueueReader.WaitToReadAsync( stoppingToken )) {
             // var read = _channelReader.ReadAllAsync( stoppingToken );
-            var read = _broadcastQueueReader.ReadAll();
-            foreach ( var message in read ) {
+            await foreach ( var message in _broadcastQueueReader.ReadAllAsync( stoppingToken ) ) {
                 var response = new ChannelResponse() { ReadId = message.Id };
                 // await _responseChannelWriter.WriteAsync( new ChannelResponse() { ReadId = message.Id }, stoppingToken );
-                _broadcastQueueReader.WriteResponse( response );
+                await _broadcastQueueReader.WriteResponseAsync( response, stoppingToken );
             }
 
             // _logger.LogInformation( "Total count: {count}", response.Count );

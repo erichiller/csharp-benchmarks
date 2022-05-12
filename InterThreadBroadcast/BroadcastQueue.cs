@@ -48,7 +48,7 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     public bool TryPeekResponse( out TResponse? response ) => _responseReader.TryPeek( out response );
 
     /// <inheritdoc cref="ChannelReader{T}.TryRead"/>
-    public bool TryReadResponse( out TResponse? response ) => _responseReader.TryRead( out response );
+    public bool TryReadResponse( [MaybeNullWhen(false)] out TResponse? response ) => _responseReader.TryRead( out response );
 
     /// <inheritdoc cref="ChannelReader{T}.WaitToReadAsync"/>
     public ValueTask<bool> WaitToReadResponseAsync( CancellationToken ct ) => _responseReader.WaitToReadAsync( ct );
@@ -62,18 +62,18 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     #region Data
 
     /// <inheritdoc />
-    public override bool TryComplete( Exception? error = null ) => _dataWriter.TryComplete( error );
+    public override bool TryComplete( Exception? error = null ) => _queue.TryComplete( error );
 
     /// <inheritdoc />
-    public override bool TryWrite( TData item ) => _dataWriter.TryWrite( item );
+    public override bool TryWrite( TData item ) => _queue.TryWrite( item );
 
     /// <inheritdoc />
     public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default )
-        => _dataWriter.WaitToWriteAsync( cancellationToken );
+        => _queue.WaitToWriteAsync( cancellationToken );
 
     /// <inheritdoc />
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default )
-        => _dataWriter.WriteAsync( item, cancellationToken );
+        => _queue.WriteAsync( item, cancellationToken );
 
     #endregion
 
@@ -120,7 +120,7 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
 #pragma warning restore CS8424
 
     /// <inheritdoc cref="ChannelWriter{T}.WriteAsync" />
-    public ValueTask WriteResponseAsync( TResponse response ) => this._responseWriter.WriteAsync( response );
+    public ValueTask WriteResponseAsync( TResponse response, CancellationToken cancellationToken = default ) => this._responseWriter.WriteAsync( response, cancellationToken );
 
 
     /// <inheritdoc />
@@ -189,8 +189,8 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
     /// <inheritdoc />
     public override bool TryComplete( Exception? error = null ) {
         bool result = true;
-        foreach ( var (reader, channelWriter) in _readers ) {
-            result &= channelWriter.TryComplete( error ); 
+        foreach ( var (_, channelWriter) in _readers ) {
+            result &= channelWriter.TryComplete( error );
         }
 
         return result;
@@ -199,22 +199,29 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
     /// <inheritdoc />
     public override bool TryWrite( TData item ) {
         bool result = true;
-        foreach ( var (reader, channelWriter) in _readers ) {
-            result &= channelWriter.TryWrite( item ); 
+        foreach ( var (_, channelWriter) in _readers ) {
+            result &= channelWriter.TryWrite( item );
         }
 
         return result;
     }
 
     /// <inheritdoc />
-    public override async ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
-        bool result = true;
-        foreach ( var (reader, channelWriter) in _readers ) {
-            result &= await channelWriter.WaitToWriteAsync( cancellationToken );
+    public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
+        if ( _readers.Count == 1 ) {
+            return _readers.Single().Value.WaitToWriteAsync( cancellationToken );
         }
 
-        return result;
+        return _readers.Select( r => r.Value.WaitToWriteAsync( cancellationToken ) ).ToArray().WhenAllAnd();
     }
+    // public override async ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
+    //     bool result = true;
+    //     foreach ( var (reader, channelWriter) in _readers ) {
+    //         result &= await channelWriter.WaitToWriteAsync( cancellationToken );
+    //     }
+    //
+    //     return result;
+    // }
 
     /// <inheritdoc />
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
@@ -222,125 +229,45 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
             return _readers.Single().Value.WriteAsync( item, cancellationToken );
         }
 
-        _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+        return _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
     }
 
     #endregion
 
-    // internal TData Read( BroadcastQueueReader<TData, TResponse> reader ) {
-    //     if ( this._messages.Count > this._readers[ reader ] + 1 ) {
-    //         // read here
-    //     } else {
-    //         // nothing is available to be read
-    //         // TODO: block??
-    //     }
-    //
-    //     this._readers[ reader ] += 1;
-    //     var message = this._messages[ this._readers[ reader ] ];
-    //     if ( allHaveReadLast() ) {
-    //         decrementAllNextMessagePosition();
-    //         this._messages.RemoveAt( 0 );
-    //     }
-    //
-    //     return message;
-    // }
-
-    // internal IEnumerable<TData> ReadAll( BroadcastQueueReader<TData, TResponse> reader ) {
-    //     List<TData> responses = new List<TData>();
-    //     while ( true ) {
-    //         if ( this._messages.Count > this._readers[ reader ] + 1 ) { } else {
-    //             break;
-    //             // nothing is available to be read
-    //             // TODO: block??
-    //         }
-    //
-    //         this._readers[ reader ] += 1;
-    //         responses.Add( this._messages[ this._readers[ reader ] ] );
-    //         if ( allHaveReadLast() ) {
-    //             decrementAllNextMessagePosition();
-    //             this._messages.RemoveAt( 0 );
-    //         }
-    //     }
-    //
-    //     return responses;
-    // }
-
-    // public async ValueTask<bool> WaitToReadAsync( BroadcastQueueReader<TData, TResponse> reader, CancellationToken ct ) 
-
-
-    // public bool TryRead( BroadcastQueueReader<TData, TResponse> reader, [ MaybeNullWhen( false ) ] out TData? response ) {
-    //     if ( this._messages.Count > this._readers[ reader ] + 1 ) {
-    //         this._readers[ reader ] += 1;
-    //         var message = this._messages[ this._readers[ reader ] ];
-    //         if ( allHaveReadLast() ) {
-    //             decrementAllNextMessagePosition();
-    //             this._messages.RemoveAt( 0 );
-    //         }
-    //
-    //         response = message;
-    //         return true;
-    //         // read here
-    //     }
-    //
-    //     // nothing is available to be read
-    //     response = default(TData);
-    //
-    //     return false;
-    // }
-
-    // internal void Write( TData data ) {
-    //     this._messages.Add( data );
-    //     // TODO: notify readers
-    // }
-    //
-    // internal void WriteAll( IEnumerable<TData> data ) {
-    //     this._messages.AddRange( data );
-    //     // TODO: notify readers
-    // }
-
-    // internal void WriteResponse( TResponse response ) => _responses.Enqueue( response );
-
-    // internal void WriteResponse( BroadcastQueueReader<TData, TResponse> reader, TResponse response ) {
-    //     this._responses.Add( new BroadcastQueueResponse<TData, TResponse>( reader, response ) );
-    //     // TODO: notify readers
-    // }
-
-    // internal void WriteAllResponses( BroadcastQueueReader<TData, TResponse> reader, IEnumerable<TResponse> responses ) {
-    //     this._responses.AddRange( responses.Select( response => new BroadcastQueueResponse<TData, TResponse>( reader, response ) ) );
-    //     // TODO: notify readers
-    // }
-    //
-    //
-    // private bool allHaveReadLast( ) {
-    //     foreach ( var (reader, nextMessage) in this._readers ) {
-    //         if ( nextMessage == 0 ) {
-    //             return false;
-    //         }
-    //     }
-    //
-    //     return true;
-    // }
-    //
-    // private void decrementAllNextMessagePosition( ) {
-    //     var readers = this._readers.Keys;
-    //     foreach ( var reader in readers ) {
-    //         this._readers[ reader ] -= 1;
-    //     }
-    // }
-
-
     /// <inheritdoc />
     public override string ToString( ) {
-        return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ _responses {{ Count = {_responseReader.Count} }}, _readers {{ Count = {_readers.Count} }} }}";
+        /* NOTE: Count does not work on _responseReader.
+         * My suspicion is that it is a SingleConsumerUnboundedChannel<T>
+         * which does not support Count
+         * https://source.dot.net/#System.Threading.Channels/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
+         */
+        // return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ _responses {{ Count = {_responseReader.Count} }}, _readers {{ Count = {_readers.Count} }} }}";
+        return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ _readers {{ Count = {_readers.Count} }} }}";
     }
 }
-
 
 /* TODO : add this to Common */
 
 public static class ValueTaskExtensions {
-    // public static ValueTask<T[]> WhenAll<T>( this ValueTask<T>[] tasks ) => WhenAll( tasks ); 
-    // public static async ValueTask<T[]> WhenAll<T>( params ValueTask<T>[] tasks ) {
+    public static async ValueTask WhenAll( this ValueTask[] tasks ) {
+        // We don't allocate the list if no task throws
+        List<Exception>? exceptions = null;
+
+        for ( var i = 0 ; i < tasks.Length ; i++ )
+            try {
+                await tasks[ i ].ConfigureAwait( false );
+            } catch ( Exception ex ) {
+                exceptions ??= new List<Exception>( tasks.Length );
+                exceptions.Add( ex );
+            }
+
+        // return exceptions is null
+        // ? results
+        if ( exceptions is not null ) {
+            throw new AggregateException( exceptions );
+        }
+    }
+
     public static async ValueTask<T[]> WhenAll<T>( this ValueTask<T>[] tasks ) {
         // We don't allocate the list if no task throws
         List<Exception>? exceptions = null;
@@ -349,6 +276,27 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results[ i ] = await tasks[ i ].ConfigureAwait( false );
+            } catch ( Exception ex ) {
+                exceptions ??= new List<Exception>( tasks.Length );
+                exceptions.Add( ex );
+            }
+
+        return exceptions is null
+            ? results
+            : throw new AggregateException( exceptions );
+    }
+
+    /// <summary>
+    /// For a given array of <see cref="ValueTask"/>s and their results into a single return.
+    /// </summary>
+    public static async ValueTask<bool> WhenAllAnd( this ValueTask<bool>[] tasks ) {
+        // We don't allocate the list if no task throws
+        List<Exception>? exceptions = null;
+
+        bool results = true;
+        for ( var i = 0 ; i < tasks.Length ; i++ )
+            try {
+                results &= await tasks[ i ].ConfigureAwait( false );
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );

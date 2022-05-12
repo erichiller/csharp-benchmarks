@@ -61,6 +61,7 @@ public class Program {
 
         System.Console.WriteLine( "Host is running" );
         var broadcastQueue = host.Services.GetService<BroadcastQueue<ChannelMessage, ChannelResponse>>() ?? throw new Exception();
+        
         logger = host.Services.GetService<ILogger<Program>>() ?? throw new Exception();
         Console.CancelKeyPress += ( object? sender, ConsoleCancelEventArgs args ) => {
             Console.WriteLine( $"Last Read ID: {lastReadId}" );
@@ -69,9 +70,9 @@ public class Program {
         logger.LogInformation( "Broadcast Queue={BroadcastQueue}", broadcastQueue );
         stopwatch = Stopwatch.StartNew();
         while ( ! ct.IsCancellationRequested ) {
-            if ( broadcastQueue.TryReadResponse(out var result) ) {
-                logger.LogDebug( "Read {Id} from ResponseChannel", result?.Message?.ReadId );
-                if ( result is { Message: { ReadId: int readId } } ) {
+            if ( broadcastQueue.Writer.TryReadResponse(out var result) ) {
+                logger.LogDebug( "Read {Id} from ResponseChannel", result?.ReadId );
+                if ( result is { ReadId: int readId } ) {
                     lastReadId = readId;
                     if ( readId >= 500 ) {
                         break;
