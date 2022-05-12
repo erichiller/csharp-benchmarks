@@ -390,3 +390,22 @@ and takes about 25% longer. Furthermore, Source Generators do not help.
 | NewtonsoftJson_Deserialize_ReadAhead_LevelOne                                     | 1000       | Multiple         | False                       | 174.842 ms | 1.2252 ms | 1.1461 ms | 24000.0000 | 2000.0000 |    112 MB |
 
 ***
+
+## Interthread
+
+```
+dotnet run -c RELEASE -- --filter="*Simple*"
+```
+
+@ 500
+|                                        Method |     Mean |     Error |    StdDev |
+|---------------------------------------------- |---------:|----------:|----------:|
+| SimpleBackgroundServiceMessagingUsingChannels | 1.734 ms | 0.1287 ms | 0.3776 ms |
+
+
+@ 1000
+|                                        Method |     Mean |     Error |    StdDev |   Median |
+|---------------------------------------------- |---------:|----------:|----------:|---------:|
+| SimpleBackgroundServiceMessagingUsingChannels | 2.642 ms | 0.1214 ms | 0.3424 ms | 2.534 ms |
+
+***

@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Rpc\Basic\Server\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Definitions", "Rpc\Basic\Definitions\Definitions.csproj", "{7E984577-EDC9-4D88-A23D-06AE95A86031}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterThreadBroadcast", "InterThreadBroadcast\InterThreadBroadcast.csproj", "{82C3C75A-F48B-4727-B454-8FA93C438E2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{7E984577-EDC9-4D88-A23D-06AE95A86031}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E984577-EDC9-4D88-A23D-06AE95A86031}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E984577-EDC9-4D88-A23D-06AE95A86031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82C3C75A-F48B-4727-B454-8FA93C438E2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82C3C75A-F48B-4727-B454-8FA93C438E2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82C3C75A-F48B-4727-B454-8FA93C438E2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82C3C75A-F48B-4727-B454-8FA93C438E2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0D7255BB-B59C-494F-BBDA-2530B6384736} = {560A4C33-3CEC-4821-B8DB-A6169BD156A8}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Benchmarks.InterThreadBroadcast</RootNamespace>
+    </PropertyGroup>
+    <PropertyGroup>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugType>pdbonly</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Optimize>true</Optimize>
+        <Configuration>Release</Configuration>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Common\Common.csproj" />
+    </ItemGroup>
+</Project>
