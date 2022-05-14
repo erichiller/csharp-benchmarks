@@ -1,4 +1,7 @@
 #define DEBUG
+#define DEBUG_BROADCAST
+// #define DEBUG_CHANNEL
+// #define DEBUG_OBSERVER
 // #undef DEBUG
 
 using System;
@@ -15,7 +18,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Benchmarks.InterThreadBroadcast;
+using Benchmarks.InterThread.BroadcastQueue;
+
+namespace Benchmarks.InterThread.Benchmark;
 
 public class Program {
 #if DEBUG
@@ -49,8 +54,12 @@ public class Program {
         int                     lastReadId = 0;
         CancellationToken       ct         = cts.Token;
         Stopwatch               stopwatch;
+        
+        System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
+
         /* ************************************************************************ */
 
+#if DEBUG_BROADCAST
         // await responseChecker.WaitForId( 1000 );
 
         // host.Run();
@@ -69,17 +78,17 @@ public class Program {
         };
         logger.LogInformation( "Broadcast Queue={BroadcastQueue}", broadcastQueue );
         stopwatch = Stopwatch.StartNew();
+        Console.WriteLine("STARTING PRGM LOOP" );
         while ( ! ct.IsCancellationRequested ) {
             if ( broadcastQueue.Writer.TryReadResponse(out var result) ) {
-                logger.LogDebug( "Read {Id} from ResponseChannel", result?.ReadId );
+                Console.Write("p" );
+                // logger.LogDebug( "Read {Id} from ResponseChannel", result?.ReadId ); // URGENT: uncomment this line
                 if ( result is { ReadId: int readId } ) {
                     lastReadId = readId;
                     if ( readId >= 500 ) {
                         break;
                     }
                 }
-            // } else {
-                // throw new Exception();
             }
         }
 
@@ -93,8 +102,8 @@ public class Program {
 
         // await reader.ReadChannel( cts.Token );
         // await writer.WriteToChannel( cts.Token );
-
-        return 0;
+#endif
+#if DEBUG_CHANNEL
 
         // await responseChecker.WaitForId( 1000 );
 
@@ -103,8 +112,7 @@ public class Program {
         host = InterThreadBenchmarks.CreateHostBuilder_SimpleChannelQueue( args ).Build();
         await host.StartAsync();
 
-
-        System.Console.WriteLine( "Host is running" );
+        System.Console.WriteLine( $"Host is running. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
         var channel         = host.Services.GetService<Channel<ChannelMessage>>()  ?? throw new Exception();
         var responseChannel = host.Services.GetService<Channel<ChannelResponse>>() ?? throw new Exception();
         logger = host.Services.GetService<ILogger<Program>>() ?? throw new Exception();
@@ -137,8 +145,9 @@ public class Program {
         // await reader.ReadChannel( cts.Token );
         // await writer.WriteToChannel( cts.Token );
 
-        return 0;
 
+#endif
+#if DEBUG_OBSERVER
         var dataGenerator = new DataGenerator();
 
         var observer = new Subscriber();
@@ -147,6 +156,7 @@ public class Program {
         for ( int i = 0 ; i < 5 ; i++ ) {
             dataGenerator.AddMessage( i );
         }
+#endif
 
 
         // var output = new SystemTextJsonSerializationBasic() {
@@ -191,6 +201,7 @@ public class Program {
         //                                            );
 
         // URGENT -- try this. Is anything being returned?
+        return 0;
     }
     //     // => new SystemTextJsonSerializationBasic().SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute();
     //     => new SystemTextJsonSerializationBasic(){Iterations=1}.SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute_SourceGen();
@@ -216,8 +227,9 @@ public class Program {
                      : new[] {
                          "-f", "*"
                      },
-                 ManualConfig
-                     .Create( DefaultConfig.Instance )
+                 new DebugInProcessConfig()
+                 // ManualConfig
+                     // .Create( DefaultConfig.Instance )
                      .WithOptions( ConfigOptions.StopOnFirstError |
                                    ConfigOptions.JoinSummary ) );
 #endif

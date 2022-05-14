@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Benchmarks.InterThreadBroadcast;
+namespace Benchmarks.InterThread.Benchmark;
 
 /*
  * https://docs.microsoft.com/en-us/dotnet/standard/events/observer-design-pattern

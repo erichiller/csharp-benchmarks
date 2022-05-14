@@ -3,7 +3,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
-        <RootNamespace>Benchmarks.InterThreadBroadcast</RootNamespace>
+        <RootNamespace>Benchmarks.InterThread.Benchmark</RootNamespace>
     </PropertyGroup>
     <PropertyGroup>
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -21,6 +21,7 @@
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
+        <ProjectReference Include="..\..\Common\Common.csproj" />
     </ItemGroup>
 </Project>
