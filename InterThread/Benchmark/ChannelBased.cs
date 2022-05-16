@@ -1,5 +1,5 @@
-#define DEBUG
-// #undef DEBUG
+// #define DEBUG
+#undef DEBUG
 
 using System;
 using System.Threading;
@@ -17,9 +17,10 @@ public record ChannelMessage {
     public string Property_1 { get; set; }
 }
 
-public record ChannelResponse {
-    public int ReadId { get; set; }
-}
+public record ChannelResponse(
+    int    ReadId,
+    string ReaderType
+);
 
 public class ChannelPublisher : BackgroundService {
     private readonly System.Threading.Channels.ChannelWriter<ChannelMessage> _channelWriter;
@@ -39,6 +40,8 @@ public class ChannelPublisher : BackgroundService {
     }
 
     protected override async Task ExecuteAsync( CancellationToken stoppingToken ) {
+        // https://github.com/dotnet/runtime/issues/36063#issuecomment-671110933 ; Fixed with await Task.Yield()
+        await Task.Yield();
 #if DEBUG
         _logger.LogDebug( "[Thread ID: {ThreadID}] Starting to WriteChannel", Thread.CurrentThread.ManagedThreadId );
 #endif
@@ -104,6 +107,8 @@ public class ChannelSubscriber : BackgroundService {
     }
 
     protected override async Task ExecuteAsync( CancellationToken stoppingToken ) {
+        // https://github.com/dotnet/runtime/issues/36063#issuecomment-671110933 ; Fixed with await Task.Yield()
+        await Task.Yield();
 #if DEBUG
         _logger.LogDebug( $"Starting to ReadChannel" );
 #endif
@@ -111,16 +116,15 @@ public class ChannelSubscriber : BackgroundService {
 #if DEBUG
             _logger.LogDebug( $"{nameof(ChannelSubscriber)} beginning to {nameof(ChannelReader<ChannelResponse>.ReadAllAsync)}" );
 #endif
-            var read = _channelReader.ReadAllAsync( stoppingToken );
 
 #if DEBUG
             _logger.LogDebug( $"{nameof(ChannelSubscriber)} completed {nameof(ChannelReader<ChannelResponse>.ReadAllAsync)}" );
 #endif
-            await foreach ( var message in read ) {
+            await foreach ( var message in _channelReader.ReadAllAsync( stoppingToken ) ) {
 #if DEBUG
                 _logger.LogDebug( $"Read message with id: {message.Id}" );
 #endif
-                await _responseChannelWriter.WriteAsync( new ChannelResponse() { ReadId = message.Id }, stoppingToken );
+                await _responseChannelWriter.WriteAsync( new ChannelResponse(message.Id, nameof(ChannelSubscriber) ), stoppingToken );
 #if DEBUG
                 _logger.LogDebug( $"Wrote {nameof(ChannelResponse)} {message.Id}" );
 #endif

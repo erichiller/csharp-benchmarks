@@ -38,7 +38,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Definitions", "Rpc\Basic\De
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InterThread", "InterThread", "{5A9F401A-9294-4DD3-87C8-D11FA7BBED8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterThread", "InterThread\Benchmark\InterThread.csproj", "{399C3EE3-0FC6-4C6C-B7AF-1E90C1CFC44B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "InterThread\Benchmark\Benchmarks.csproj", "{399C3EE3-0FC6-4C6C-B7AF-1E90C1CFC44B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BroadcastQueue", "InterThread\BroadcastQueue\BroadcastQueue.csproj", "{45B74D74-3B1C-4864-90DE-BDACC88D1721}"
 EndProject

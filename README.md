@@ -396,16 +396,30 @@ and takes about 25% longer. Furthermore, Source Generators do not help.
 ```
 dotnet run -c RELEASE -- --filter="*Simple*"
 ```
+| Method                                                  | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |    Gen 1 | Allocated [B] |
+|---------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|---------:|--------------:|
+| SimpleBackgroundServiceMessagingUsingChannels           | 10000        |  3.652 ms |  0.1087 ms |   0.3205 ms |    3.476 ms |  191.4063 | 117.1875 |   1,666,175 B |
+| BroadcastQueueWithOneSubscriberAndSingleXChannelOptions | 10000        |  9.206 ms |  0.1038 ms |   0.0920 ms |    9.220 ms |  562.5000 |  15.6250 |   2,707,106 B |
+| BroadcastQueueWithOneSubscriberAndNoChannelOptions      | 10000        |  9.946 ms |  0.0572 ms |   0.0507 ms |    9.946 ms |  578.1250 |        - |   2,708,287 B |
+| BroadcastQueueWithTwoSubscribers                        | 10000        | 16.331 ms |  0.2336 ms |   0.2185 ms |   16.353 ms | 1500.0000 |  31.2500 |   6,996,870 B |
+| BroadcastQueueWithThreeSubscribers                      | 10000        | 21.156 ms |  0.1629 ms |   0.1444 ms |   21.174 ms | 1843.7500 |  31.2500 |   8,676,858 B |
 
-@ 500
-|                                        Method |     Mean |     Error |    StdDev |
-|---------------------------------------------- |---------:|----------:|----------:|
-| SimpleBackgroundServiceMessagingUsingChannels | 1.734 ms | 0.1287 ms | 0.3776 ms |
+| Method                                                     | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |   Gen 1 | Allocated [B] |
+|------------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|--------:|--------------:|
+| SimpleBackgroundServiceMessagingUsingChannels              | 10000        |  3.837 ms |  0.0779 ms |   0.2285 ms |    3.752 ms |  191.4063 | 66.4063 |   1,671,927 B |
+| BroadcastQueueWithOneSubscriberAndSingleXChannelOptions    | 10000        |  9.169 ms |  0.0922 ms |   0.0770 ms |    9.155 ms |  546.8750 | 31.2500 |   2,656,258 B |
+| BroadcastQueue_Vanilla_ShouldBeSameAsSingleXChannelOptions | 10000        |  9.253 ms |  0.1742 ms |   0.1544 ms |    9.225 ms |  578.1250 | 15.6250 |   2,709,124 B |
+| BroadcastQueueWithOneSubscriberAndNoChannelOptions         | 10000        | 10.056 ms |  0.1519 ms |   0.1347 ms |   10.051 ms |  578.1250 | 31.2500 |   2,714,876 B |
+| BroadcastQueueWithTwoSubscribers                           | 10000        | 16.290 ms |  0.3101 ms |   0.5432 ms |   16.137 ms | 1421.8750 | 93.7500 |   6,766,405 B |
+| BroadcastQueueWithThreeSubscribersAndSingleXChannelOptions | 10000        | 18.989 ms |  0.3691 ms |   0.4394 ms |   18.994 ms | 1687.5000 | 62.5000 |   8,026,339 B |
+| BroadcastQueueWithThreeSubscribersAndNoChannelOptions      | 10000        | 21.162 ms |  0.4141 ms |   0.4603 ms |   21.143 ms | 1750.0000 |       - |   8,180,475 B |
 
 
-@ 1000
-|                                        Method |     Mean |     Error |    StdDev |   Median |
-|---------------------------------------------- |---------:|----------:|----------:|---------:|
-| SimpleBackgroundServiceMessagingUsingChannels | 2.642 ms | 0.1214 ms | 0.3424 ms | 2.534 ms |
+| Method                           | MessageCount |    Mean [us] | Error [us] | StdDev [us] |    Gen 0 |  Gen 1 | Allocated [B] |
+|----------------------------------|--------------|-------------:|-----------:|------------:|---------:|-------:|--------------:|
+| RunChannelsWithoutHostTest       | 10           |     3.580 us |  0.0714 us |   0.0953 us |   0.7782 | 0.0076 |       3,640 B |
+| RunBroadcastQueueWithoutHostTest | 10           |     9.343 us |  0.1805 us |   0.4911 us |   1.0376 | 0.0153 |       5,187 B |
+| RunChannelsWithoutHostTest       | 10000        |   808.163 us |  8.3469 us |   7.3993 us |  72.2656 | 2.9297 |     338,723 B |
+| RunBroadcastQueueWithoutHostTest | 10000        | 3,446.952 us | 49.0321 us |  45.8647 us | 207.0313 | 7.8125 |     973,236 B |
 
 ***

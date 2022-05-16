@@ -7,7 +7,6 @@ using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
-using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Reports;
 
@@ -44,17 +43,16 @@ public class BenchmarkConfig : ManualConfig {
             JsonExporter.Default //, // TODO: re-enable
             // RPlotExporter.Default // TODO: re-enable
         );
-        this.
-        AddJob( new Job( "Select" ) { Environment = { EnvironmentVariables = new[] { new EnvironmentVariable( "Autosummarize", "on" ) } } } );
+        // AddJob( new Job( "Select" ) { Environment = { EnvironmentVariables = new[] { new EnvironmentVariable( "Autosummarize", "on" ) } } } );
         
         // AddLogger( new Logger1(), new Logger2() );
         AddLogger( new ILogger[] { new BenchmarkDotNet.Loggers.ConsoleLogger( ) } );
         // AddColumn( RankColumn.Arabic );
         AddDiagnoser( MemoryDiagnoser.Default );
         // AddDiagnoser( EventPipeProfiler.Default ); // generates output for profiling. TODO: re-enable
-        // this.WithOptions( ConfigOptions.StopOnFirstError ) // TODO: re-enable
-            // .WithOptions( ConfigOptions.JoinSummary ) // TODO: re-enable
-            // ;
+        this.WithOptions( ConfigOptions.StopOnFirstError ) // TODO: re-enable
+            .WithOptions( ConfigOptions.JoinSummary ) // TODO: re-enable
+            ;
         Orderer = new DefaultOrderer( SummaryOrderPolicy.FastestToSlowest ); // TODO: re-enable // URGENT!
         // AddValidator( ExecutionValidator.FailOnError ); // TODO: re-enable
         // AddValidator( ReturnValueValidator.FailOnError ); // TODO: re-enable

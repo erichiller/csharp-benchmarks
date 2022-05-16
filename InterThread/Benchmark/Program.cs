@@ -1,10 +1,13 @@
-#define DEBUG
-#define DEBUG_BROADCAST
+// #define DEBUG
+#undef DEBUG
+// #define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
 // #define DEBUG_OBSERVER
-// #undef DEBUG
+
 
 using System;
+using System.CodeDom.Compiler;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -13,6 +16,8 @@ using System.Threading.Tasks;
 
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
+
+using Benchmarks.Common;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,8 +29,6 @@ namespace Benchmarks.InterThread.Benchmark;
 
 public class Program {
 #if DEBUG
-
-
     // public class ResponseChecker {
     //     private ChannelReader<ChannelResponse> _reader;
     //
@@ -54,45 +57,79 @@ public class Program {
         int                     lastReadId = 0;
         CancellationToken       ct         = cts.Token;
         Stopwatch               stopwatch;
-        
+
         System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
 
         /* ************************************************************************ */
 
 #if DEBUG_BROADCAST
-        // await responseChecker.WaitForId( 1000 );
 
-        // host.Run();
-        // await host.RunAsync();
-        host = InterThreadBenchmarks.CreateHostBuilder_BroadcastQueue( args, LogLevel.Debug ).Build();
-        await host.StartAsync(ct);
+        // const int readCount = 500;
+        const int readCount       = 100;
+        const int subscriberCount = 3;
+        
+        
+        /* **** */
+        // var benchmarks = new Benchmarks() { MessageCount = readCount };
+        // await benchmarks.CreateHostWithNoChannelOptions();
+        // await benchmarks.BroadcastQueueWithOneSubscriberAndNoChannelOptions();
+        // await benchmarks.StopHost();
+        
+        var benchmarks = new Benchmarks() { MessageCount = readCount };
+        // await benchmarks.CreateHostWithNoChannelOptions();
+        // await benchmarks.RunBroadcastQueueWithoutHostTest();
+        await benchmarks.RunChannelsWithoutHostTest();
+        // await benchmarks.StopHost();
+
+        return 0;
+        
+        /* **** */
+
+        host = Benchmarks.CreateHostBuilder_BroadcastQueue<BroadcastQueue<ChannelMessage, ChannelResponse>>( subscriberCount: subscriberCount, logLevel: LogLevel.Debug ).Build();
+        await host.StartAsync( ct );
 
 
         System.Console.WriteLine( "Host is running" );
         var broadcastQueue = host.Services.GetService<BroadcastQueue<ChannelMessage, ChannelResponse>>() ?? throw new Exception();
-        
+
         logger = host.Services.GetService<ILogger<Program>>() ?? throw new Exception();
         Console.CancelKeyPress += ( object? sender, ConsoleCancelEventArgs args ) => {
             Console.WriteLine( $"Last Read ID: {lastReadId}" );
             cts.Cancel();
         };
-        logger.LogInformation( "Broadcast Queue={BroadcastQueue}", broadcastQueue );
+        var readersReachedReadCount = new Dictionary<string, int>(); // must equal subscriberCount to be considered "complete"
+        logger.LogInformation( "Broadcast Queue={BroadcastQueueWithOneSubscriber}", broadcastQueue );
         stopwatch = Stopwatch.StartNew();
-        Console.WriteLine("STARTING PRGM LOOP" );
-        while ( ! ct.IsCancellationRequested ) {
-            if ( broadcastQueue.Writer.TryReadResponse(out var result) ) {
-                Console.Write("p" );
-                // logger.LogDebug( "Read {Id} from ResponseChannel", result?.ReadId ); // URGENT: uncomment this line
-                if ( result is { ReadId: int readId } ) {
-                    lastReadId = readId;
-                    if ( readId >= 500 ) {
-                        break;
+        Console.WriteLine( "STARTING PRGM LOOP" );
+        while ( !ct.IsCancellationRequested ) {
+            if ( broadcastQueue.Writer.TryReadResponse( out var result ) ) {
+                Console.Write( "p" );
+                logger.LogDebug( "Read {Id} from ResponseChannel of reader type {ReaderType}", result.ReadId, result.ReaderType ); // URGENT: uncomment this line
+                lastReadId = result.ReadId;
+                if ( result.ReadId >= readCount ) {
+                    readersReachedReadCount[ result.ReaderType ] = result.ReadId;
+                    if ( readersReachedReadCount.Count == subscriberCount ) {
+                        bool reachedTargetReadCount = true;
+                        foreach ( var (readerType, readerLastReadId) in readersReachedReadCount ) {
+                            if ( readerLastReadId < readCount ) {
+                                reachedTargetReadCount = false;
+                                break;
+                            }
+                        }
+
+                        if ( reachedTargetReadCount ) {
+                            break;
+                        }
                     }
                 }
             }
         }
 
         logger.LogInformation( "Reading Complete in {time}. Last Read ID: {id}", stopwatch.Elapsed, lastReadId );
+        foreach ( var (readerType, readerLastReadId) in readersReachedReadCount ) {
+            Console.WriteLine( $"Reader '{readerType}' reached ID: {readerLastReadId}"  );
+        }
+
         await host.StopAsync( ct );
 
         // var channel = Channel.CreateUnbounded<ChannelMessage>();
@@ -104,16 +141,15 @@ public class Program {
         // await writer.WriteToChannel( cts.Token );
 #endif
 #if DEBUG_CHANNEL
-
         // await responseChecker.WaitForId( 1000 );
 
         // host.Run();
         // await host.RunAsync();
-        host = InterThreadBenchmarks.CreateHostBuilder_SimpleChannelQueue( args ).Build();
+        host = Benchmarks.CreateHostBuilder_SimpleChannelQueue( args ).Build();
         await host.StartAsync();
 
         System.Console.WriteLine( $"Host is running. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
-        var channel         = host.Services.GetService<Channel<ChannelMessage>>()  ?? throw new Exception();
+        var channel = host.Services.GetService<Channel<ChannelMessage>>()  ?? throw new Exception();
         var responseChannel = host.Services.GetService<Channel<ChannelResponse>>() ?? throw new Exception();
         logger = host.Services.GetService<ILogger<Program>>() ?? throw new Exception();
         Console.CancelKeyPress += ( object sender, ConsoleCancelEventArgs args ) => {
@@ -208,11 +244,11 @@ public class Program {
     //     // => new LevelOneJsonBenchmarks().SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne();
 #else
     // static async Task Main( string[] args ) {
-    //     var benchmark = new InterThreadBenchmarks();
+    //     var benchmark = new Benchmarks();
     //     await benchmark.CreateHost();
     //  
     //     
-    //     // var hostBuilder = InterThreadBenchmarks.CreateHostBuilder_ServerToClientStream( Array.Empty<string>() )
+    //     // var hostBuilder = Benchmarks.CreateHostBuilder_ServerToClientStream( Array.Empty<string>() )
     //                                 // .Build();
     //     // var channel = host.Services.GetService<Channel<ChannelMessage>>() ?? throw new Exception();
     //     
@@ -224,13 +260,13 @@ public class Program {
            .FromAssembly( typeof(Program).Assembly )
            .Run( args.Length > 0
                      ? args
-                     : new[] {
-                         "-f", "*"
-                     },
-                 new DebugInProcessConfig()
-                 // ManualConfig
-                     // .Create( DefaultConfig.Instance )
+                     : new[] { "-f", "*" },
+                 // new BenchmarkConfig()
+                 // new DebugInProcessConfig()
+                 ManualConfig
+                     .Create( DefaultConfig.Instance )
                      .WithOptions( ConfigOptions.StopOnFirstError |
-                                   ConfigOptions.JoinSummary ) );
+                                   ConfigOptions.JoinSummary )
+           );
 #endif
 }

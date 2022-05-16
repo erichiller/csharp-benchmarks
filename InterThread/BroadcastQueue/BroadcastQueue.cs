@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
@@ -40,10 +41,10 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     public ValueTask<TResponse> ReadResponseAsync( CancellationToken ct ) => _responseReader.ReadAsync( ct );
 
     /// <inheritdoc cref="ChannelReader{T}.TryPeek"/>
-    public bool TryPeekResponse( out TResponse? response ) => _responseReader.TryPeek( out response );
+    public bool TryPeekResponse( [ MaybeNullWhen( false ) ] out TResponse response ) => _responseReader.TryPeek( out response );
 
     /// <inheritdoc cref="ChannelReader{T}.TryRead"/>
-    public bool TryReadResponse( [MaybeNullWhen(false)] out TResponse? response ) => _responseReader.TryRead( out response );
+    public bool TryReadResponse( [ MaybeNullWhen( false ) ] out TResponse response ) => _responseReader.TryRead( out response );
 
     /// <inheritdoc cref="ChannelReader{T}.WaitToReadAsync"/>
     public ValueTask<bool> WaitToReadResponseAsync( CancellationToken ct = default ) => _responseReader.WaitToReadAsync( ct );
@@ -92,6 +93,7 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
         this._messageReader  = messageReader;
     }
 
+    // URGENT
     private void unsubscribe( ) {
         // TODO: needs to be disposed?
         this._queue.RemoveReader( this );
@@ -135,47 +137,55 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
 
 /// <summary>
 /// A FIFO Queue that can have 1 publisher / writer, and 0 to many subscribers / readers.
-/// With a return message channel.
-///
-/// // TODO : just call Broadcast ?
-/// SEE: https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1?view=net-6.0
-/// https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1?view=net-6.0
-/// https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channel-1?view=net-6.0
+/// With a return message channel with message type of <typeparamref name="TResponse"/>.
 /// </summary>
+/// <remarks>
+/// If there are no readers currently, all write activity will simply return as if it was successful.
+/// </remarks>
+/// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1">ChannelWriter&lt;T&gt;</seealso>
+/// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1">ChannelReader&lt;T&gt;</seealso>
+/// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channel-1">Channel&lt;T&gt;</seealso>
 public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
-    // private System.Collections.Concurrent.<T>
-    // private ConcurrentQueue<TData> _messages = new ();
+    protected readonly Channel<TResponse> _responseChannel;
 
-    // private ConcurrentQueue<TResponse> _responses = new ();
+    protected readonly ConcurrentDictionary<BroadcastQueueReader<TData, TResponse>, ChannelWriter<TData>> _readers = new ();
 
-    private readonly Channel<TResponse>       _responseChannel;
+    protected BroadcastQueueReader<TData, TResponse>? _singleReaderOnly; // KILL
 
-    // private readonly Dictionary<BroadcastQueueReader<TData, TResponse>, ChannelWriter<TData>> _readers = new (); // URGENT: restore
-    public readonly Dictionary<BroadcastQueueReader<TData, TResponse>, ChannelWriter<TData>> _readers = new ();
+    public int ReaderCount => _readers.Count;
 
     public BroadcastQueue( ) {
-        // UnboundedChannelOptions responseChannelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false };// URGENT: restore?
-        // _responseChannel = Channel.CreateUnbounded<TResponse>( responseChannelOptions ); // URGENT: restore?
-        _responseChannel = Channel.CreateUnbounded<TResponse>( );
+        _responseChannel = Channel.CreateUnbounded<TResponse>(
+            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false } ); // URGENT: restore?
+        // _responseChannel = Channel.CreateUnbounded<TResponse>();
+        Writer = new BroadcastQueueWriter<TData, TResponse>( this, _responseChannel.Reader );
+    }
+
+    protected BroadcastQueue( Channel<TResponse> responseChannel ) {
+        _responseChannel = responseChannel;
         Writer           = new BroadcastQueueWriter<TData, TResponse>( this, _responseChannel.Reader );
     }
 
-    public BroadcastQueueReader<TData, TResponse> GetReader( ) {
+    public virtual BroadcastQueueReader<TData, TResponse> GetReader( ) {
         // var            dataChannelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true };// URGENT: restore?
         // Channel<TData> dataChannel = Channel.CreateUnbounded<TData>( dataChannelOptions );// URGENT: restore?
-        Channel<TData> dataChannel = Channel.CreateUnbounded<TData>( );
-        var            reader      = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, _responseChannel.Writer );
-        _readers.Add( reader, dataChannel.Writer );
-        Console.WriteLine($"GetReader() _readers.Count is {_readers.Count}"); // KILL
+        // Channel<TData> dataChannel = Channel.CreateUnbounded<TData>();
+        return GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );
+    }
+
+    protected virtual BroadcastQueueReader<TData, TResponse> GetReader( Channel<TData> dataChannel ) {
+        var reader = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, _responseChannel.Writer );
+        _singleReaderOnly = reader;
+        _readers.TryAdd( reader, dataChannel.Writer );
         return reader;
     }
 
-    public BroadcastQueueWriter<TData, TResponse> Writer { get; }
+    public BroadcastQueueWriter<TData, TResponse> Writer { get; private init; }
 
     internal void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
-        this._readers.Remove( reader );
+        this._readers.TryRemove( reader, out var _ );
     }
-    
+
     /* ************************************************** */
 
     #region Data
@@ -191,6 +201,7 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
     }
 
     /// <inheritdoc />
+    /// <remarks>Will return <c>true</c> if there are no readers present.</remarks>
     public override bool TryWrite( TData item ) {
         bool result = true;
         foreach ( var (_, channelWriter) in _readers ) {
@@ -220,23 +231,18 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
              *          Then use this to feed any new readers the last X data.
              *          *This is entirely unlike how Channel<T> works and is more like a message bus, eg. RabbitMQ*
              */
-            /* TODO: add a parameter:
-             *  bool continueWithoutReader = false
-             */
-            // return ValueTask.FromResult( true );
-            Console.WriteLine($"_readers.Count == 0 ; Waiting for subscriber to connect.");
-            int i = 0;
+            // Console.WriteLine( $"_readers.Count == 0 ; Waiting for subscriber to connect." );
             while ( _readers.Count == 0 ) {
                 /* Pause and wait for a reader to connect. */
                 /* NOTE: I don't know why, but NOT awaiting this keeps the CPU from being pegged at 100% (But it doesn't actually pause for 500ms)
                  * see: https://stackoverflow.com/a/28413138/377252
                  */
-                Task.Delay( 1000, cancellationToken ); 
-                // i++;
-                // Console.WriteLine($"[{i}]Waiting for subscriber to connect.");
+                Task.Delay( 1000, cancellationToken );
             }
+
             return ValueTask.FromResult( true );
         }
+
         if ( _readers.Count == 1 ) {
             return _readers.Single().Value.WaitToWriteAsync( cancellationToken );
         }
@@ -244,21 +250,16 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
         return _readers.Select( r => r.Value.WaitToWriteAsync( cancellationToken ) ).ToArray().WhenAllAnd();
     }
 
-    // public override async ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
-    //     bool result = true;
-    //     foreach ( var (reader, channelWriter) in _readers ) {
-    //         result &= await channelWriter.WaitToWriteAsync( cancellationToken );
-    //     }
-    //
-    //     return result;
-    // }
-
     /// <inheritdoc />
+    /// <remarks>If there are no readers present, nothing will be written</remarks>
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
-        Console.WriteLine($"_readers.Count == {_readers.Count}"); // KILL
+        if ( _readers.Count == 0 ) {
+            return ValueTask.CompletedTask;
+        }
+
         if ( _readers.Count == 1 ) {
             return _readers.Single().Value.WriteAsync( item, cancellationToken );
-            // return new ValueTask(  );
+            // return _readers[ 0 ].WriteAsync( item, cancellationToken );
         }
 
         return _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
@@ -268,26 +269,28 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
 
     /// <inheritdoc />
     public override string ToString( ) {
-        /* NOTE: Count does not work on _responseReader.
-         * My suspicion is that it is a SingleConsumerUnboundedChannel<T>
-         * which does not support Count
-         * https://source.dot.net/#System.Threading.Channels/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
+        /* NOTE: Count does not work on _responseChannel.Reader as it is a SingleConsumerUnboundedChannel<T> which does not support Count
+         * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
          */
-        // return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ _responses {{ Count = {_responseReader.Count} }}, _readers {{ Count = {_readers.Count} }} }}";
-        return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ _readers {{ Count = {_readers.Count} }} }}";
+        return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ "                                                                   +
+               ( _responseChannel.Reader.CanCount ? $"_responses {{ Count =  {_responseChannel.Reader.Count} }}," : String.Empty ) +
+               "_readers {{ Count = {_readers.Count} }} }}";
     }
 }
 
 /* TODO : add this to Common */
 
 public static class ValueTaskExtensions {
-    public static async ValueTask WhenAll( this ValueTask[] tasks ) { // URGENT: benchmark this vs. using .AsTask()
+    public static async ValueTask WhenAll( this ValueTask[] tasks ) {
+        // URGENT: benchmark this vs. using .AsTask()
         // We don't allocate the list if no task throws
         List<Exception>? exceptions = null;
 
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 await tasks[ i ].ConfigureAwait( false );
+            } catch (TaskCanceledException _) { // TODO: is this correct?
+                return;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );
@@ -300,7 +303,8 @@ public static class ValueTaskExtensions {
         }
     }
 
-    public static async ValueTask<T[]> WhenAll<T>( this ValueTask<T>[] tasks ) { // URGENT: benchmark this vs. using .AsTask()
+    public static async ValueTask<T[]> WhenAll<T>( this ValueTask<T>[] tasks ) {
+        // URGENT: benchmark this vs. using .AsTask()
         // We don't allocate the list if no task throws
         List<Exception>? exceptions = null;
 
@@ -308,6 +312,8 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results[ i ] = await tasks[ i ].ConfigureAwait( false );
+            } catch (TaskCanceledException _) { // TODO: is this correct?
+                return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );
@@ -321,7 +327,8 @@ public static class ValueTaskExtensions {
     /// <summary>
     /// For a given array of <see cref="ValueTask"/>s and their results into a single return.
     /// </summary>
-    public static async ValueTask<bool> WhenAllAnd( this ValueTask<bool>[] tasks ) { // URGENT: benchmark this vs. using .AsTask()
+    public static async ValueTask<bool> WhenAllAnd( this ValueTask<bool>[] tasks ) {
+        // URGENT: benchmark this vs. using .AsTask()
         // We don't allocate the list if no task throws
         List<Exception>? exceptions = null;
 
@@ -329,6 +336,8 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results &= await tasks[ i ].ConfigureAwait( false );
+            } catch (TaskCanceledException _) { // TODO: is this correct?
+                return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );

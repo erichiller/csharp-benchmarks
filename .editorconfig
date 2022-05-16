@@ -109,3 +109,40 @@ csharp_using_directive_placement = outside_namespace:warning
 
 # https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#namespace-options
 csharp_style_namespace_declarations = file_scoped
+
+
+
+## Private
+# Symbols
+dotnet_naming_symbols.private_methods.applicable_kinds = method
+dotnet_naming_symbols.private_methods.applicable_accessibilities = private, protected
+# dotnet_naming_symbols.private_methods.required_modifiers            = 
+
+# Rules
+dotnet_naming_rule.private_methods_camel_case_rule.symbols = private_methods
+dotnet_naming_rule.private_methods_camel_case_rule.style = private_methods_camel_case
+dotnet_naming_rule.private_methods_camel_case_rule.severity = suggestion
+
+# Style
+dotnet_naming_style.private_methods_camel_case.capitalization = camel_case
+# dotnet_naming_style.private_methods_camel_case.required_prefix      = 
+# dotnet_naming_style.private_methods_camel_case.required_suffix      = 
+# dotnet_naming_style.private_methods_camel_case.word_separator       = 
+
+
+## Private & Protected Members
+# Symbols
+dotnet_naming_symbols.private_members.applicable_kinds = property,field,event
+dotnet_naming_symbols.private_members.applicable_accessibilities = private,protected
+# dotnet_naming_symbols.private_members.required_modifiers            = 
+
+# Rules
+dotnet_naming_rule.private_members_underscored_camel_case_rule.symbols = private_members
+dotnet_naming_rule.private_members_underscored_camel_case_rule.style = private_members_underscored_camel_case
+dotnet_naming_rule.private_members_underscored_camel_case_rule.severity = suggestion
+
+# Style
+dotnet_naming_style.private_members_underscored_camel_case.capitalization = camel_case
+dotnet_naming_style.private_members_underscored_camel_case.required_prefix = _
+# dotnet_naming_style.private_members_underscored_camel_case.required_suffix      = 
+# dotnet_naming_style.private_members_underscored_camel_case.word_separator       = 
