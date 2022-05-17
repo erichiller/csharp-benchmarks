@@ -1,4 +1,5 @@
 ﻿// #define DEBUG
+
 #undef DEBUG
 
 using System;
@@ -20,7 +21,8 @@ namespace Benchmarks.InterThread.Benchmark;
 [ Config( typeof(BenchmarkConfig) ) ]
 public class Benchmarks {
     // [ Params( 1_000, 10_000, 1_000_000 ) ]
-    [ Params( 10, 10_000 ) ]
+    // [ Params( 10, 10_000 ) ]
+    [ Params( 1_000_000 ) ]
     public int MessageCount;
 
     /* *************************************************************************************************************
@@ -47,16 +49,18 @@ public class Benchmarks {
                 // services.AddTransient<ResponseChecker>();
             } );
 
-    private Channel<ChannelMessage>  _dataChannel;
-    private Channel<ChannelResponse> _responseChannel;
+    private Channel<ChannelMessage>       _dataChannel;
+    private ChannelReader<ChannelMessage> _dataChannelReader;
+    private ChannelWriter<ChannelMessage> _dataChannelWriter;
+    private Channel<ChannelResponse>      _responseChannel;
 
     [ GlobalSetup( Target = nameof(SimpleBackgroundServiceMessagingUsingChannels) ) ]
     public async Task CreateHost_SimpleChannelQueue( ) {
         host = CreateHostBuilder_SimpleChannelQueue( Array.Empty<string>() )
             .Build();
         await host.StartAsync();
-        logger          = host.Services.GetService<ILogger<Benchmarks>>()      ?? throw new Exception();
-        _dataChannel         = host.Services.GetService<Channel<ChannelMessage>>()  ?? throw new Exception();
+        logger           = host.Services.GetService<ILogger<Benchmarks>>()      ?? throw new Exception();
+        _dataChannel     = host.Services.GetService<Channel<ChannelMessage>>()  ?? throw new Exception();
         _responseChannel = host.Services.GetService<Channel<ChannelResponse>>() ?? throw new Exception();
     }
 
@@ -203,38 +207,21 @@ public class Benchmarks {
         }
     }
 
-    // [ GlobalSetup( Target = nameof(RunBroadcastQueueWithoutHostTest) ) ]
-    // public void CreateBroadcastQueue( ) {
-    // var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
-    // broadcastQueue.Writer
-    // }
+
+    // URGENT: nothing has been checking the Response Channel!
+
+
     [ Benchmark ]
-    public async Task RunBroadcastQueueWithoutHostTest( ) {
-        // URGENT: try this
+    public void RunBroadcastQueueWithoutHostTest( ) {
         _broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
 
-        // int lastRead = 0
-        // while ( true ) {
-        // static async void writerTask ( BroadcastQueueWriter<ChannelMessage, ChannelResponse> writer ) {
         async Task writerTask( ) {
             var writer = _broadcastQueue.Writer;
             int i      = 0;
-#if DEBUG
-            Console.WriteLine( $"Start Waiting to Write on thread # {Thread.CurrentThread.ManagedThreadId}" );
-#endif
             while ( await writer.WaitToWriteAsync() ) {
-#if DEBUG
-                Console.WriteLine( "Waiting to Write" );
-#endif
                 while ( writer.TryWrite( new ChannelMessage() { Id = i } ) ) {
                     // Console.WriteLine( $"Wrote {i}" );
                     i++;
-#if DEBUG
-                    if ( i % 10 == 0 ) {
-                        Console.WriteLine( $"Wrote {i}" );
-                        // await Task.Delay( 1000 );
-                    }
-#endif
                     if ( i > MessageCount ) {
                         return;
                     }
@@ -242,28 +229,13 @@ public class Benchmarks {
             }
         }
 
-        int lastIdRead = 0;
-
         async Task readerTask1( ) {
             var reader = _broadcastQueue.GetReader();
-#if DEBUG
-            Console.WriteLine( $"Start Waiting to Read on thread # {Thread.CurrentThread.ManagedThreadId}" );
-#endif
             while ( await reader.WaitToReadAsync() ) {
-#if DEBUG
-                Console.WriteLine( "Waiting to Read" );
-#endif
                 while ( reader.TryRead( out ChannelMessage? result ) ) {
-#if DEBUG
-                    Console.WriteLine( $"Read {result.Id}" );
-#endif
                     if ( result.Id >= MessageCount ) {
-                        lastIdRead = result.Id;
                         var response = new ChannelResponse( result.Id, nameof(readerTask1) );
                         await reader.WriteResponseAsync( response );
-#if DEBUG
-                        Console.WriteLine( $"Completed Read with Id: {result.Id} ; Was waiting for messageCount: {MessageCount}" );
-#endif
                         return;
                     }
                 }
@@ -274,48 +246,22 @@ public class Benchmarks {
             Task.Run( readerTask1 ),
             Task.Run( writerTask )
         );
-
-#if DEBUG
-        Console.WriteLine( $"Complete {nameof(RunBroadcastQueueWithoutHostTest)}. Last ID Read was: {lastIdRead}. Was waiting for messageCount: {MessageCount}" );
-#endif
     }
-    
-    
-    
-    
-    
-    // URGENT: nothing has been checking the Response Channel!
-    
-    [ Benchmark ]
-    public async Task RunChannelsWithoutHostTest( ) {
-        // URGENT: try this
-        var dataChannel           = Channel.CreateUnbounded<ChannelMessage>();
-        var dataReader     = dataChannel.Reader;
-        var responseChannel       = Channel.CreateUnbounded<ChannelResponse>();
-        var responseReader = responseChannel.Reader;
 
-        // int lastRead = 0
-        // while ( true ) {
-        // static async void writerTask ( BroadcastQueueWriter<ChannelMessage, ChannelResponse> writer ) {
+
+    [ Benchmark ]
+    public void RunChannelsWithoutHostTest( ) {
+        var dataChannel     = Channel.CreateUnbounded<ChannelMessage>();
+        var dataReader      = dataChannel.Reader;
+        var responseChannel = Channel.CreateUnbounded<ChannelResponse>();
+        var responseReader  = responseChannel.Reader;
+
         async Task writerTask( ) {
             var dataWriter = dataChannel.Writer;
             int i          = 0;
-#if DEBUG
-            Console.WriteLine( $"Start Waiting to Write on thread # {Thread.CurrentThread.ManagedThreadId}" );
-#endif
             while ( await dataWriter.WaitToWriteAsync() ) {
-#if DEBUG
-                Console.WriteLine( "Waiting to Write" );
-#endif
                 while ( dataWriter.TryWrite( new ChannelMessage() { Id = i } ) ) {
-                    // Console.WriteLine( $"Wrote {i}" );
                     i++;
-#if DEBUG
-                    if ( i % 100 == 0 ) {
-                        Console.WriteLine( $"Wrote {i}" );
-                        // await Task.Delay( 1000 );
-                    }
-#endif
                     if ( i > MessageCount ) {
                         return;
                     }
@@ -323,28 +269,14 @@ public class Benchmarks {
             }
         }
 
-        int lastIdRead = 0;
 
         async Task readerTask1( ) {
             var responseWriter = responseChannel.Writer;
-#if DEBUG
-            Console.WriteLine( $"Start Waiting to Read on thread # {Thread.CurrentThread.ManagedThreadId}" );
-#endif
             while ( await dataReader.WaitToReadAsync() ) {
-#if DEBUG
-                Console.WriteLine( "Waiting to Read" );
-#endif
                 while ( dataReader.TryRead( out ChannelMessage? result ) ) {
-#if DEBUG
-                    Console.WriteLine( $"Read {result.Id}" );
-#endif
                     if ( result.Id >= MessageCount ) {
-                        lastIdRead = result.Id;
                         var response = new ChannelResponse( result.Id, nameof(readerTask1) );
                         await responseWriter.WriteAsync( response );
-#if DEBUG
-                        Console.WriteLine( $"Completed {nameof(readerTask1)}. Read Id: {result.Id} ; Was waiting for messageCount: {MessageCount}" );
-#endif
                         return;
                     }
                 }
@@ -352,31 +284,108 @@ public class Benchmarks {
         }
 
         Task.WaitAll(
-            Task.Run( writerTask ),
-            Task.Run( readerTask1 )
+            Task.Run( readerTask1 ),
+            Task.Run( writerTask )
         );
+    }
 
-#if DEBUG
-        if ( responseReader.TryRead( out ChannelResponse? lastResponse ) ) {
-            Console.WriteLine($"Complete. Read Response with ID {lastResponse.ReadId} from {lastResponse.ReaderType}");
-            if ( lastResponse.ReadId != MessageCount ) {
-                throw new Exception( $"Received {lastResponse.ReadId} but expected {MessageCount}" );
+    // [ Benchmark ]
+    // public void RunBroadcastQueueWithoutHostReaderOnlyTest( ) {
+    //     _broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
+    //
+    //     async Task readerTask1( ) {
+    //         var reader = _broadcastQueue.GetReader();
+    //         while ( await reader.WaitToReadAsync() ) {
+    //             while ( reader.TryRead( out ChannelMessage? result ) ) {
+    //                 if ( result.Id >= MessageCount ) {
+    //                     var response = new ChannelResponse( result.Id, nameof(readerTask1) );
+    //                     await reader.WriteResponseAsync( response );
+    //                     return;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     Task.WaitAll(
+    //         Task.Run( readerTask1 )
+    //     );
+    // }
+    //
+    // [ Benchmark ]
+    // public void RunChannelsWithoutHostReaderOnlyTest( ) {
+    //     var dataChannel     = Channel.CreateUnbounded<ChannelMessage>();
+    //     var dataReader      = dataChannel.Reader;
+    //     var responseChannel = Channel.CreateUnbounded<ChannelResponse>();
+    //     var responseReader  = responseChannel.Reader;
+    //
+    //
+    //     async Task readerTask1( ) {
+    //         var responseWriter = responseChannel.Writer;
+    //         while ( await dataReader.WaitToReadAsync() ) {
+    //             while ( dataReader.TryRead( out ChannelMessage? result ) ) {
+    //                 if ( result.Id >= MessageCount ) {
+    //                     var response = new ChannelResponse( result.Id, nameof(readerTask1) );
+    //                     await responseWriter.WriteAsync( response );
+    //                     return;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     Task.WaitAll(
+    //         Task.Run( readerTask1 )
+    //     );
+    // }
+
+    private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader;
+    private BroadcastQueueWriter<ChannelMessage, ChannelResponse> _broadcastQueueWriter;
+
+    [ IterationSetup( Target = nameof(RunBroadcastQueueWithoutHostWriterOnlyTest) ) ]
+    public void Setup_RunBroadcastQueueWithoutHostWriterOnlyTest( ) {
+        _broadcastQueue       = new BroadcastQueue<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader = _broadcastQueue.GetReader();
+        _broadcastQueueWriter = _broadcastQueue.Writer;
+    }
+
+    [ IterationCleanup( Target = nameof(RunBroadcastQueueWithoutHostWriterOnlyTest) ) ]
+    public void Cleanup_RunBroadcastQueueWithoutHostWriterOnlyTest( ) {
+        _broadcastQueue.Writer.Complete();
+    }
+
+    [ Benchmark ]
+    public async Task RunBroadcastQueueWithoutHostWriterOnlyTest( ) {
+        int i = 0;
+        while ( await _broadcastQueueWriter.WaitToWriteAsync() ) {
+            while ( _broadcastQueueWriter.TryWrite( new ChannelMessage() { Id = i } ) ) {
+                i++;
+                if ( i > MessageCount ) {
+                    return;
+                }
             }
-        } else {
-            throw new Exception();
         }
+    }
 
-        if ( dataReader.TryRead( out ChannelMessage? firstUnreadDataMessage ) ) {
-            int lastDataIdInQueue = firstUnreadDataMessage.Id;
-            await foreach ( var message in dataReader.ReadAllAsync() ) {
-                lastDataIdInQueue = message.Id;
+    [ IterationSetup( Target = nameof(RunChannelsWithoutHostWriterOnlyTest) ) ]
+    public void Setup_RunChannelsWithoutHostWriterOnlyTest( ) {
+        _dataChannel       = Channel.CreateUnbounded<ChannelMessage>();
+        _dataChannelReader = _dataChannel.Reader;
+        _dataChannelWriter = _dataChannel.Writer;
+    }
+
+    [ IterationCleanup( Target = nameof(RunChannelsWithoutHostWriterOnlyTest) ) ]
+    public void Cleanup_RunChannelsWithoutHostWriterOnlyTest( ) {
+        _dataChannelWriter.Complete();
+    }
+    [ Benchmark ]
+    public async Task RunChannelsWithoutHostWriterOnlyTest( ) {
+        int i          = 0;
+        while ( await _dataChannelWriter.WaitToWriteAsync() ) {
+            while ( _dataChannelWriter.TryWrite( new ChannelMessage() { Id = i } ) ) {
+                i++;
+                if ( i > MessageCount ) {
+                    return;
+                }
             }
-
-            Console.WriteLine($"Complete. Last Data (unread) started with ID {firstUnreadDataMessage.Id} and ended with {lastDataIdInQueue}");
         }
-
-        Console.WriteLine( $"Complete {nameof(RunChannelsWithoutHostTest)}. Last ID Read was: {lastIdRead}. Was waiting for messageCount: {MessageCount}" );
-#endif
-        // await Task.Delay( 1000 );
     }
 }

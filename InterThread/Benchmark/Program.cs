@@ -1,6 +1,6 @@
-// #define DEBUG
-#undef DEBUG
-// #define DEBUG_BROADCAST
+#define DEBUG
+// #undef DEBUG
+#define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
 // #define DEBUG_OBSERVER
 
@@ -58,14 +58,14 @@ public class Program {
         CancellationToken       ct         = cts.Token;
         Stopwatch               stopwatch;
 
-        System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
+        // System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
 
         /* ************************************************************************ */
 
 #if DEBUG_BROADCAST
 
         // const int readCount = 500;
-        const int readCount       = 100;
+        const int readCount       = 10_000;
         const int subscriberCount = 3;
         
         
@@ -78,7 +78,13 @@ public class Program {
         var benchmarks = new Benchmarks() { MessageCount = readCount };
         // await benchmarks.CreateHostWithNoChannelOptions();
         // await benchmarks.RunBroadcastQueueWithoutHostTest();
-        await benchmarks.RunChannelsWithoutHostTest();
+        // benchmarks.RunChannelsWithoutHostTest();
+        benchmarks.Setup_RunBroadcastQueueWithoutHostWriterOnlyTest();
+        await benchmarks.RunBroadcastQueueWithoutHostWriterOnlyTest();
+        benchmarks.Cleanup_RunBroadcastQueueWithoutHostWriterOnlyTest();
+        benchmarks.Setup_RunChannelsWithoutHostWriterOnlyTest();
+        await benchmarks.RunChannelsWithoutHostWriterOnlyTest();
+        benchmarks.Cleanup_RunChannelsWithoutHostWriterOnlyTest();
         // await benchmarks.StopHost();
 
         return 0;

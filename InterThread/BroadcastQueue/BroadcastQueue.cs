@@ -61,11 +61,14 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     public override bool TryComplete( Exception? error = null ) => _queue.TryComplete( error );
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
     public override bool TryWrite( TData item ) => _queue.TryWrite( item );
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
     public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default )
-        => _queue.WaitToWriteAsync( cancellationToken );
+        // => _queue.WaitToWriteAsync( cancellationToken );
+        => new ValueTask<bool>( true ); // KILL ?
 
     /// <inheritdoc />
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default )
@@ -151,13 +154,13 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
     protected readonly ConcurrentDictionary<BroadcastQueueReader<TData, TResponse>, ChannelWriter<TData>> _readers = new ();
 
     protected BroadcastQueueReader<TData, TResponse>? _singleReaderOnly; // KILL
+    protected ChannelWriter<TData>? _singleDataWriterOnly; // KILL
 
     public int ReaderCount => _readers.Count;
 
     public BroadcastQueue( ) {
         _responseChannel = Channel.CreateUnbounded<TResponse>(
-            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false } ); // URGENT: restore?
-        // _responseChannel = Channel.CreateUnbounded<TResponse>();
+            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false } );
         Writer = new BroadcastQueueWriter<TData, TResponse>( this, _responseChannel.Reader );
     }
 
@@ -167,15 +170,13 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
     }
 
     public virtual BroadcastQueueReader<TData, TResponse> GetReader( ) {
-        // var            dataChannelOptions = new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true };// URGENT: restore?
-        // Channel<TData> dataChannel = Channel.CreateUnbounded<TData>( dataChannelOptions );// URGENT: restore?
-        // Channel<TData> dataChannel = Channel.CreateUnbounded<TData>();
         return GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );
     }
 
     protected virtual BroadcastQueueReader<TData, TResponse> GetReader( Channel<TData> dataChannel ) {
         var reader = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, _responseChannel.Writer );
-        _singleReaderOnly = reader;
+        _singleReaderOnly     = reader; // KILL
+        _singleDataWriterOnly = dataChannel.Writer; // KILL
         _readers.TryAdd( reader, dataChannel.Writer );
         return reader;
     }
@@ -202,7 +203,9 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
 
     /// <inheritdoc />
     /// <remarks>Will return <c>true</c> if there are no readers present.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
     public override bool TryWrite( TData item ) {
+        return _singleDataWriterOnly.TryWrite( item ); // KILL
         bool result = true;
         foreach ( var (_, channelWriter) in _readers ) {
             result &= channelWriter.TryWrite( item );
@@ -213,6 +216,7 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
 
     /// <inheritdoc />
     public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
+        return new ValueTask<bool>( true ); // KILL unless it is closed!
         if ( _readers.Count == 0 ) {
             /* NOTE: I am not 100% sure this is the desired result
              * There are no readers, and the data is not being saved to anywhere, so should this return False?
