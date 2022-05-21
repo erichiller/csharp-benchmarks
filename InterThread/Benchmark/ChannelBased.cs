@@ -24,15 +24,24 @@ public record ChannelResponse(
 
 public class ChannelPublisher : BackgroundService {
     private readonly System.Threading.Channels.ChannelWriter<ChannelMessage> _channelWriter;
+    public static    int                                                     MaxMessageCount = 0;
 
     private readonly ILogger<ChannelPublisher> _logger;
 
-    public ChannelPublisher( ILogger<ChannelPublisher> logger, Channel<ChannelMessage> channel ) =>
-        // ( _logger, _channelWriter ) = ( NullLogger<ChannelPublisher>.Instance, channel.Writer );
+    public ChannelPublisher( ILogger<ChannelPublisher> logger, Channel<ChannelMessage> channel ) {
+#if DEBUG
+        Console.WriteLine("ChannelPublisher ctor");
+#endif
+        if ( MaxMessageCount == 0 ) {
+            throw new ArgumentException( $"MaxMessageCount can not be 0" );
+        }
+
         ( _logger, _channelWriter ) = ( logger, channel.Writer );
+    }
 
     public override async Task StartAsync( CancellationToken cancellationToken ) {
 #if DEBUG
+        Console.WriteLine("ChannelPublisher StartAsync");
         _logger.LogInformation( "[Thread ID: {ThreadID}] Starting client streaming call at: {time}", Thread.CurrentThread.ManagedThreadId, DateTimeOffset.Now );
 #endif
         // Don't pass cancellation token to the call. The call is completed in StopAsync when service stops.
@@ -43,6 +52,7 @@ public class ChannelPublisher : BackgroundService {
         // https://github.com/dotnet/runtime/issues/36063#issuecomment-671110933 ; Fixed with await Task.Yield()
         await Task.Yield();
 #if DEBUG
+        Console.WriteLine("ChannelPublisher ExecuteAsync");
         _logger.LogDebug( "[Thread ID: {ThreadID}] Starting to WriteChannel", Thread.CurrentThread.ManagedThreadId );
 #endif
         int id = 0;
@@ -56,6 +66,12 @@ public class ChannelPublisher : BackgroundService {
 #endif
             var message = new ChannelMessage { Id = id, Property_1 = "some string" };
             _channelWriter.TryWrite( message );
+
+
+            if ( id == MaxMessageCount ) {
+                _logger.LogDebug( "{Type} Reached max message count ( {_id} == {MaxMessageCount} ). Returning from {Method}", nameof(ChannelPublisher), id, MaxMessageCount, nameof(ExecuteAsync) );
+                return;
+            }
 
             // await Task.Delay( DELAY_MS, stoppingToken );
             id++;
@@ -94,9 +110,15 @@ public class ChannelSubscriber : BackgroundService {
 
     private readonly System.Threading.Channels.ChannelReader<ChannelMessage>  _channelReader;
     private readonly System.Threading.Channels.ChannelWriter<ChannelResponse> _responseChannelWriter;
+    public static    int                                                      MaxMessageCount = 0;
 
-    public ChannelSubscriber( ILogger<ChannelSubscriber> logger, Channel<ChannelMessage> channel, Channel<ChannelResponse> responseChannel ) =>
+    public ChannelSubscriber( ILogger<ChannelSubscriber> logger, Channel<ChannelMessage> channel, Channel<ChannelResponse> responseChannel ) {
         ( _logger, _channelReader, _responseChannelWriter ) = ( logger, channel.Reader, responseChannel.Writer );
+
+        if ( MaxMessageCount == 0 ) {
+            throw new ArgumentException( $"MaxMessageCount can not be 0" );
+        }
+    }
 
     public override async Task StartAsync( CancellationToken cancellationToken ) {
 #if DEBUG
@@ -124,7 +146,11 @@ public class ChannelSubscriber : BackgroundService {
 #if DEBUG
                 _logger.LogDebug( $"Read message with id: {message.Id}" );
 #endif
-                await _responseChannelWriter.WriteAsync( new ChannelResponse(message.Id, nameof(ChannelSubscriber) ), stoppingToken );
+                if ( message.Id == MaxMessageCount ) {
+                    await _responseChannelWriter.WriteAsync( new ChannelResponse( message.Id, nameof(ChannelSubscriber) ), stoppingToken );
+                    _logger.LogDebug( "{Type} Reached max message count ( {_id} == {MaxMessageCount} ). Returning from {Method}", nameof(ChannelSubscriber), message.Id, MaxMessageCount, nameof(ExecuteAsync) );
+                    // return;
+                }
 #if DEBUG
                 _logger.LogDebug( $"Wrote {nameof(ChannelResponse)} {message.Id}" );
 #endif

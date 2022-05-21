@@ -3,6 +3,7 @@
 #define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
 // #define DEBUG_OBSERVER
+// # define DEBUG_THREAD_PRIORITY
 
 
 using System;
@@ -15,6 +16,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Extensions;
 using BenchmarkDotNet.Running;
 
 using Benchmarks.Common;
@@ -62,36 +64,78 @@ public class Program {
 
         /* ************************************************************************ */
 
+#if DEBUG_THREAD_PRIORITY
+        Console.WriteLine($"PRE: Current Thread Priority is {Thread.CurrentThread.Priority}");
+        Thread.CurrentThread.Priority = ThreadPriority.Highest;
+        Console.WriteLine($"POST: Current Thread Priority is {Thread.CurrentThread.Priority}");
+        // var loggerFactory = LoggerFactory.Create( builder => builder.AddConsole().SetMinimumLevel( LogLevel.Debug ));
+        // logger = loggerFactory.CreateLogger<Program>();
+
+        Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+        // Process.GetCurrentProcess().TrySetPriority( ProcessPriorityClass.High, BenchmarkDotNet.Loggers.ConsoleLogger.Default );
+
+        int i = 0;
+        while ( i < 20 ) {
+            Thread.Sleep( 1000 );
+            i++;
+        }
+
+#endif
+
 #if DEBUG_BROADCAST
 
+        // const int readCount = 100;
         // const int readCount = 500;
-        const int readCount       = 10_000;
+        // const int readCount = 10_000;
+        const int readCount       = 100_000;
         const int subscriberCount = 3;
-        
-        
-        /* **** */
-        // var benchmarks = new Benchmarks() { MessageCount = readCount };
-        // await benchmarks.CreateHostWithNoChannelOptions();
-        // await benchmarks.BroadcastQueueWithOneSubscriberAndNoChannelOptions();
-        // await benchmarks.StopHost();
-        
+
         var benchmarks = new Benchmarks() { MessageCount = readCount };
-        // await benchmarks.CreateHostWithNoChannelOptions();
-        // await benchmarks.RunBroadcastQueueWithoutHostTest();
-        // benchmarks.RunChannelsWithoutHostTest();
-        benchmarks.Setup_RunBroadcastQueueWithoutHostWriterOnlyTest();
-        await benchmarks.RunBroadcastQueueWithoutHostWriterOnlyTest();
-        benchmarks.Cleanup_RunBroadcastQueueWithoutHostWriterOnlyTest();
-        benchmarks.Setup_RunChannelsWithoutHostWriterOnlyTest();
-        await benchmarks.RunChannelsWithoutHostWriterOnlyTest();
-        benchmarks.Cleanup_RunChannelsWithoutHostWriterOnlyTest();
-        // await benchmarks.StopHost();
+
+        #region In Host
+
+        // await benchmarks.CreateHost<BroadcastQueue<ChannelMessage, ChannelResponse>>( subscriberCount: 3, LogLevel.Debug );
+        // await benchmarks.BroadcastQueue_InHost_ThreeSubscribers_NoChannelOptions();
+        // benchmarks.StopHost();
+        //
+        // benchmarks = new Benchmarks() { MessageCount = readCount };
+        // benchmarks.CreateHostWithNoChannelOptions();
+        // await benchmarks.BroadcastQueue_InHost_OneSubscriber_NoChannelOptions();
+        // benchmarks.StopHost();
+
+        #endregion
+
+        #region WriterOnly
+
+        // benchmarks.Setup_RunBroadcastQueueWithoutHostWriterOnlyTest();
+        // await benchmarks.BroadcastQueue_WithoutHost_WriterOnly();
+        // benchmarks.Cleanup_RunBroadcastQueueWithoutHostWriterOnlyTest();
+        // benchmarks.Setup_RunChannelsWithoutHostWriterOnlyTest();
+        // await benchmarks.Channels_WithoutHost_WriterOnly();
+        // benchmarks.Cleanup_RunChannelsWithoutHostWriterOnlyTest();
+
+        #endregion
+
+        #region WithoutHost
+        
+        benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
+        benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
+        benchmarks.Cleanup_RunBroadcastQueueWithoutHostTest();
+
+        // benchmarks.Setup_RunBroadcastQueueWithoutHostTest();
+        // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber();
+        // benchmarks.Cleanup_RunBroadcastQueueWithoutHostTest();
+        // benchmarks.Setup_Channels_WithoutHost_ReadWrite();
+        // benchmarks.Channels_WithoutHost_ReadWrite();
+        // benchmarks.Cleanup_Channels_WithoutHost_ReadWrite();
+
+        #endregion
 
         return 0;
-        
+
         /* **** */
 
-        host = Benchmarks.CreateHostBuilder_BroadcastQueue<BroadcastQueue<ChannelMessage, ChannelResponse>>( subscriberCount: subscriberCount, logLevel: LogLevel.Debug ).Build();
+        host = Benchmarks.CreateHostBuilder_BroadcastQueue<BroadcastQueue<ChannelMessage, ChannelResponse>>( subscriberCount: subscriberCount, messageCount: readCount, logLevel: LogLevel.Debug ).Build();
         await host.StartAsync( ct );
 
 
@@ -133,7 +177,7 @@ public class Program {
 
         logger.LogInformation( "Reading Complete in {time}. Last Read ID: {id}", stopwatch.Elapsed, lastReadId );
         foreach ( var (readerType, readerLastReadId) in readersReachedReadCount ) {
-            Console.WriteLine( $"Reader '{readerType}' reached ID: {readerLastReadId}"  );
+            Console.WriteLine( $"Reader '{readerType}' reached ID: {readerLastReadId}" );
         }
 
         await host.StopAsync( ct );
@@ -147,10 +191,15 @@ public class Program {
         // await writer.WriteToChannel( cts.Token );
 #endif
 #if DEBUG_CHANNEL
-        // await responseChecker.WaitForId( 1000 );
+        var benchmarks = new Benchmarks() { MessageCount = 100_000 };
 
-        // host.Run();
-        // await host.RunAsync();
+        /* **** */
+        benchmarks.CreateHost_SimpleChannelQueue();
+        benchmarks.Channels_InHost();
+        benchmarks.StopHost_SimpleChannelQueue();
+        
+        return 0;
+        
         host = Benchmarks.CreateHostBuilder_SimpleChannelQueue( args ).Build();
         await host.StartAsync();
 
@@ -249,18 +298,6 @@ public class Program {
     //     => new SystemTextJsonSerializationBasic(){Iterations=1}.SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute_SourceGen();
     //     // => new LevelOneJsonBenchmarks().SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne();
 #else
-    // static async Task Main( string[] args ) {
-    //     var benchmark = new Benchmarks();
-    //     await benchmark.CreateHost();
-    //  
-    //     
-    //     // var hostBuilder = Benchmarks.CreateHostBuilder_ServerToClientStream( Array.Empty<string>() )
-    //                                 // .Build();
-    //     // var channel = host.Services.GetService<Channel<ChannelMessage>>() ?? throw new Exception();
-    //     
-    //     
-    //     benchmark.SimpleBackgroundServiceMessagingUsingChannels();
-    // }
     static void Main( string[] args )
         => BenchmarkSwitcher
            .FromAssembly( typeof(Program).Assembly )
@@ -274,5 +311,8 @@ public class Program {
                      .WithOptions( ConfigOptions.StopOnFirstError |
                                    ConfigOptions.JoinSummary )
            );
+
+    // static void Main( string[] args )
+    //     => Console.WriteLine( $"Main({args})\n23" );
 #endif
 }

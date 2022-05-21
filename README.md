@@ -394,26 +394,28 @@ and takes about 25% longer. Furthermore, Source Generators do not help.
 ## Interthread
 
 ```
-dotnet run -c RELEASE -- --filter="*Simple*"
+dotnet run -c RELEASE --filter "*WithoutHost*"
 ```
-| Method                                                  | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |    Gen 1 | Allocated [B] |
-|---------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|---------:|--------------:|
-| SimpleBackgroundServiceMessagingUsingChannels           | 10000        |  3.652 ms |  0.1087 ms |   0.3205 ms |    3.476 ms |  191.4063 | 117.1875 |   1,666,175 B |
-| BroadcastQueueWithOneSubscriberAndSingleXChannelOptions | 10000        |  9.206 ms |  0.1038 ms |   0.0920 ms |    9.220 ms |  562.5000 |  15.6250 |   2,707,106 B |
-| BroadcastQueueWithOneSubscriberAndNoChannelOptions      | 10000        |  9.946 ms |  0.0572 ms |   0.0507 ms |    9.946 ms |  578.1250 |        - |   2,708,287 B |
-| BroadcastQueueWithTwoSubscribers                        | 10000        | 16.331 ms |  0.2336 ms |   0.2185 ms |   16.353 ms | 1500.0000 |  31.2500 |   6,996,870 B |
-| BroadcastQueueWithThreeSubscribers                      | 10000        | 21.156 ms |  0.1629 ms |   0.1444 ms |   21.174 ms | 1843.7500 |  31.2500 |   8,676,858 B |
-
-| Method                                                     | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |   Gen 1 | Allocated [B] |
-|------------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|--------:|--------------:|
-| SimpleBackgroundServiceMessagingUsingChannels              | 10000        |  3.837 ms |  0.0779 ms |   0.2285 ms |    3.752 ms |  191.4063 | 66.4063 |   1,671,927 B |
-| BroadcastQueueWithOneSubscriberAndSingleXChannelOptions    | 10000        |  9.169 ms |  0.0922 ms |   0.0770 ms |    9.155 ms |  546.8750 | 31.2500 |   2,656,258 B |
-| BroadcastQueue_Vanilla_ShouldBeSameAsSingleXChannelOptions | 10000        |  9.253 ms |  0.1742 ms |   0.1544 ms |    9.225 ms |  578.1250 | 15.6250 |   2,709,124 B |
-| BroadcastQueueWithOneSubscriberAndNoChannelOptions         | 10000        | 10.056 ms |  0.1519 ms |   0.1347 ms |   10.051 ms |  578.1250 | 31.2500 |   2,714,876 B |
-| BroadcastQueueWithTwoSubscribers                           | 10000        | 16.290 ms |  0.3101 ms |   0.5432 ms |   16.137 ms | 1421.8750 | 93.7500 |   6,766,405 B |
-| BroadcastQueueWithThreeSubscribersAndSingleXChannelOptions | 10000        | 18.989 ms |  0.3691 ms |   0.4394 ms |   18.994 ms | 1687.5000 | 62.5000 |   8,026,339 B |
-| BroadcastQueueWithThreeSubscribersAndNoChannelOptions      | 10000        | 21.162 ms |  0.4141 ms |   0.4603 ms |   21.143 ms | 1750.0000 |       - |   8,180,475 B |
-
+| Method                                                | MessageCount |      Mean [us] |   Error [us] |   StdDev [us] |      Gen 0 |     Gen 1 |     Gen 2 | Allocated [B] |
+|-------------------------------------------------------|--------------|---------------:|-------------:|--------------:|-----------:|----------:|----------:|--------------:|
+| Channels_WithoutHost_WriterOnly                       | 20000        |       692.3 us |      6.29 us |       5.58 us |          - |         - |         - |   1,166,416 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 20000        |     1,077.0 us |      9.15 us |       7.14 us |          - |         - |         - |     906,512 B |
+| Channels_WithoutHost_ReadWrite                        | 20000        |     1,543.4 us |     72.86 us |     212.52 us |          - |         - |         - |     649,840 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 20000        |     2,248.4 us |     44.45 us |     101.23 us |          - |         - |         - |     646,832 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 20000        |     6,729.8 us |    342.47 us |     993.58 us |          - |         - |         - |     652,160 B |
+| Channels_WithoutHost_WriterOnly                       | 200000       |    11,619.8 us |    230.05 us |     273.86 us |  1000.0000 | 1000.0000 | 1000.0000 |  10,597,872 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 20000        |    11,894.6 us |    620.81 us |   1,810.92 us |          - |         - |         - |     662,032 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 200000       |    13,335.9 us |    261.76 us |     422.69 us |  1000.0000 |         - |         - |   8,502,864 B |
+| Channels_WithoutHost_ReadWrite                        | 200000       |    13,644.3 us |    547.45 us |   1,489.39 us |  1000.0000 |         - |         - |   6,467,952 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 200000       |    21,615.8 us |    585.58 us |   1,698.89 us |  1000.0000 |         - |         - |   6,930,448 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 200000       |    65,217.5 us |  2,827.00 us |   8,201.64 us |  1000.0000 |         - |         - |   8,508,288 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 200000       |   118,791.1 us |  4,301.95 us |  12,684.40 us |  1000.0000 |         - |         - |   6,673,168 B |
+| Channels_WithoutHost_ReadWrite                        | 2000000      |   129,885.9 us |  2,594.98 us |   7,403.62 us | 13000.0000 |         - |         - |  64,265,072 B |
+| Channels_WithoutHost_WriterOnly                       | 2000000      |   176,477.5 us |    931.33 us |     871.17 us | 11000.0000 | 5000.0000 | 2000.0000 |  97,559,464 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 2000000      |   178,454.7 us |  1,529.93 us |   1,431.10 us | 11000.0000 | 4000.0000 | 2000.0000 |  80,785,640 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 2000000      |   212,100.0 us |  3,937.67 us |   5,520.06 us | 13000.0000 |         - |         - |  64,136,048 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 2000000      |   648,877.9 us | 20,404.37 us |  60,162.74 us | 13000.0000 | 2000.0000 |         - |  65,320,960 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 2000000      | 1,160,735.2 us | 42,265.90 us | 124,621.96 us | 13000.0000 | 1000.0000 |         - |  64,930,768 B |
 
 | Method                           | MessageCount |    Mean [us] | Error [us] | StdDev [us] |    Gen 0 |  Gen 1 | Allocated [B] |
 |----------------------------------|--------------|-------------:|-----------:|------------:|---------:|-------:|--------------:|
@@ -421,5 +423,58 @@ dotnet run -c RELEASE -- --filter="*Simple*"
 | RunBroadcastQueueWithoutHostTest | 10           |     9.343 us |  0.1805 us |   0.4911 us |   1.0376 | 0.0153 |       5,187 B |
 | RunChannelsWithoutHostTest       | 10000        |   808.163 us |  8.3469 us |   7.3993 us |  72.2656 | 2.9297 |     338,723 B |
 | RunBroadcastQueueWithoutHostTest | 10000        | 3,446.952 us | 49.0321 us |  45.8647 us | 207.0313 | 7.8125 |     973,236 B |
+
+
+
+`clear; dotnet run -c RELEASE --filter "*WriterOnlyTest"`:
+
+| Method                                | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |      Gen 0 |     Gen 1 |     Gen 2 | Allocated [B] |
+|---------------------------------------|--------------|----------:|-----------:|------------:|-----------:|----------:|----------:|--------------:|
+| Channels_WithoutHost_WriterOnly       | 2000000      |  176.1 ms |    0.94 ms |     0.88 ms | 11000.0000 | 5000.0000 | 2000.0000 |  97,559,464 B |
+| BroadcastQueue_WithoutHost_WriterOnly | 2000000      |  179.9 ms |    2.43 ms |     2.28 ms | 11000.0000 | 4000.0000 | 2000.0000 |  80,785,616 B |
+
+
+
+
+
+| Method                                                | MessageCount |      Mean [us] |   Error [us] |  StdDev [us] |      Gen 0 |     Gen 1 |     Gen 2 | Allocated [B] |
+|-------------------------------------------------------|--------------|---------------:|-------------:|-------------:|-----------:|----------:|----------:|--------------:|
+| Channels_WithoutHost_WriterOnly                       | 20000        |       690.4 us |      8.00 us |      7.09 us |          - |         - |         - |   1,166,416 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 20000        |     1,012.9 us |      6.71 us |      6.59 us |          - |         - |         - |     906,512 B |
+| Channels_WithoutHost_ReadWrite                        | 20000        |     1,407.5 us |     57.72 us |    158.02 us |          - |         - |         - |     649,840 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 20000        |     2,302.7 us |     52.27 us |    150.80 us |          - |         - |         - |     644,624 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 20000        |     7,367.9 us |    376.39 us |  1,085.98 us |          - |         - |         - |     648,192 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 20000        |    11,292.3 us |    676.05 us |  1,961.35 us |          - |         - |         - |     948,096 B |
+| Channels_WithoutHost_WriterOnly                       | 200000       |    11,639.9 us |    222.27 us |    237.83 us |  1000.0000 | 1000.0000 | 1000.0000 |  10,597,872 B |
+| Channels_WithoutHost_ReadWrite                        | 200000       |    13,319.2 us |    328.32 us |    952.52 us |  1000.0000 |         - |         - |   6,534,032 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 200000       |    13,406.2 us |    210.72 us |    266.50 us |  1000.0000 |         - |         - |   8,502,864 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 200000       |    21,116.6 us |    409.21 us |  1,127.09 us |  1000.0000 |         - |         - |   6,470,064 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 200000       |    66,242.7 us |  1,899.65 us |  5,480.93 us |  1000.0000 |         - |         - |   6,421,536 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 200000       |   113,986.3 us |  5,811.62 us | 17,135.68 us |  1000.0000 |         - |         - |   6,507,536 B |
+| Channels_WithoutHost_ReadWrite                        | 2000000      |   129,256.1 us |  2,676.33 us |  7,806.97 us | 13000.0000 | 1000.0000 |         - |  66,100,848 B |
+| Channels_WithoutHost_WriterOnly                       | 2000000      |   176,470.9 us |    808.58 us |    675.20 us | 11000.0000 | 5000.0000 | 2000.0000 |  97,559,464 B |
+| BroadcastQueue_WithoutHost_WriterOnly                 | 2000000      |   177,115.3 us |    611.53 us |    542.11 us | 11000.0000 | 4000.0000 | 2000.0000 |  80,788,936 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 2000000      |   206,770.9 us |  4,129.64 us | 11,715.09 us | 13000.0000 |         - |         - |  64,267,856 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 2000000      |   675,951.4 us | 22,555.60 us | 66,505.69 us | 13000.0000 | 1000.0000 |         - |  64,664,704 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 2000000      | 1,306,945.2 us | 25,923.29 us | 66,916.30 us | 13000.0000 | 2000.0000 |         - |  64,799,248 B |
+
+
+
+| Method                                                | MessageCount |    Mean [ms] | Error [ms] | StdDev [ms] |  Median [ms] |      Gen 0 |     Gen 1 | Allocated [B] |
+|-------------------------------------------------------|--------------|-------------:|-----------:|------------:|-------------:|-----------:|----------:|--------------:|
+| Channels_WithoutHost_ReadWrite                        | 20000        |     1.501 ms |  0.0742 ms |   0.2106 ms |     1.441 ms |          - |         - |     774,032 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 20000        |     2.234 ms |  0.0607 ms |   0.1752 ms |     2.249 ms |          - |         - |     660,016 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 20000        |     7.155 ms |  0.3358 ms |   0.9743 ms |     7.133 ms |          - |         - |     910,592 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 20000        |    12.195 ms |  0.5824 ms |   1.7173 ms |    12.140 ms |          - |         - |     713,872 B |
+| Channels_WithoutHost_ReadWrite                        | 200000       |    13.452 ms |  0.3333 ms |   0.9456 ms |    13.457 ms |  1000.0000 |         - |   6,435,504 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 200000       |    21.383 ms |  0.4225 ms |   0.9451 ms |    21.310 ms |  1000.0000 |         - |   6,930,448 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 200000       |    61.882 ms |  1.6611 ms |   4.7926 ms |    62.379 ms |  1000.0000 | 1000.0000 |   6,455,360 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 200000       |   120.414 ms |  3.8508 ms |  11.2331 ms |   121.238 ms |  1000.0000 |         - |   6,465,232 B |
+| Channels_WithoutHost_ReadWrite                        | 2000000      |   131.092 ms |  3.0776 ms |   9.0743 ms |   131.300 ms | 13000.0000 | 1000.0000 |  66,100,848 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 2000000      |   205.327 ms |  4.0639 ms |  10.1206 ms |   205.460 ms | 13000.0000 |         - |  64,136,048 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 2000000      |   675.262 ms | 13.4018 ms |  35.3056 ms |   673.718 ms | 13000.0000 | 2000.0000 |  64,467,904 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 2000000      | 1,304.218 ms | 25.7333 ms |  59.6409 ms | 1,301.418 ms | 13000.0000 | 2000.0000 |  67,161,680 B |
+
+
 
 ***

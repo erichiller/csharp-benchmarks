@@ -17,15 +17,42 @@ public class BroadcastQueue<TData> : BroadcastQueue<TData, System.Exception> { }
 
 // allow multiple?
 public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
-    private readonly ChannelReader<TResponse>         _responseReader;
-    private readonly BroadcastQueue<TData, TResponse> _queue;
+    private readonly ChannelReader<TResponse> _responseReader;
 
-    internal BroadcastQueueWriter( BroadcastQueue<TData, TResponse> queue, ChannelReader<TResponse> responseReader ) {
-        _queue          = queue;
+    /* Only 1 or 2 threads ever user _readers:
+     *  1. Write: The BroadcastQueue root through AddReader 
+     *  2. Read: The BroadcastQueueWriter when it enumerates
+     */
+    private readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers     = new (); // URGENT
+    readonly         object                                                                                     _readersLock = new object();
+
+    // private          ChannelWriter<TData>                                                                       _channelWriter; // KILL
+    public int ReaderCount => _readers.Count;
+
+    // private readonly BroadcastQueueReader<TData, TResponse>[] _readers; // URGENT
+    // private BroadcastQueueReader<TData, TResponse> _reader;
+
+    // internal BroadcastQueueWriter( BroadcastQueue<TData, TResponse> queue, ChannelReader<TResponse> responseReader ) {
+    // _queue          = queue;
+    internal BroadcastQueueWriter( ChannelReader<TResponse> responseReader ) {
         _responseReader = responseReader;
+        // _readers        = new BroadcastQueueReader<TData, TResponse>[1];
     }
 
     /* ************************************************** */
+
+    internal void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
+        _readers.Add( ( reader, writer ) ); // URGENT
+        // _channelWriter = writer;
+    }
+
+    internal void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
+        lock ( _readersLock ) {
+            // URGENT
+        }
+        // TODO!!
+    }
+
 
     #region Response
 
@@ -57,22 +84,69 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
 
     #region Data
 
-    /// <inheritdoc />
-    public override bool TryComplete( Exception? error = null ) => _queue.TryComplete( error );
+    // /// <inheritdoc />
+    // public override bool TryComplete( Exception? error = null ) => _queue.TryComplete( error );
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
-    public override bool TryWrite( TData item ) => _queue.TryWrite( item );
+    public override bool TryComplete( Exception? error = null ) {
+        bool result = true;
+        foreach ( ( _, ChannelWriter<TData> channelWriter ) in _readers ) {
+            result &= channelWriter.TryComplete( error );
+        }
+
+        return result;
+    }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
+    // [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
+    public override bool TryWrite( TData item ) {
+        if ( _readers.Count == 1 ) {
+            return _readers[ 0 ].channelWriter.TryWrite( item );
+        }
+        bool result = true;
+        foreach ( var (_, channelWriter) in _readers ) {
+            result &= channelWriter.TryWrite( item );
+        }
+
+        return result;
+    }
+
+/// <inheritdoc />
+    // [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
     public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default )
         // => _queue.WaitToWriteAsync( cancellationToken );
         => new ValueTask<bool>( true ); // KILL ?
 
     /// <inheritdoc />
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default )
-        => _queue.WriteAsync( item, cancellationToken );
+        // => _channelWriter.WriteAsync( item, cancellationToken ); // URGENT
+    {
+        if ( _readers.Count == 0 ) {
+            return ValueTask.CompletedTask;
+        }
+
+        if ( _readers.Count == 1 ) {
+            return _readers.Single().channelWriter.WriteAsync( item, cancellationToken );
+            // return _readers[ 0 ].WriteAsync( item, cancellationToken );
+        }
+
+        return _readers.Select( r => r.channelWriter.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+    }
+
+    // /// <inheritdoc />
+    // /// <remarks>If there are no readers present, nothing will be written</remarks>
+    // public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
+    //     if ( _readers.Count == 0 ) {
+    //         return ValueTask.CompletedTask;
+    //     }
+    //
+    //     if ( _readers.Count == 1 ) {
+    //         return _readers.Single().Value.WriteAsync( item, cancellationToken );
+    //         // return _readers[ 0 ].WriteAsync( item, cancellationToken );
+    //     }
+    //
+    //     return _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+    // }
 
     #endregion
 
@@ -148,25 +222,18 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1">ChannelWriter&lt;T&gt;</seealso>
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1">ChannelReader&lt;T&gt;</seealso>
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channel-1">Channel&lt;T&gt;</seealso>
-public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
+public class BroadcastQueue<TData, TResponse> {
     protected readonly Channel<TResponse> _responseChannel;
-
-    protected readonly ConcurrentDictionary<BroadcastQueueReader<TData, TResponse>, ChannelWriter<TData>> _readers = new ();
-
-    protected BroadcastQueueReader<TData, TResponse>? _singleReaderOnly; // KILL
-    protected ChannelWriter<TData>? _singleDataWriterOnly; // KILL
-
-    public int ReaderCount => _readers.Count;
 
     public BroadcastQueue( ) {
         _responseChannel = Channel.CreateUnbounded<TResponse>(
             new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false } );
-        Writer = new BroadcastQueueWriter<TData, TResponse>( this, _responseChannel.Reader );
+        Writer = new BroadcastQueueWriter<TData, TResponse>( _responseChannel.Reader );
     }
 
     protected BroadcastQueue( Channel<TResponse> responseChannel ) {
         _responseChannel = responseChannel;
-        Writer           = new BroadcastQueueWriter<TData, TResponse>( this, _responseChannel.Reader );
+        Writer           = new BroadcastQueueWriter<TData, TResponse>( _responseChannel.Reader );
     }
 
     public virtual BroadcastQueueReader<TData, TResponse> GetReader( ) {
@@ -175,99 +242,105 @@ public class BroadcastQueue<TData, TResponse> : ChannelWriter<TData> {
 
     protected virtual BroadcastQueueReader<TData, TResponse> GetReader( Channel<TData> dataChannel ) {
         var reader = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, _responseChannel.Writer );
-        _singleReaderOnly     = reader; // KILL
-        _singleDataWriterOnly = dataChannel.Writer; // KILL
-        _readers.TryAdd( reader, dataChannel.Writer );
+        Writer.AddReader( reader, dataChannel.Writer );
         return reader;
     }
 
     public BroadcastQueueWriter<TData, TResponse> Writer { get; private init; }
 
     internal void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
-        this._readers.TryRemove( reader, out var _ );
+        // this._readers.RemoveReader( reader, out var _ );
+        this.Writer.RemoveReader( reader );
     }
 
     /* ************************************************** */
 
     #region Data
 
-    /// <inheritdoc />
-    public override bool TryComplete( Exception? error = null ) {
-        bool result = true;
-        foreach ( var (_, channelWriter) in _readers ) {
-            result &= channelWriter.TryComplete( error );
-        }
+    //
+    // /// <inheritdoc />
+    // public override bool TryComplete( Exception? error = null ) {
+    //     bool result = true;
+    //     foreach ( var (_, channelWriter) in _readers ) {
+    //         result &= channelWriter.TryComplete( error );
+    //     }
+    //
+    //     return result;
+    // }
 
-        return result;
-    }
+    // /// <inheritdoc />
+    // /// <remarks>Will return <c>true</c> if there are no readers present.</remarks>
+    // [ MethodImpl( MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining ) ] // KILL
+    // public override bool TryWrite( TData item ) {
+    //     throw new NotImplementedException(); // KILL REMOVE THIS METHOD
+    // }
+    // return _singleDataWriterOnly.TryWrite( item ); // KILL
+    // bool result = true;
+    // foreach ( var (_, channelWriter) in _readers ) {
+    // result &= channelWriter.TryWrite( item );
+    // }
 
-    /// <inheritdoc />
-    /// <remarks>Will return <c>true</c> if there are no readers present.</remarks>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)] // KILL
-    public override bool TryWrite( TData item ) {
-        return _singleDataWriterOnly.TryWrite( item ); // KILL
-        bool result = true;
-        foreach ( var (_, channelWriter) in _readers ) {
-            result &= channelWriter.TryWrite( item );
-        }
+    // return result;
+    // }
 
-        return result;
-    }
-
-    /// <inheritdoc />
-    public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
-        return new ValueTask<bool>( true ); // KILL unless it is closed!
-        if ( _readers.Count == 0 ) {
-            /* NOTE: I am not 100% sure this is the desired result
-             * There are no readers, and the data is not being saved to anywhere, so should this return False?
-             * The docs for WaitToWriteAsync say:
-             *  return "true result when space is available to write an item"
-             *  return "false result when no further writing will be permitted."
-             * Alternative:
-             *  - Prevent return until 1 or more readers are connected? **<<THIS IS THE CURRENT BEHAVIOR>>**
-             *  - Throw an exception
-             *  - Save all written data to a channel
-             *      The problem with saving it to a channel is what to do with it when a reader _does_ connect.
-             *      There may be several readers connecting, but whatever the first one was would get the historical data
-             *      The second+ would not.
-             *          Alternatively,
-             *          Save all data to a limited size Concurrent-safe collection and have this always receive data
-             *          Then use this to feed any new readers the last X data.
-             *          *This is entirely unlike how Channel<T> works and is more like a message bus, eg. RabbitMQ*
-             */
-            // Console.WriteLine( $"_readers.Count == 0 ; Waiting for subscriber to connect." );
-            while ( _readers.Count == 0 ) {
-                /* Pause and wait for a reader to connect. */
-                /* NOTE: I don't know why, but NOT awaiting this keeps the CPU from being pegged at 100% (But it doesn't actually pause for 500ms)
-                 * see: https://stackoverflow.com/a/28413138/377252
-                 */
-                Task.Delay( 1000, cancellationToken );
-            }
-
-            return ValueTask.FromResult( true );
-        }
-
-        if ( _readers.Count == 1 ) {
-            return _readers.Single().Value.WaitToWriteAsync( cancellationToken );
-        }
-
-        return _readers.Select( r => r.Value.WaitToWriteAsync( cancellationToken ) ).ToArray().WhenAllAnd();
-    }
-
-    /// <inheritdoc />
-    /// <remarks>If there are no readers present, nothing will be written</remarks>
-    public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
-        if ( _readers.Count == 0 ) {
-            return ValueTask.CompletedTask;
-        }
-
-        if ( _readers.Count == 1 ) {
-            return _readers.Single().Value.WriteAsync( item, cancellationToken );
-            // return _readers[ 0 ].WriteAsync( item, cancellationToken );
-        }
-
-        return _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
-    }
+    // /// <inheritdoc />
+    // public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = default ) {
+    //     
+    //     throw new NotImplementedException(); // KILL REMOVE THIS METHOD
+    //     return this.Writer.WaitToWriteAsync( cancellationToken );
+    // } // KILL - remove this!
+    //     return new ValueTask<bool>( true ); // KILL unless it is closed!
+    //     if ( _readers.Count == 0 ) {
+    //         /* NOTE: I am not 100% sure this is the desired result
+    //          * There are no readers, and the data is not being saved to anywhere, so should this return False?
+    //          * The docs for WaitToWriteAsync say:
+    //          *  return "true result when space is available to write an item"
+    //          *  return "false result when no further writing will be permitted."
+    //          * Alternative:
+    //          *  - Prevent return until 1 or more readers are connected? **<<THIS IS THE CURRENT BEHAVIOR>>**
+    //          *  - Throw an exception
+    //          *  - Save all written data to a channel
+    //          *      The problem with saving it to a channel is what to do with it when a reader _does_ connect.
+    //          *      There may be several readers connecting, but whatever the first one was would get the historical data
+    //          *      The second+ would not.
+    //          *          Alternatively,
+    //          *          Save all data to a limited size Concurrent-safe collection and have this always receive data
+    //          *          Then use this to feed any new readers the last X data.
+    //          *          *This is entirely unlike how Channel<T> works and is more like a message bus, eg. RabbitMQ*
+    //          */
+    //         // Console.WriteLine( $"_readers.Count == 0 ; Waiting for subscriber to connect." );
+    //         while ( _readers.Count == 0 ) {
+    //             /* Pause and wait for a reader to connect. */
+    //             /* NOTE: I don't know why, but NOT awaiting this keeps the CPU from being pegged at 100% (But it doesn't actually pause for 500ms)
+    //              * see: https://stackoverflow.com/a/28413138/377252
+    //              */
+    //             Task.Delay( 1000, cancellationToken );
+    //         }
+    //
+    //         return ValueTask.FromResult( true );
+    //     }
+    //
+    //     if ( _readers.Count == 1 ) {
+    //         return _readers.Single().Value.WaitToWriteAsync( cancellationToken );
+    //     }
+    //
+    //     return _readers.Select( r => r.Value.WaitToWriteAsync( cancellationToken ) ).ToArray().WhenAllAnd();
+    // }
+    //
+    // /// <inheritdoc />
+    // /// <remarks>If there are no readers present, nothing will be written</remarks>
+    // public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
+    //     if ( _readers.Count == 0 ) {
+    //         return ValueTask.CompletedTask;
+    //     }
+    //
+    //     if ( _readers.Count == 1 ) {
+    //         return _readers.Single().Value.WriteAsync( item, cancellationToken );
+    //         // return _readers[ 0 ].WriteAsync( item, cancellationToken );
+    //     }
+    //
+    //     return _readers.Select( r => r.Value.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+    // }
 
     #endregion
 
@@ -293,7 +366,8 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 await tasks[ i ].ConfigureAwait( false );
-            } catch (TaskCanceledException _) { // TODO: is this correct?
+            } catch ( TaskCanceledException _ ) {
+                // TODO: is this correct?
                 return;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
@@ -316,7 +390,8 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results[ i ] = await tasks[ i ].ConfigureAwait( false );
-            } catch (TaskCanceledException _) { // TODO: is this correct?
+            } catch ( TaskCanceledException _ ) {
+                // TODO: is this correct?
                 return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
@@ -340,7 +415,8 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results &= await tasks[ i ].ConfigureAwait( false );
-            } catch (TaskCanceledException _) { // TODO: is this correct?
+            } catch ( TaskCanceledException _ ) {
+                // TODO: is this correct?
                 return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
