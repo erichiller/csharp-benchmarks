@@ -1,6 +1,6 @@
-#define DEBUG
-// #undef DEBUG
-#define DEBUG_BROADCAST
+// #define DEBUG
+#undef DEBUG
+// #define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
 // #define DEBUG_OBSERVER
 // # define DEBUG_THREAD_PRIORITY
@@ -118,9 +118,13 @@ public class Program {
 
         #region WithoutHost
         
-        benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
-        benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
+        benchmarks.Setup_RunBroadcastQueueWithoutHostTest();
+        benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync();
         benchmarks.Cleanup_RunBroadcastQueueWithoutHostTest();
+        
+        // benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
+        // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers();
+        // benchmarks.Cleanup_RunBroadcastQueueWithoutHostTest();
 
         // benchmarks.Setup_RunBroadcastQueueWithoutHostTest();
         // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber();
