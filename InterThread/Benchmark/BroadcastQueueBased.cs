@@ -1,9 +1,14 @@
 // #define DEBUG
+
 #undef DEBUG
 // #define DEBUG_PER_ITERATION_CONSOLE
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -35,7 +40,7 @@ public class BroadcastPublisher : BackgroundService {
         }
 #if DEBUG
         _stopwatch = Stopwatch.StartNew();
-        _logger    = logger;
+        _logger = logger;
         _logger.LogInformation( "Constructing publisher with\n\t"                           +
                                 "LastID         : {Id}\n\t"                                 +
                                 "Time           : {time}\n\t"                               +
@@ -79,9 +84,9 @@ public class BroadcastPublisher : BackgroundService {
 #endif
                 return;
             }
-                _id++;
-            // }
 
+            _id++;
+            // }
 
 
 #if DEBUG_PER_ITERATION_CONSOLE
@@ -123,7 +128,7 @@ public class BroadcastSubscriber : BackgroundService {
             throw new ArgumentException( $"MaxMessageCount can not be 0" );
         }
 #if DEBUG
-        _logger    = logger;
+        _logger = logger;
         _stopwatch = Stopwatch.StartNew();
         _logger.LogInformation( "Constructing subscriber with\n\t" +
                                 "LastID         : {LastID}\n\t"    +
@@ -198,6 +203,69 @@ public class BroadcastSubscriberThree : BroadcastSubscriber {
 
 /* ************************************************************** */
 
+#region WriterNoLock
+
+// allow multiple?
+public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter<TData, TResponse> {
+    // private readonly BroadcastQueueReader<TData, TResponse>[] _readers; // URGENT
+    // private BroadcastQueueReader<TData, TResponse> _reader;
+
+    // internal BroadcastQueueWriter( BroadcastQueue<TData, TResponse> queue, ChannelReader<TResponse> responseReader ) {
+    // _queue          = queue;
+    protected internal BroadcastQueueWriterNoLock( ChannelReader<TResponse> responseReader ) : base( responseReader ) { }
+
+    /* ************************************************** */
+
+    #region Data
+
+    /// <inheritdoc />
+    public override bool TryComplete( Exception? error = null ) {
+        bool result = true;
+        foreach ( ( _, ChannelWriter<TData> channelWriter ) in _readers ) {
+            result &= channelWriter.TryComplete( error );
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override bool TryWrite( TData item ) {
+        if ( _readers.Count == 1 ) {
+            return _readers[ 0 ].channelWriter.TryWrite( item );
+        }
+
+        bool result = true;
+        foreach ( var (_, channelWriter) in _readers ) {
+            result &= channelWriter.TryWrite( item );
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
+        if ( _readers.Count == 0 ) {
+            return ValueTask.CompletedTask;
+        }
+
+        if ( _readers.Count == 1 ) {
+            return _readers[ 0 ].channelWriter.WriteAsync( item, cancellationToken );
+        }
+
+        return _readers.Select( r => r.channelWriter.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+    }
+
+    #endregion
+
+    /* ************************************************** */
+}
+
+#endregion WriterNoLock
+
+
+
+/* ************************************************************** */
+
 public class BroadcastQueueWithNoChannelOptions<TData, TResponse> : BroadcastQueue<TData, TResponse> {
     public BroadcastQueueWithNoChannelOptions( ) : base( Channel.CreateUnbounded<TResponse>() ) { }
 
@@ -209,3 +277,10 @@ public class BroadcastQueueWithSingleXChannelOptions<TData, TResponse> : Broadca
 
     public override BroadcastQueueReader<TData, TResponse> GetReader( ) => GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );
 }
+
+public class BroadcastQueueWithNoLockWriter<TData, TResponse> : BroadcastQueue<TData, TResponse> {
+    public BroadcastQueueWithNoLockWriter( ) : base(
+        ( responseChannel ) => new BroadcastQueueWriterNoLock<TData, TResponse>( responseChannel.Reader )
+    ) { }
+}
+

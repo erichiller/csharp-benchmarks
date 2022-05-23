@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -13,7 +14,9 @@ public partial class Benchmarks {
      * BROADCAST QUEUE - No Host *********************************************************************************** 
      * ************************************************************************************************************* */
 
-    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync) } ) ]
+    [ IterationSetup( Targets = new[] {
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync)
+    } ) ]
     public void Setup_RunBroadcastQueueWithoutHostTest( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1 = _broadcastQueue.GetReader();
@@ -24,17 +27,20 @@ public partial class Benchmarks {
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync),
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsyncAsTask),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers),
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse)
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter),
     } ) ]
     public void Cleanup_RunBroadcastQueueWithoutHostTest( ) {
         _broadcastQueue.Writer.Complete();
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "StandardBroadcastQueue" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber( ) {
         async Task writerTask( ) {
             int i = 0;
@@ -52,9 +58,7 @@ public partial class Benchmarks {
             while ( await _broadcastQueueReader1.WaitToReadAsync() ) {
                 while ( _broadcastQueueReader1.TryRead( out ChannelMessage? result ) ) {
                     if ( result.Id >= MessageCount ) {
-                        var response = new ChannelResponse( result.Id, nameof(readerTask) );
-                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
-                        await _broadcastQueueReader1.WriteResponseAsync( response );
+                        await _broadcastQueueReader1.WriteResponseAsync( new ChannelResponse( result.Id, nameof(readerTask) ) );
                         return;
                     }
                 }
@@ -66,11 +70,15 @@ public partial class Benchmarks {
             Task.Run( writerTask )
         );
 
-        // _broadcastQueueWriter.TryReadResponse( out ChannelResponse response );
+        _broadcastQueueWriter.TryReadResponse( out ChannelResponse? response );
+        if ( response?.ReadId != MessageCount ) {
+            throw new Exception();
+        }
         // Console.WriteLine($"Response={response}");
     }
-    
+
     [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync( ) {
         async Task writerTask( ) {
             int i = 0;
@@ -101,6 +109,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync( ) {
         async Task writerTask( ) {
             int i = 0;
@@ -127,13 +136,25 @@ public partial class Benchmarks {
             Task.Run( writerTask )
         );
     }
+    
+    
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter( ) {
+        _broadcastQueue        = new BroadcastQueueWithNoLockWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1 = _broadcastQueue.GetReader();
+        _broadcastQueueWriter  = _broadcastQueue.Writer;
+    }
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "NoLockWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter( )
+        => BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber(); // the only difference is in the setup
+
+    
+    /* **** TWO **** */
 
     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader2;
 
-    [ IterationSetup( Targets = new[] {
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers), nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync),
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsyncAsTask)
-    } ) ]
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers), nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync), } ) ]
     public void Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1 = _broadcastQueue.GetReader();
@@ -142,6 +163,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "TwoSubscribers", "StandardBroadcastQueue" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers( ) {
         async Task writerTask( ) {
             int i = 0;
@@ -186,8 +208,8 @@ public partial class Benchmarks {
             Task.Run( readerTask2 ),
             Task.Run( writerTask )
         );
-
     }
+
     [ Benchmark ]
     public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync( ) {
         async Task writerTask( ) {
@@ -229,58 +251,28 @@ public partial class Benchmarks {
             Task.Run( readerTask2 ),
             Task.Run( writerTask )
         );
-
+    }
+    
+    
+    
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter( ) {
+        _broadcastQueue        = new BroadcastQueueWithNoLockWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1 = _broadcastQueue.GetReader();
+        _broadcastQueueReader2 = _broadcastQueue.GetReader();
+        _broadcastQueueWriter  = _broadcastQueue.Writer;
     }
     [ Benchmark ]
-    public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsyncAsTask( ) {
-        async Task writerTask( ) {
-            int i = 0;
-            while ( i <= MessageCount ) {
-                await _broadcastQueueWriter.WriteAsyncAsTask( new ChannelMessage() { Id = i } );
-                i++;
-            }
-        }
-
-        async Task readerTask1( ) {
-            while ( await _broadcastQueueReader1.WaitToReadAsync() ) {
-                while ( _broadcastQueueReader1.TryRead( out ChannelMessage? result ) ) {
-                    if ( result.Id >= MessageCount ) {
-                        var response = new ChannelResponse( result.Id, nameof(readerTask1) );
-                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
-                        await _broadcastQueueReader1.WriteResponseAsync( response );
-                        return;
-                    }
-                }
-            }
-        }
-
-        async Task readerTask2( ) {
-            while ( await _broadcastQueueReader2.WaitToReadAsync() ) {
-                while ( _broadcastQueueReader2.TryRead( out ChannelMessage? result ) ) {
-                    if ( result.Id >= MessageCount ) {
-                        var response = new ChannelResponse( result.Id, nameof(readerTask2) );
-                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
-                        await _broadcastQueueReader2.WriteResponseAsync( response );
-                        return;
-                    }
-                }
-            }
-        }
-
-        Task.WaitAll(
-            Task.Run( readerTask1 ),
-            Task.Run( readerTask2 ),
-            Task.Run( writerTask )
-        );
-
-    }
+    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "NoLockWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter( )
+        => BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers(); // the only difference is in the setup
+    
+    
+    /* **** THREE **** */
 
     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader3;
 
-    [ IterationSetup( Targets = new []{
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers), 
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse), 
-        }) ]
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers), nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse), } ) ]
     public void Setup_BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1 = _broadcastQueue.GetReader();
@@ -290,6 +282,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
+    [ BenchmarkCategory( "ThreeSubscribers", "StandardBroadcastQueue" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers( ) {
         async Task writerTask( ) {
             int i = 0;
@@ -352,8 +345,7 @@ public partial class Benchmarks {
         // _broadcastQueueWriter.TryReadResponse( out ChannelResponse response );
         // Console.WriteLine($"Response={response}");
     }
-    
-    
+
     [ Benchmark ]
     public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse( ) {
         async Task writerTask( ) {
@@ -417,7 +409,19 @@ public partial class Benchmarks {
         // _broadcastQueueWriter.TryReadResponse( out ChannelResponse response );
         // Console.WriteLine($"Response={response}");
     }
-
+    
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter( ) {
+        _broadcastQueue        = new BroadcastQueueWithNoLockWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1 = _broadcastQueue.GetReader();
+        _broadcastQueueReader2 = _broadcastQueue.GetReader();
+        _broadcastQueueReader3 = _broadcastQueue.GetReader();
+        _broadcastQueueWriter  = _broadcastQueue.Writer;
+    }
+    [ Benchmark ]
+    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "NoLockWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter( )
+        => BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers(); // the only difference is in the setup
 
     /* *************************************************************************************************************
      * CHANNELS - No Host ****************************************************************************************** 

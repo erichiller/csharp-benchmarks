@@ -26,10 +26,6 @@ public class SetupFixture {
                 if ( logLevel is { } ll ) {
                     services.AddLogging( logBuilder => logBuilder.AddConsole().SetMinimumLevel( ll ) );
                 }
-                // URGENT. Is this needed: ??
-                // services.AddHostedService<BroadcastPublisher>(); // URGENT --- publisher before subscriber = hang! What to do with  Writer if no Reader?
-                // services.AddHostedService<BroadcastSubscriber>();
-                // services.AddHostedService<BroadcastSubscriberTwo>();
             } );
 
     private BroadcastQueue<ChannelMessage, ChannelResponse> _broadcastQueue;
@@ -87,15 +83,15 @@ public class BroadcastQueueTests {
         
         logger = host.Services.GetService<ILogger<BroadcastQueueTests>>() ?? throw new Exception();
 
-        var task = Task.Run( async ( ) => {
+        static async Task<int> writerTask ( BroadcastQueue<ChannelMessage, ChannelResponse> broadcastQueue, int messageCount, CancellationToken ct ) {
             int lastReadId = 0;
-            while ( await broadcastQueue.Writer.WaitToReadResponseAsync() ) {
+            while ( await broadcastQueue.Writer.WaitToReadResponseAsync( ct ) ) {
                 if ( broadcastQueue.Writer.TryReadResponse( out var result ) ) {
                     // logger.LogDebug( "Read {Id} from ResponseChannel", result?.ReadId );
                     if ( result is { ReadId: int readId } ) {
                         lastReadId = readId;
                         // iterationCounter++;
-                        if ( readId % MessageCount == 0 ) {
+                        if ( readId % messageCount == 0 ) {
                             break;
                         }
                     }
@@ -103,9 +99,15 @@ public class BroadcastQueueTests {
             }
 
             return lastReadId;
-        } );
-        task.RunSynchronously();
-        Debug.Assert( task.Result == MessageCount );
+        }
+
+        var writerTask1 = writerTask(broadcastQueue, MessageCount, ct);
+
+        Task.WaitAll(
+            // Task.Run( readerTask ),
+            writerTask1
+        );
+        Debug.Assert( writerTask1.Result == MessageCount);
     }
 
 

@@ -505,4 +505,48 @@ dotnet run -c RELEASE --filter "*WithoutHost*"
 | BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync              | 200000       |  112.4 ms |    4.17 ms |    11.83 ms | 11000.0000 |         - |  54,480,176 B |
 | BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsyncAsTaskWhenAll | 200000       |  115.2 ms |    4.09 ms |    11.85 ms | 15000.0000 | 1000.0000 |  73,886,416 B |
 
+
+
+**with locks**
+====
+
+| Method                                                | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |     Gen 0 | Allocated [B] |
+|-------------------------------------------------------|--------------|----------:|-----------:|------------:|----------:|--------------:|
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 200000       |  23.41 ms |   0.681 ms |    1.976 ms | 1000.0000 |   6,420,592 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 200000       |  75.93 ms |   2.011 ms |    5.706 ms | 1000.0000 |   6,425,344 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 200000       | 140.94 ms |   3.819 ms |   11.259 ms | 1000.0000 |   6,435,216 B |
+
+
+| Method                                                                           | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |     Gen 1 | Allocated [B] |
+|----------------------------------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|----------:|--------------:|
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_BroadcastQueueWriterNoLock    | 200000       |  10.29 ms |   0.464 ms |    1.301 ms |    9.770 ms | 1000.0000 | 1000.0000 |   6,411,664 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                               | 200000       |  22.50 ms |   0.715 ms |    2.096 ms |   22.443 ms | 1000.0000 |         - |   6,437,136 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_BroadcastQueueWriterNoLock   | 200000       |  61.07 ms |   3.965 ms |   11.628 ms |   62.270 ms | 1000.0000 |         - |   6,455,360 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                              | 200000       |  76.39 ms |   2.231 ms |    6.509 ms |   76.448 ms | 1000.0000 |         - |   6,421,248 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_BroadcastQueueWriterNoLock | 200000       | 120.36 ms |   6.415 ms |   18.914 ms |  124.151 ms | 1000.0000 | 1000.0000 |   7,724,880 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                            | 200000       | 137.15 ms |   3.976 ms |   11.662 ms |  138.643 ms | 1000.0000 |         - |   6,623,120 B |
+
+
+| Method                                                                | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |     Gen 0 |     Gen 1 | Allocated [B] |
+|-----------------------------------------------------------------------|--------------|----------:|-----------:|------------:|----------:|----------:|--------------:|
+| (ImmutableList) BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber    | 200000       |  10.72 ms |   0.374 ms |    1.068 ms | 1000.0000 | 1000.0000 |   6,420,016 B |
+| (ImmutableList) BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers   | 200000       | 156.52 ms |   3.537 ms |   10.318 ms | 1000.0000 |         - |   6,409,664 B |
+| (ImmutableList) BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers | 200000       | 226.94 ms |   4.507 ms |   10.445 ms | 1000.0000 | 1000.0000 |   6,551,248 B |
+
+
+
+| Method                                                                    | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |     Gen 0 |     Gen 1 | Allocated [B] |
+|---------------------------------------------------------------------------|--------------|----------:|-----------:|------------:|----------:|----------:|--------------:|
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableListWriter    | 200000       |  10.52 ms |   0.305 ms |    0.874 ms | 1000.0000 | 1000.0000 |   6,436,848 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter           | 200000       |  11.16 ms |   0.430 ms |    1.207 ms | 1000.0000 | 1000.0000 |   6,411,664 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                        | 200000       |  22.34 ms |   0.792 ms |    2.297 ms | 1000.0000 |         - |   6,436,848 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter          | 200000       |  60.29 ms |   2.343 ms |    6.871 ms | 1000.0000 | 1000.0000 |   6,488,864 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                       | 200000       |  69.78 ms |   2.213 ms |    6.351 ms | 1000.0000 |         - |   6,429,888 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter        | 200000       | 111.75 ms |   4.927 ms |   14.527 ms | 1000.0000 | 1000.0000 |   6,457,040 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                     | 200000       | 117.65 ms |   6.014 ms |   17.733 ms | 1000.0000 | 1000.0000 |   8,512,208 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableListWriter   | 200000       | 151.46 ms |   4.708 ms |   13.734 ms | 1000.0000 |         - |   6,412,160 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableListWriter | 200000       | 214.07 ms |   5.832 ms |   17.011 ms | 1000.0000 |         - |   6,426,576 B |
+
+
+
 ***
