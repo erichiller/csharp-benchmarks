@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
+using Benchmarks.InterThread.BroadcastQueue;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,9 +20,10 @@ public record ChannelMessage {
 }
 
 public record ChannelResponse(
-    int    ReadId,
-    string ReaderType
-);
+    int               ReadId,
+    string            ReaderType,
+    System.Exception? Exception = null
+) : IBroadcastQueueResponse ;
 
 public class ChannelPublisher : BackgroundService {
     private readonly System.Threading.Channels.ChannelWriter<ChannelMessage> _channelWriter;

@@ -1,4 +1,5 @@
 // #define DEBUG
+
 #undef DEBUG
 // #define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
@@ -57,7 +58,7 @@ public class Program {
         CancellationTokenSource cts = new CancellationTokenSource();
         ILogger<Program>        logger;
         int                     lastReadId = 0;
-        CancellationToken       ct         = cts.Token;
+        CancellationToken       ct = cts.Token;
         Stopwatch               stopwatch;
 
         // System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
@@ -87,7 +88,7 @@ public class Program {
         // const int readCount = 100;
         // const int readCount = 500;
         // const int readCount = 10_000;
-        const int readCount       = 100_000;
+        const int readCount = 100_000;
         const int subscriberCount = 3;
 
         var benchmarks = new Benchmarks() { MessageCount = readCount };
@@ -302,19 +303,24 @@ public class Program {
     //     => new SystemTextJsonSerializationBasic(){Iterations=1}.SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute_SourceGen();
     //     // => new LevelOneJsonBenchmarks().SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne();
 #else
-    static void Main( string[] args )
-        => BenchmarkSwitcher
-           .FromAssembly( typeof(Program).Assembly )
-           .Run( args.Length > 0
-                     ? args
-                     : new[] { "-f", "*" },
-                 // new BenchmarkConfig()
-                 // new DebugInProcessConfig()
-                 ManualConfig
-                     .Create( DefaultConfig.Instance )
-                     .WithOptions( ConfigOptions.StopOnFirstError |
-                                   ConfigOptions.JoinSummary )
-           );
+    static void Main( string[] args ) {
+        if ( args.Contains( "deadlock-test" ) ) {
+            DeadlockTest.Do( 10_000 );
+        } else {
+            BenchmarkSwitcher
+                .FromAssembly( typeof(Program).Assembly )
+                .Run( args.Length > 0
+                          ? args
+                          : new[] { "-f", "*" },
+                      // new BenchmarkConfig()
+                      // new DebugInProcessConfig()
+                      ManualConfig
+                          .Create( DefaultConfig.Instance )
+                          .WithOptions( ConfigOptions.StopOnFirstError |
+                                        ConfigOptions.JoinSummary )
+                );
+        }
+    }
 
     // static void Main( string[] args )
     //     => Console.WriteLine( $"Main({args})\n23" );

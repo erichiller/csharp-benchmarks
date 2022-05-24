@@ -11,23 +11,29 @@ namespace Benchmarks.InterThread.BroadcastQueue;
 /// <see cref="BroadcastQueue{TData,TResponse}"/> with a default Response type of <see cref="System.Exception"/>.
 /// </summary>
 /// <typeparam name="TData"></typeparam>
-public class BroadcastQueue<TData> : BroadcastQueue<TData, System.Exception> { }
+public class BroadcastQueue<TData> : BroadcastQueue<TData, IBroadcastQueueResponse> { } // IBroadcastQueueResponse should always be the base!
+
+public interface IBroadcastQueueResponse {
+    public System.Exception? Exception { get; init; }
+}
 
 /* ********************************************************************************************* */
 
 #region Writer
+// URGENT: Convert to ImmutableArray. Test if lock is needed!?
 
-public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
+public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> where TResponse : IBroadcastQueueResponse {
     private readonly ChannelReader<TResponse> _responseReader;
+    internal readonly Channel<TResponse>       ResponseChannel; // URGENT: fully move this to Writer, do not store in BroadcastQueue
 
     /* Only 1 or 2 threads ever use _readers:
      *  1. Write: The BroadcastQueue root through AddReader 
      *  2. Read: The BroadcastQueueWriter when it enumerates
      */
-    protected readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers = new List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>(); // URGENT
-    protected readonly object                                                                                     _readersLock = new object();
+    protected readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers     = new List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>(); // URGENT
+    private readonly   object                                                                                     _readersLock = new object();
 
-    public int ReaderCount {
+    public virtual int ReaderCount {
         get {
             lock ( _readersLock ) {
                 return _readers.Count;
@@ -36,23 +42,34 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     }
 
 
-    protected internal BroadcastQueueWriter( ChannelReader<TResponse> responseReader ) {
-        _responseReader = responseReader;
+    protected internal BroadcastQueueWriter( Channel<TResponse> responseChannel ) {
+        ResponseChannel = responseChannel;
+        _responseReader  = responseChannel.Reader;
     }
 
     /* ************************************************** */
 
-    internal virtual void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
+    protected internal virtual void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
         lock ( _readersLock ) {
-            _readers.Add( ( reader, writer ) ); // URGENT
+            _readers.Add( ( reader, writer ) );
         }
     }
 
-    internal virtual void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
+    protected internal virtual void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
         lock ( _readersLock ) {
-            // URGENT
+            _readers.Remove( _readers.Single( t => t.reader == reader ) );
         }
-        // TODO!!
+    }
+
+    // URGENT: Implement IDisposable on Reader, Writer?
+    public void Dispose( ) {
+        lock ( _readersLock ) {
+            foreach ( var (reader, channelWriter) in _readers ) {
+                channelWriter.TryComplete();
+            }
+        }
+
+        ResponseChannel.Writer.TryComplete();
     }
 
 
@@ -103,6 +120,7 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> {
     public override bool TryWrite( TData item ) {
         lock ( _readersLock ) {
             if ( _readers.Count == 0 ) { return true; } // this returns true as if it had written regardless of if there was an actual reader to read it
+
             if ( _readers.Count == 1 ) {
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
@@ -153,8 +171,8 @@ internal interface IBroadcastQueueController<TData, TResponse> {
 
 public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
     private readonly IBroadcastQueueController<TData, TResponse> _queue;
-    private readonly ChannelWriter<TResponse>         _responseWriter;
-    private readonly ChannelReader<TData>             _dataReader;
+    private readonly ChannelWriter<TResponse>                    _responseWriter;
+    private readonly ChannelReader<TData>                        _dataReader;
 
     internal BroadcastQueueReader( IBroadcastQueueController<TData, TResponse> queue, ChannelReader<TData> dataReader, ChannelWriter<TResponse> responseWriter ) {
         this._queue          = queue;
@@ -162,11 +180,11 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
         this._dataReader     = dataReader;
     }
 
-    // URGENT
-    private void unsubscribe( ) {
-        // TODO: needs to be disposed?
-        this._queue.RemoveReader( this );
-    }
+    // private void unsubscribe( ) {
+    //     this._queue.RemoveReader( this );
+    // }
+
+    public void Dispose( ) { } // URGENT
 
     /* ************************************************** */
 
@@ -214,42 +232,46 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData> {
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1">ChannelWriter&lt;T&gt;</seealso>
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1">ChannelReader&lt;T&gt;</seealso>
 /// <seealso href="https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channel-1">Channel&lt;T&gt;</seealso>
-public class BroadcastQueue<TData, TResponse> : IBroadcastQueueController<TData, TResponse> {
-    protected readonly Channel<TResponse>                     _responseChannel;
-    public             BroadcastQueueWriter<TData, TResponse> Writer { get; private init; }
+public class BroadcastQueue<TData, TResponse> : IBroadcastQueueController<TData, TResponse> where TResponse : IBroadcastQueueResponse {
+    protected BroadcastQueueWriter<TData, TResponse>? _writer;
 
-    public BroadcastQueue( ) {
-        _responseChannel = Channel.CreateUnbounded<TResponse>(
-            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
-        );
-        Writer = new BroadcastQueueWriter<TData, TResponse>( _responseChannel.Reader );
+    public virtual BroadcastQueueWriter<TData, TResponse> Writer {
+        get {
+            _writer ??= new BroadcastQueueWriter<TData, TResponse>(
+                Channel.CreateUnbounded<TResponse>(
+                    new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
+                ) );
+
+            return _writer;
+        }
     }
 
-    protected BroadcastQueue( Channel<TResponse> responseChannel ) {
-        _responseChannel = responseChannel;
-        Writer           = new BroadcastQueueWriter<TData, TResponse>( _responseChannel.Reader );
-    }
+    // public BroadcastQueue( ) {
+    // }
 
-    protected BroadcastQueue( Func<Channel<TResponse>, BroadcastQueueWriter<TData, TResponse>> createWriterCallback ) {
-        _responseChannel = Channel.CreateUnbounded<TResponse>(
-            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
-        );
-        Writer = createWriterCallback( _responseChannel );
-    }
+    // protected BroadcastQueue( Channel<TResponse> responseChannel ) {
+    //     _responseChannel = responseChannel;
+    //     Writer           = new BroadcastQueueWriter<TData, TResponse>( _responseChannel );
+    // }
+
+    // protected BroadcastQueue( Func<Channel<TResponse>, BroadcastQueueWriter<TData, TResponse>> createWriterCallback ) {
+    //     _responseChannel = Channel.CreateUnbounded<TResponse>(
+    //         new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
+    //     );
+    //     Writer = createWriterCallback( _responseChannel );
+    // }
 
     public virtual BroadcastQueueReader<TData, TResponse> GetReader( ) {
         return GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );
     }
 
     protected virtual BroadcastQueueReader<TData, TResponse> GetReader( Channel<TData> dataChannel ) {
-        var reader = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, _responseChannel.Writer );
+        var reader = new BroadcastQueueReader<TData, TResponse>( this, dataChannel.Reader, Writer.ResponseChannel.Writer );
         Writer.AddReader( reader, dataChannel.Writer );
         return reader;
     }
 
-
-    public void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) { // TODO: Should this be public?
-        // this._readers.RemoveReader( reader, out var _ );
+    public void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
         this.Writer.RemoveReader( reader );
     }
 
@@ -261,8 +283,8 @@ public class BroadcastQueue<TData, TResponse> : IBroadcastQueueController<TData,
          * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
          */
         return $"{nameof(BroadcastQueue<TData, TResponse>)} {{ "                                                                   +
-               ( _responseChannel.Reader.CanCount ? $"_responses {{ Count =  {_responseChannel.Reader.Count} }}," : String.Empty ) +
-               "_readers {{ Count = {_readers.Count} }} }}";
+               ( Writer.ResponseChannel.Reader.CanCount ? $"_responses {{ Count =  {Writer.ResponseChannel.Reader.Count} }}," : String.Empty ) +
+               $"Reader {{ Count = {Writer.ReaderCount} }} }}";
     }
 }
 
@@ -341,14 +363,12 @@ public static class ValueTaskExtensions {
     }
 }
 
-
-
 public static class BroadcastQueueServiceExtensions {
-    public static IServiceCollection AddBroadcastQueue<TData, TResponse>( this IServiceCollection services ) {
+    public static IServiceCollection AddBroadcastQueue<TData, TResponse>( this IServiceCollection services ) where TResponse : IBroadcastQueueResponse {
         services.AddSingleton<BroadcastQueue<TData, TResponse>>();
         // URGENT: this needs testing!
         services.AddTransient<BroadcastQueueWriter<TData, TResponse>>( sp => {
-            BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception("Host exception"); // TODO: replace this exception with something more specific.
+            BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception( "Host exception" ); // TODO: replace this exception with something more specific.
             return _broadcastQueue.Writer;
         } );
         // URGENT: this needs testing!

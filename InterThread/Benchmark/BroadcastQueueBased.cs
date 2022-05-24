@@ -206,13 +206,13 @@ public class BroadcastSubscriberThree : BroadcastSubscriber {
 #region WriterNoLock
 
 // allow multiple?
-public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter<TData, TResponse> {
+public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter<TData, TResponse>  where TResponse : IBroadcastQueueResponse {
     // private readonly BroadcastQueueReader<TData, TResponse>[] _readers; // URGENT
     // private BroadcastQueueReader<TData, TResponse> _reader;
 
     // internal BroadcastQueueWriter( BroadcastQueue<TData, TResponse> queue, ChannelReader<TResponse> responseReader ) {
     // _queue          = queue;
-    protected internal BroadcastQueueWriterNoLock( ChannelReader<TResponse> responseReader ) : base( responseReader ) { }
+    protected internal BroadcastQueueWriterNoLock( Channel<TResponse> responseReader ) : base( responseReader ) { }
 
     /* ************************************************** */
 
@@ -262,25 +262,134 @@ public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter
 
 #endregion WriterNoLock
 
+/* ************************************************************** */
 
+#region WriterReadWriteLock
+
+// allow multiple?
+public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueueWriter<TData, TResponse>  where TResponse : IBroadcastQueueResponse {
+    private ReaderWriterLockSlim _rwLockSlim = new ReaderWriterLockSlim();
+    protected internal BroadcastQueueWriterReadWriteLock( Channel<TResponse> responseReader ) : base( responseReader ) { }
+
+
+    public override int ReaderCount {
+        get {
+            try {
+                return _readers.Count;
+            } finally {
+                _rwLockSlim.ExitWriteLock();
+            }
+        }
+    }
+
+    /* ************************************************** */
+
+    protected override void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
+        _rwLockSlim.EnterWriteLock();
+        try {
+            _readers.Add( ( reader, writer ) ); // URGENT
+        } finally {
+            _rwLockSlim.ExitWriteLock();
+        }
+    }
+
+    protected override void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
+        _rwLockSlim.EnterWriteLock();
+        try {
+            // URGENT
+            // TODO!!
+        } finally {
+            _rwLockSlim.ExitWriteLock();
+        }
+    }
+
+    /* ************************************************** */
+
+    #region Data
+
+    /// <inheritdoc />
+    public override bool TryComplete( Exception? error = null ) {
+        bool result = true;
+        _rwLockSlim.EnterReadLock();
+        try {
+            foreach ( ( _, ChannelWriter<TData> channelWriter ) in _readers ) {
+                result &= channelWriter.TryComplete( error );
+            }
+        } finally {
+            _rwLockSlim.ExitReadLock();
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override bool TryWrite( TData item ) {
+        _rwLockSlim.EnterReadLock();
+        try {
+            if ( _readers.Count == 1 ) {
+                return _readers[ 0 ].channelWriter.TryWrite( item );
+            }
+
+            bool result = true;
+            foreach ( var (_, channelWriter) in _readers ) {
+                result &= channelWriter.TryWrite( item );
+            }
+
+            return result;
+        } finally {
+            _rwLockSlim.ExitReadLock();
+        }
+    }
+
+    /// <inheritdoc />
+    public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
+        _rwLockSlim.EnterReadLock();
+        try {
+            if ( _readers.Count == 0 ) {
+                return ValueTask.CompletedTask;
+            }
+
+            if ( _readers.Count == 1 ) {
+                return _readers[ 0 ].channelWriter.WriteAsync( item, cancellationToken );
+            }
+
+            return _readers.Select( r => r.channelWriter.WriteAsync( item, cancellationToken ) ).ToArray().WhenAll();
+        } finally {
+            _rwLockSlim.ExitReadLock();
+        }
+    }
+
+    #endregion
+
+    /* ************************************************** */
+}
+
+#endregion WriterWriterReadWriteLock
 
 /* ************************************************************** */
 
-public class BroadcastQueueWithNoChannelOptions<TData, TResponse> : BroadcastQueue<TData, TResponse> {
-    public BroadcastQueueWithNoChannelOptions( ) : base( Channel.CreateUnbounded<TResponse>() ) { }
+public class BroadcastQueueWithNoLockWriter<TData, TResponse> : BroadcastQueue<TData, TResponse> where TResponse : IBroadcastQueueResponse {
+    public override BroadcastQueueWriter<TData, TResponse> Writer {
+        get {
+            _writer ??= new BroadcastQueueWriterNoLock<TData, TResponse>(
+                Channel.CreateUnbounded<TResponse>(
+                    new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
+                ) );
 
-    public override BroadcastQueueReader<TData, TResponse> GetReader( ) => GetReader( Channel.CreateUnbounded<TData>() );
+            return _writer;
+        }
+    }
 }
 
-public class BroadcastQueueWithSingleXChannelOptions<TData, TResponse> : BroadcastQueue<TData, TResponse> {
-    public BroadcastQueueWithSingleXChannelOptions( ) : base( Channel.CreateUnbounded<TResponse>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false } ) ) { }
+public class BroadcastQueueWithReadWriteLockSlimWriter<TData, TResponse> : BroadcastQueue<TData, TResponse> where TResponse : IBroadcastQueueResponse {
+    public override BroadcastQueueWriter<TData, TResponse> Writer {
+        get {
+            _writer ??= new BroadcastQueueWriterReadWriteLock<TData, TResponse>(
+                Channel.CreateUnbounded<TResponse>(
+                    new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
+                ) );
 
-    public override BroadcastQueueReader<TData, TResponse> GetReader( ) => GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );
+            return _writer;
+        }
+    }
 }
-
-public class BroadcastQueueWithNoLockWriter<TData, TResponse> : BroadcastQueue<TData, TResponse> {
-    public BroadcastQueueWithNoLockWriter( ) : base(
-        ( responseChannel ) => new BroadcastQueueWriterNoLock<TData, TResponse>( responseChannel.Reader )
-    ) { }
-}
-

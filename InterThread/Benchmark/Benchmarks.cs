@@ -120,7 +120,7 @@ public partial class Benchmarks {
         int      subscriberCount,
         int      messageCount,
         LogLevel? logLevel
-    ) where TBroadcastQueue : BroadcastQueue<TData, TResponse> =>
+    ) where TBroadcastQueue : BroadcastQueue<TData, TResponse>  where TResponse : IBroadcastQueueResponse =>
         Host.CreateDefaultBuilder( args )
             .ConfigureServices( ( hostContext, services ) => {
                 services.AddSingleton<BroadcastQueue<TData, TResponse>, TBroadcastQueue>();
