@@ -305,7 +305,28 @@ public class Program {
 #else
     static void Main( string[] args ) {
         if ( args.Contains( "deadlock-test" ) ) {
-            DeadlockTest.Do( 10_000 );
+            // DeadlockTest.Do( 10_000 );
+            
+            var benchmarks = new Benchmarks() { MessageCount = 10_000 };
+
+            
+            
+            benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
+            benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
+            benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
+            
+            benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayForLoopWriter();
+            benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayForLoopWriter();
+            benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
+            
+            // benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayWriter();
+            // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayWriter();
+            // benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
+            
+            // benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayForLoopWriter();
+            // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayForLoopWriter();
+            // benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
+
         } else {
             BenchmarkSwitcher
                 .FromAssembly( typeof(Program).Assembly )

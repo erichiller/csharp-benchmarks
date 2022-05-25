@@ -519,15 +519,18 @@ dotnet run -c RELEASE --filter "*WithoutHost*"
 
 | Method                                                                        | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] | Median [ms] |     Gen 0 |     Gen 1 | Allocated [B] |
 |-------------------------------------------------------------------------------|--------------|----------:|-----------:|------------:|------------:|----------:|----------:|--------------:|
-| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter               | 200000       |  10.58 ms |   0.521 ms |    1.469 ms |    9.948 ms | 1000.0000 | 1000.0000 |   6,536,048 B |
-| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                            | 200000       |  22.10 ms |   0.932 ms |    2.735 ms |   22.054 ms | 1000.0000 |         - |   6,420,016 B |
-| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadWriteLockSlimWriter    | 200000       |  27.85 ms |   0.599 ms |    1.747 ms |   27.857 ms | 1000.0000 |         - |   6,437,424 B |
-| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter              | 200000       |  60.10 ms |   2.409 ms |    7.026 ms |   60.557 ms | 1000.0000 | 1000.0000 |   6,429,888 B |
-| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                           | 200000       |  71.89 ms |   2.107 ms |    6.179 ms |   72.832 ms | 1000.0000 | 1000.0000 |   6,429,888 B |
-| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ReadWriteLockSlimWriter   | 200000       |  75.53 ms |   3.102 ms |    9.049 ms |   74.981 ms | 1000.0000 |         - |   7,064,704 B |
-| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter            | 200000       | 115.03 ms |   6.290 ms |   18.349 ms |  116.349 ms | 1000.0000 | 1000.0000 |   7,231,568 B |
-| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ReadWriteLockSlimWriter | 200000       | 121.29 ms |   5.247 ms |   15.388 ms |  121.926 ms | 1000.0000 | 1000.0000 |   6,695,952 B |
-| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                         | 200000       | 121.89 ms |   4.718 ms |   13.836 ms |  121.743 ms | 1000.0000 | 1000.0000 |   7,100,336 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter               | 200000       |  10.41 ms |   0.361 ms |    0.981 ms |    10.25 ms | 1000.0000 |         - |   6,470,072 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                            | 200000       |  24.24 ms |   1.249 ms |    3.662 ms |    23.12 ms | 1000.0000 | 1000.0000 |   8,503,928 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadWriteLockSlimWriter    | 200000       |  27.89 ms |   0.862 ms |    2.500 ms |    28.21 ms | 1000.0000 | 1000.0000 |   6,406,840 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_SemaphoreSlimWriter        | 200000       |  34.12 ms |   1.272 ms |    3.691 ms |    34.56 ms | 1000.0000 |         - |   6,437,432 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter              | 200000       |  61.59 ms |   2.219 ms |    6.474 ms |    62.81 ms | 1000.0000 | 1000.0000 |   6,571,408 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                           | 200000       |  69.52 ms |   3.469 ms |   10.064 ms |    70.51 ms | 1000.0000 |         - |   7,064,720 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_SemaphoreSlimWriter       | 200000       |  70.83 ms |   4.238 ms |   12.495 ms |    71.54 ms | 1000.0000 |         - |   6,802,128 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ReadWriteLockSlimWriter   | 200000       |  71.76 ms |   3.669 ms |   10.818 ms |    73.23 ms | 1000.0000 |         - |   6,604,624 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter            | 200000       | 121.28 ms |   6.099 ms |   17.983 ms |   124.36 ms | 1000.0000 | 1000.0000 |   6,574,280 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                         | 200000       | 125.98 ms |   5.766 ms |   16.911 ms |   128.60 ms | 1000.0000 |         - |   6,739,176 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ReadWriteLockSlimWriter | 200000       | 130.87 ms |   6.002 ms |   17.698 ms |   133.48 ms | 1000.0000 |         - |   6,805,736 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_SemaphoreSlimWriter     | 200000       | 136.89 ms |   4.885 ms |   14.405 ms |   135.51 ms | 1000.0000 |         - |   6,465,256 B |
 
 
 
@@ -546,6 +549,15 @@ dotnet run -c RELEASE --filter "*WithoutHost*"
 | BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableListWriter    | 200000       | 147.84 ms |   4.165 ms |   12.017 ms |  146.205 ms | 1000.0000 | 1000.0000 |   6,571,392 B |
 | BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableListWriter  | 200000       | 216.17 ms |   4.162 ms |   11.252 ms |  216.024 ms | 1000.0000 | 1000.0000 |   6,426,576 B |
 
+
+| Method                                                                | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |     Gen 0 | Allocated [B] |
+|-----------------------------------------------------------------------|--------------|----------:|-----------:|------------:|----------:|--------------:|
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter    | 200000       |  22.38 ms |   0.689 ms |    2.011 ms | 1000.0000 |   6,436,856 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                    | 200000       |  24.83 ms |   1.114 ms |    3.284 ms | 1000.0000 |   6,437,432 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayWriter   | 200000       |  59.71 ms |   2.040 ms |    5.984 ms | 1000.0000 |   6,604,624 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                   | 200000       |  76.45 ms |   2.557 ms |    7.458 ms | 1000.0000 |   6,421,264 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockArrayWriter | 200000       | 106.25 ms |   3.562 ms |   10.502 ms | 1000.0000 |   6,456,616 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                 | 200000       | 134.15 ms |   3.978 ms |   11.731 ms | 1000.0000 |   6,687,336 B |
 
 
 ***

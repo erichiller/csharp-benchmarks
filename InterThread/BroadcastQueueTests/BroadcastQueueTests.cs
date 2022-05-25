@@ -87,26 +87,6 @@ public class BroadcastQueueTests {
     //
     //
     //
-    // TODO
-    [ Fact ]
-    public async void PublisherShouldWriteWithoutReaders( ) {
-        _testOutputHelper.WriteLine( $"In {nameof(PublisherShouldWriteWithoutReaders)}" );
-        int messageCount   = 10_000;
-        var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
-        var cts            = new CancellationTokenSource();
-
-        var writerTaskNoReaders = writerTask( broadcastQueue.Writer, messageCount, cts.Token ); // must create / start last so that it doesn't write into nothing.
-
-        Task.WaitAll(
-            writerTaskNoReaders
-        );
-        writerTaskNoReaders.Result.Should().Be( messageCount );
-    }
-
-
-    // TODO
-    [ Fact ]
-    public async void SubscriberShouldReceiveAllMessagesInOrder( ) { }
 
 
     static async Task<int> writerTask( BroadcastQueueWriter<ChannelMessage, ChannelResponse> bqWriter, int messageCount, CancellationToken ct ) {
@@ -148,7 +128,7 @@ public class BroadcastQueueTests {
             while ( bqWriter.TryWrite( new ChannelMessage() { Id = i } ) ) {
                 if ( i % 1000 == 0 ) {
                     var result = readerTask( bq.GetReader(), messageCount, "readerTask1", cts.Token ).WaitAsync( ct ).Result;
-                    // URGENT:: TEST FOR DEALOCKS!!!!!
+                    // URGENT:: TEST FOR DEADLOCKS!!!!!
                 }
 
                 if ( i >= messageCount ) {
@@ -190,8 +170,44 @@ public class BroadcastQueueTests {
         await bqReader.WriteResponseAsync( new ChannelResponse( -1, taskName, new Exception( "Incomplete sequence" ) ), ct );
         return -1;
     }
+    
+    // TODO
+    [ Fact ]
+    public async void PublisherShouldWriteWithoutReaders( ) {
+        _testOutputHelper.WriteLine( $"In {nameof(PublisherShouldWriteWithoutReaders)}" );
+        int messageCount   = 10_000;
+        var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
+        var cts            = new CancellationTokenSource();
+
+        var writerTaskNoReaders = writerTask( broadcastQueue.Writer, messageCount, cts.Token ); // must create / start last so that it doesn't write into nothing.
+
+        Task.WaitAll(
+            writerTaskNoReaders
+        );
+        writerTaskNoReaders.Result.Should().Be( messageCount );
+    }
+
+
+    // TODO
+    [ Fact ]
+    public async void SubscriberShouldReceiveAllMessagesInOrder( ) {
+        int messageCount   = 10_000;
+        var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
+        var cts            = new CancellationTokenSource();
+
+        var readerTask1 = readerTask( broadcastQueue.GetReader(), messageCount, "readerTask1", cts.Token );
+        var writerTask1 = writerTask( broadcastQueue.Writer, messageCount, cts.Token ); // must create / start last so that it doesn't write into nothing.
+
+
+        Task.WaitAll(
+            readerTask1,
+            writerTask1
+        );
+        readerTask1.Result.Should().Be( messageCount );
+    }
 
     [ Fact ]
+    [Theory]
     public async void MultipleSubscribersShouldReceiveAllMessagesInOrder( ) {
         int messageCount   = 10_000;
         var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();

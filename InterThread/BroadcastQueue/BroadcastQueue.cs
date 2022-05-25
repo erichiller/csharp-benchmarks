@@ -31,7 +31,7 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData> where
      *  2. Read: The BroadcastQueueWriter when it enumerates
      */
     protected readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers     = new List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>(); // URGENT
-    private readonly   object                                                                                     _readersLock = new object();
+    protected readonly   object                                                                                     _readersLock = new object();
 
     public virtual int ReaderCount {
         get {

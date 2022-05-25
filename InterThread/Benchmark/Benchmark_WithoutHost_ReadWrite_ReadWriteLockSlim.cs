@@ -11,7 +11,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
-    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "ReadWriteLockSlimWriter" ) ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ReadWriteLockSlimWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadWriteLockSlimWriter( )
         => BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber(); // the only difference is in the setup
 
@@ -24,7 +24,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
-    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "ReadWriteLockSlimWriter" ) ]
+    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "Locking", "ReadWriteLockSlimWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ReadWriteLockSlimWriter( )
         => BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers(); // the only difference is in the setup
 
@@ -38,7 +38,7 @@ public partial class Benchmarks {
     }
 
     [ Benchmark ]
-    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "ReadWriteLockSlimWriter" ) ]
+    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "Locking", "ReadWriteLockSlimWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ReadWriteLockSlimWriter( )
         => BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers(); // the only difference is in the setup
 }

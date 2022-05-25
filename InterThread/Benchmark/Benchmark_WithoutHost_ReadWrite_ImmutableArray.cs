@@ -24,7 +24,14 @@ public partial class Benchmarks {
      * BROADCAST QUEUE - No Host *********************************************************************************** 
      * ************************************************************************************************************* */
 
-    [ IterationCleanup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter), nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter), nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter) } ) ]
+    [ IterationCleanup( Targets = new[] {
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter)
+    } ) ]
     public void Cleanup_RunBroadcastQueueWithoutHost_ImmutableArrayWriter( ) {
         _broadcastQueueWithImmutableArray.Writer.Complete();
     }
@@ -74,6 +81,20 @@ public partial class Benchmarks {
         }
         // Console.WriteLine($"Response={response}");
     }
+    
+    /* *** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter();
 
     /* **** TWO **** */
 
@@ -133,6 +154,20 @@ public partial class Benchmarks {
         );
     }
 
+    /* **** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter();
 
     /* **** THREE **** */
 
@@ -209,4 +244,21 @@ public partial class Benchmarks {
         // _broadcastQueueImmutableArrayWriter.TryReadResponse( out ChannelResponse response );
         // Console.WriteLine($"Response={response}");
     }
+    
+    
+    /* **** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter();
+
 }
