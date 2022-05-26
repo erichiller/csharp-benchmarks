@@ -136,7 +136,13 @@ public class BroadcastQueueWithImmutableArrayWriter<TData, TResponse> : IBroadca
             return _writer;
         }
     }
-
+    
+    
+    public BroadcastQueueWithImmutableArrayWriter( ) {
+        _responseChannel = Channel.CreateUnbounded<TResponse>(
+            new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false }
+        );
+    }
 
     public virtual BroadcastQueueReader<TData, TResponse> GetReader( ) {
         return GetReader( Channel.CreateUnbounded<TData>( new UnboundedChannelOptions() { SingleReader = true, SingleWriter = true } ) );

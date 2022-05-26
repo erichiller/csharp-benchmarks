@@ -30,7 +30,10 @@ public partial class Benchmarks {
         nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter),
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter)
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayForLoopWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayForLoopWriter),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayForLoopWriter)
     } ) ]
     public void Cleanup_RunBroadcastQueueWithoutHost_ImmutableArrayWriter( ) {
         _broadcastQueueWithImmutableArray.Writer.Complete();
@@ -94,6 +97,22 @@ public partial class Benchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter();
+    
+    /* **** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayForLoopWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayForLoopWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayForLoopWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader3              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "ForLoop" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayForLoopWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter();
 
     /* **** TWO **** */
@@ -165,8 +184,24 @@ public partial class Benchmarks {
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter();
+    
+    /* **** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayForLoopWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayForLoopWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayForLoopWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader3              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "ForLoop" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayForLoopWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter();
 
     /* **** THREE **** */
@@ -253,12 +288,33 @@ public partial class Benchmarks {
         _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayWriter<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
         _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader3              = _broadcastQueueWithImmutableArray.GetReader();
         _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter( ) =>
+        BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter();
+    
+    /* **** */
+
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayForLoopWriter), } ) ]
+    public void Setup_BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayForLoopWriter( ) {
+        _broadcastQueueWithImmutableArray   = new BroadcastQueueWithLockedImmutableArrayForLoopWriter<ChannelMessage, ChannelResponse>();
+        _broadcastQueueReader1              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader2              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueReader3              = _broadcastQueueWithImmutableArray.GetReader();
+        _broadcastQueueImmutableArrayWriter = _broadcastQueueWithImmutableArray.Writer;
+    }
+    
+    [ Benchmark ]
+    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "ForLoop" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayForLoopWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter();
 
 }
+
+// TODO: last item: see if using an interface as the field slows things down.
+// Then I could parameterize the BroadcastQueue variant
+// Plus parameterize the number of subscribers!

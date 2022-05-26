@@ -228,22 +228,15 @@ public class BroadcastQueueLockArrayForLoopWriter<TData, TResponse> : BroadcastQ
     /// <inheritdoc />
     public override bool TryWrite( TData item ) {
         lock ( _readersLock ) {
-            // Console.WriteLine( $"TryWrite( TData item )={item} ; _readers.Length={_readers.Length}" );
             if ( _readers.Length == 1 ) {
-                // Console.WriteLine( $"TryWrite( TData item )={item} ; _readers.Length is 1" );
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
 
             bool result = true;
-            // foreach ( var (reader, channelWriter) in _readers ) {
-            // result &= channelWriter.TryWrite( item );
             for ( int i = 0 ; i < _readers.Length ; i ++ ){
-                // Console.WriteLine( $"IN LOOP. TryWrite( TData item )={item} ; reader={_readers[0].reader}" );
                 result &= _readers[i].channelWriter.TryWrite( item );
-                
             }
             
-            // Console.WriteLine( $"COMPLETE. TryWrite( TData item )={item}" );
             return result;
         }
     }

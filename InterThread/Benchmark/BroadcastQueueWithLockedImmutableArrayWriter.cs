@@ -11,8 +11,8 @@ namespace Benchmarks.InterThread.Benchmark;
 #region WriterLockedImmutableArray
 
 // allow multiple?
-public class BroadcastQueueWriterLockedImmutableArray<TData, TResponse> : BroadcastQueueImmutableArrayWriter<TData, TResponse> where TResponse : IBroadcastQueueResponse {
-    protected internal BroadcastQueueWriterLockedImmutableArray( Channel<TResponse> responseReader ) : base( responseReader ) { }
+public class BroadcastQueueLockedImmutableArrayWriter<TData, TResponse> : BroadcastQueueImmutableArrayWriter<TData, TResponse> where TResponse : IBroadcastQueueResponse {
+    protected internal BroadcastQueueLockedImmutableArrayWriter( Channel<TResponse> responseReader ) : base( responseReader ) { }
 
     protected readonly object _readersLock = new object();
 
@@ -96,11 +96,11 @@ public class BroadcastQueueWriterLockedImmutableArray<TData, TResponse> : Broadc
 /* ************************************************************** */
 
 public class BroadcastQueueWithLockedImmutableArrayWriter<TData, TResponse> : BroadcastQueueWithImmutableArrayWriter<TData, TResponse> where TResponse : IBroadcastQueueResponse {
-    // private BroadcastQueueWriterLockedImmutableArray<         TData, TResponse>? _writer; 
+    // private BroadcastQueueLockedImmutableArrayWriter<         TData, TResponse>? _writer; 
 
     public override BroadcastQueueImmutableArrayWriter<TData, TResponse> Writer {
         get {
-            _writer ??= new BroadcastQueueWriterLockedImmutableArray<TData, TResponse>(
+            _writer ??= new BroadcastQueueLockedImmutableArrayWriter<TData, TResponse>(
                 _responseChannel );
 
             return _writer;
