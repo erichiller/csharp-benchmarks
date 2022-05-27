@@ -15,12 +15,7 @@ public class BroadcastQueueImmutableListWriter<TData, TResponse /*, TReader */> 
      *  1. Write: The BroadcastQueue root through AddReader 
      *  2. Read: The BroadcastQueueWriter when it enumerates
      */
-    // URGENT: trying ImmutableList -- THIS NEEDS TO BE TESTED FOR THREAD SAFETY
-    /* URGENT
-     * Try writing a test where one Task is constantly writing and another is periodically adding and removing Readers. Run it for a long time!
-     */
-    // URGENT:      * Reader needs to be disposable ??
-    private ImmutableList<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers = ImmutableList<(BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>.Empty; // URGENT
+    private ImmutableList<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers = ImmutableList<(BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>.Empty;
 
     public int ReaderCount => _readers.Count;
 
@@ -32,16 +27,10 @@ public class BroadcastQueueImmutableListWriter<TData, TResponse /*, TReader */> 
     /* ************************************************** */
 
     internal void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
-        _readers = _readers.Add( ( reader, writer ) ); // URGENT
-
-        // _readers = ( (_readers as ImmutableList<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>)!).Add( ( reader, writer ) ); // URGENT
+        _readers = _readers.Add( ( reader, writer ) );
     }
 
     internal void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
-        // lock ( _readersLock ) {
-        // URGENT
-        // }
-        // TODO!!
     }
 
 
@@ -156,9 +145,6 @@ public class BroadcastQueueWithImmutableListWriter<TData, TResponse> : IBroadcas
 
     /// <inheritdoc />
     public override string ToString( ) {
-        /* NOTE: Count does not work on _responseChannel.Reader as it is a SingleConsumerUnboundedChannel<T> which does not support Count
-         * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
-         */
         return $"{nameof(BroadcastQueueWithImmutableListWriter<TData, TResponse>)} {{ "                                                                   +
                ( _responseChannel.Reader.CanCount ? $"_responses {{ Count =  {_responseChannel.Reader.Count} }}," : String.Empty ) +
                "_readers {{ Count = {_readers.Count} }} }}";

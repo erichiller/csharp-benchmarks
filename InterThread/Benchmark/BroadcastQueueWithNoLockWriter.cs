@@ -13,11 +13,6 @@ namespace Benchmarks.InterThread.Benchmark;
 
 // allow multiple?
 public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter<TData, TResponse>  where TResponse : IBroadcastQueueResponse {
-    // private readonly BroadcastQueueReader<TData, TResponse>[] _readers; // URGENT
-    // private BroadcastQueueReader<TData, TResponse> _reader;
-
-    // internal BroadcastQueueWriter( BroadcastQueue<TData, TResponse> queue, ChannelReader<TResponse> responseReader ) {
-    // _queue          = queue;
     protected internal BroadcastQueueWriterNoLock( Channel<TResponse> responseReader ) : base( responseReader ) { }
 
     /* ************************************************** */

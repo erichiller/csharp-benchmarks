@@ -6,21 +6,9 @@ namespace Benchmarks.InterThread.BroadcastQueue;
 
 #region WriterImmutableArray
 
-public class BroadcastQueueImmutableArrayWriter<TData, TResponse /*, TReader */> : ChannelWriter<TData>
-    // where TReader : IReadOnlyCollection<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> 
-{
+public class BroadcastQueueImmutableArrayWriter<TData, TResponse /*, TReader */> : ChannelWriter<TData> {
     private readonly ChannelReader<TResponse> _responseReader;
-
-    /* Only 1 or 2 threads ever use _readers:
-     *  1. Write: The BroadcastQueue root through AddReader 
-     *  2. Read: The BroadcastQueueWriter when it enumerates
-     */
-    // URGENT: trying ImmutableArray -- THIS NEEDS TO BE TESTED FOR THREAD SAFETY
-    /* URGENT
-     * Try writing a test where one Task is constantly writing and another is periodically adding and removing Readers. Run it for a long time!
-     */
-    // URGENT:      * Reader needs to be disposable ??
-    protected ImmutableArray<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers = ImmutableArray<(BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>.Empty; // URGENT
+    protected ImmutableArray<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers = ImmutableArray<(BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>.Empty;
 
     public virtual int ReaderCount => _readers.Length;
 
@@ -32,16 +20,10 @@ public class BroadcastQueueImmutableArrayWriter<TData, TResponse /*, TReader */>
     /* ************************************************** */
 
     protected internal virtual void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
-        _readers = _readers.Add( ( reader, writer ) ); // URGENT
-
-        // _readers = ( (_readers as ImmutableArray<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>)!).Add( ( reader, writer ) ); // URGENT
+        _readers = _readers.Add( ( reader, writer ) );
     }
 
     protected internal virtual void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
-        // lock ( _readersLock ) {
-        // URGENT
-        // }
-        // TODO!!
     }
 
 
@@ -164,9 +146,6 @@ public class BroadcastQueueWithImmutableArrayWriter<TData, TResponse> : IBroadca
 
     /// <inheritdoc />
     public override string ToString( ) {
-        /* NOTE: Count does not work on _responseChannel.Reader as it is a SingleConsumerUnboundedChannel<T> which does not support Count
-         * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
-         */
         return $"{nameof(BroadcastQueueWithImmutableArrayWriter<TData, TResponse>)} {{ "                                           +
                ( _responseChannel.Reader.CanCount ? $"_responses {{ Count =  {_responseChannel.Reader.Count} }}," : String.Empty ) +
                "_readers {{ Count = {_readers.Count} }} }}";

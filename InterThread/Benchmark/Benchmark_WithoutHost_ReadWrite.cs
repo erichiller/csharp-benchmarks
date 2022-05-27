@@ -9,7 +9,6 @@ using Benchmarks.InterThread.BroadcastQueue;
 namespace Benchmarks.InterThread.Benchmark;
 
 public partial class Benchmarks {
-    // URGENT: nothing has been checking the Response Channel!
     /* *************************************************************************************************************
      * BROADCAST QUEUE - No Host *********************************************************************************** 
      * ************************************************************************************************************* */

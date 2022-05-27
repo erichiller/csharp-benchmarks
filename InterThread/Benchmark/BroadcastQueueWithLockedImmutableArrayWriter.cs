@@ -28,7 +28,7 @@ public class BroadcastQueueLockedImmutableArrayWriter<TData, TResponse> : Broadc
 
     protected override void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
         lock ( _readersLock ) {
-            _readers = _readers.Add( ( reader, writer ) ); // URGENT
+            _readers = _readers.Add( ( reader, writer ) );
         }
     }
 

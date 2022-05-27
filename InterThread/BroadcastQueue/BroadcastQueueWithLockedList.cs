@@ -9,18 +9,17 @@ namespace Benchmarks.InterThread.BroadcastQueue;
 /* ********************************************************************************************* */
 
 #region Writer
-// URGENT: Convert to ImmutableArray. Test if lock is needed!?
 
 public class BroadcastQueueWithLockedListWriter<TData, TResponse> : ChannelWriter<TData> where TResponse : IBroadcastQueueResponse {
     private readonly ChannelReader<TResponse> _responseReader;
-    internal readonly Channel<TResponse>       ResponseChannel; // URGENT: fully move this to Writer, do not store in BroadcastQueueWithLockedList
+    internal readonly Channel<TResponse>       ResponseChannel;
 
     /* Only 1 or 2 threads ever use _readers:
      *  1. Write: The BroadcastQueueWithLockedList root through AddReader 
      *  2. Read: The BroadcastQueueWithLockedListWriter when it enumerates
      */
-    protected readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers     = new List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>(); // URGENT
-    protected readonly   object                                                                                     _readersLock = new object();
+    private readonly List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)> _readers     = new List<( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> channelWriter)>();
+    private readonly object                                                                                     _readersLock = new object();
 
     public virtual int ReaderCount {
         get {
@@ -50,7 +49,6 @@ public class BroadcastQueueWithLockedListWriter<TData, TResponse> : ChannelWrite
         }
     }
 
-    // URGENT: Implement IDisposable on Reader, Writer?
     public void Dispose( ) {
         lock ( _readersLock ) {
             foreach ( var (reader, channelWriter) in _readers ) {
@@ -195,9 +193,6 @@ public class BroadcastQueueWithLockedList<TData, TResponse> : IBroadcastQueueCon
 
     /// <inheritdoc />
     public override string ToString( ) {
-        /* NOTE: Count does not work on _responseChannel.Reader as it is a SingleConsumerUnboundedChannel<T> which does not support Count
-         * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
-         */
         return $"{nameof(BroadcastQueueWithLockedList<TData, TResponse>)} {{ "                                                                   +
                ( Writer.ResponseChannel.Reader.CanCount ? $"_responses {{ Count =  {Writer.ResponseChannel.Reader.Count} }}," : String.Empty ) +
                $"Reader {{ Count = {Writer.ReaderCount} }} }}";

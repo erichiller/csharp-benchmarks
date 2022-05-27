@@ -159,7 +159,7 @@ public class Program {
         while ( !ct.IsCancellationRequested ) {
             if ( broadcastQueue.Writer.TryReadResponse( out var result ) ) {
                 Console.Write( "p" );
-                logger.LogDebug( "Read {Id} from ResponseChannel of reader type {ReaderType}", result.ReadId, result.ReaderType ); // URGENT: uncomment this line
+                logger.LogDebug( "Read {Id} from ResponseChannel of reader type {ReaderType}", result.ReadId, result.ReaderType );
                 lastReadId = result.ReadId;
                 if ( result.ReadId >= readCount ) {
                     readersReachedReadCount[ result.ReaderType ] = result.ReadId;
@@ -258,7 +258,6 @@ public class Program {
         // var output = new SystemTextJsonSerializationBasic() {
         //     Iterations = 1
         // }.SystemTextJson_Deserialize_Scalars_FloatFields_SourceGen().First();
-        // // URGENT -- try this. Is anything being returned?
         // System.Console.WriteLine( $"{output.Id} , {output.Name} , {output.Value}" );
         // System.Console.WriteLine(simpleBenchmarks.SystemTextJson_Deserialize_Scalars_FloatFields_SourceGen()
         //                                    .Select( output => $"{output.Id} , {output.Name} , {output.Value}" )
@@ -296,7 +295,6 @@ public class Program {
         //                                            // .First()
         //                                            );
 
-        // URGENT -- try this. Is anything being returned?
         return 0;
     }
     //     // => new SystemTextJsonSerializationBasic().SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute();

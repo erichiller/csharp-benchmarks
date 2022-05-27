@@ -45,10 +45,6 @@ public class BroadcastQueueLockArrayWriter<TData, TResponse /*, TReader */> : Ch
     }
 
     internal void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
-        // lock ( _readersLock ) {
-        // URGENT
-        // }
-        // TODO!!
     }
 
 
@@ -208,9 +204,6 @@ public class BroadcastQueueWithLockArrayWriter<TData, TResponse> : IBroadcastQue
 
     /// <inheritdoc />
     public override string ToString( ) {
-        /* NOTE: Count does not work on _responseChannel.Reader as it is a SingleConsumerUnboundedChannel<T> which does not support Count
-         * https://github.com/dotnet/runtime/blob/release/6.0/src/libraries/System.Threading.Channels/src/System/Threading/Channels/SingleConsumerUnboundedChannel.cs
-         */
         return $"{nameof(BroadcastQueueWithLockArrayWriter<TData, TResponse>)} {{ "                                                +
                ( _responseChannel.Reader.CanCount ? $"_responses {{ Count =  {_responseChannel.Reader.Count} }}," : String.Empty ) +
                "_readers {{ Count = {_readers.Count} }} }}";

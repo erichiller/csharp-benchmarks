@@ -7,14 +7,6 @@ using Benchmarks.InterThread.BroadcastQueue;
 
 namespace Benchmarks.InterThread.Benchmark;
 
-// public class B2enchmarks {
-//     // kill
-//     private int                                                   MessageCount;
-//     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader1;
-//     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader2;
-//     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader3;
-// }
-
 public partial class Benchmarks {
     private BroadcastQueueWithImmutableArrayWriter<ChannelMessage, ChannelResponse> _broadcastQueueWithImmutableArray;
     private BroadcastQueueImmutableArrayWriter<ChannelMessage, ChannelResponse>     _broadcastQueueImmutableArrayWriter;

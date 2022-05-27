@@ -33,7 +33,7 @@ public class BroadcastQueueWriterSemaphoreSlim<TData, TResponse> : BroadcastQueu
     protected override void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
         _semaphore.Wait();
         try {
-            _readers.Add( ( reader, writer ) ); // URGENT
+            _readers.Add( ( reader, writer ) );
         } finally {
             _semaphore.Release();
         }
@@ -42,8 +42,7 @@ public class BroadcastQueueWriterSemaphoreSlim<TData, TResponse> : BroadcastQueu
     protected override void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
         _semaphore.Wait();
         try {
-            // URGENT
-            // TODO!!
+            // do
         } finally {
             _semaphore.Release();
         }

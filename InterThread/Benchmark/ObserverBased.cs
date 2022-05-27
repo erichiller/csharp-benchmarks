@@ -21,9 +21,6 @@ public class DataGenerator : IObservable<DataGeneratorMessage> {
         // Check whether observer is already registered. If not, add it
         if ( !observers.Contains( observer ) ) {
             observers.Add( observer );
-            // Provide observer with existing data.
-            // foreach ( var item in messages ) // TODO: restore this
-                // observer.OnNext( item );
         }
 
         return new Unsubscriber<DataGeneratorMessage>( observers, observer );

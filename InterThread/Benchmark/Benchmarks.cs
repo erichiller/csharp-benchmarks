@@ -77,12 +77,7 @@ public partial class Benchmarks {
     public void CreateHost_SimpleChannelQueue( ) 
     =>         new Task( async ( ) => {
         await createHost();
-        // Thread.Sleep( 500 ); // URGENT: This makes it complete too fast!!! // CURRENTLY, THE HOST STARTUP TIME IS ESSENTIALLY MEASURED, BECAUSE IT OCCURS AND STARTS PROCESSING BEFORE THE BENCHMARK
     } ).RunSynchronously();
-    // {
-        // Task task = createHost();
-        // task.RunSynchronously();
-    // }
 
 
     [ IterationCleanup( Target = nameof(Channels_InHost) ) ]
@@ -122,20 +117,15 @@ public partial class Benchmarks {
         Host.CreateDefaultBuilder( args )
             .ConfigureServices( ( hostContext, services ) => {
                 services.AddSingleton<BroadcastQueue<TData, TResponse>, TBroadcastQueue>();
-                // URGENT: this needs testing!
-                services.AddTransient<BroadcastQueueWriter<TData, TResponse>>( sp => {
-                    BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception("Host exception"); // TODO: replace this exception with something more specific.
-                    return _broadcastQueue.Writer;
-                } );
-                // URGENT: this needs testing!
-                services.AddTransient<BroadcastQueueReader<TData, TResponse>>( sp => {
-                    BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception("Host exception"); // TODO: replace this exception with something more specific.
-                    return _broadcastQueue.GetReader();
-                } );
-                // if ( logLevel is { } ll ) {
-                    // Console.WriteLine($"Logging added at level {ll}");
+                // services.AddTransient<BroadcastQueueWriter<TData, TResponse>>( sp => {
+                //     BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception("Host exception");
+                //     return _broadcastQueue.Writer;
+                // } );
+                // services.AddTransient<BroadcastQueueReader<TData, TResponse>>( sp => {
+                //     BroadcastQueue<TData, TResponse> _broadcastQueue = sp.GetService<BroadcastQueue<TData, TResponse>>() ?? throw new Exception("Host exception");
+                //     return _broadcastQueue.GetReader();
+                // } );
                     services.AddLogging( logBuilder => logBuilder.AddConsole().SetMinimumLevel( logLevel ?? LogLevel.Error ) );
-                // }
 
                 if ( subscriberCount is 1 or 2 or 3 ) {
                     services.AddHostedService<BroadcastPublisher>( );

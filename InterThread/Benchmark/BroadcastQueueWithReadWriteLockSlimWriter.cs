@@ -33,7 +33,7 @@ public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueu
     protected override void AddReader( BroadcastQueueReader<TData, TResponse> reader, ChannelWriter<TData> writer ) {
         _rwLockSlim.EnterWriteLock();
         try {
-            _readers.Add( ( reader, writer ) ); // URGENT
+            _readers.Add( ( reader, writer ) );
         } finally {
             _rwLockSlim.ExitWriteLock();
         }
@@ -42,8 +42,7 @@ public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueu
     protected override void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
         _rwLockSlim.EnterWriteLock();
         try {
-            // URGENT
-            // TODO!!
+            // do
         } finally {
             _rwLockSlim.ExitWriteLock();
         }
