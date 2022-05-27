@@ -36,7 +36,7 @@ public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter
 
     /// <inheritdoc />
     public override bool TryWrite( TData item ) {
-        if ( _readers.Count == 1 ) {
+        if ( _readers.Length == 1 ) {
             return _readers[ 0 ].channelWriter.TryWrite( item );
         }
 
@@ -50,11 +50,11 @@ public class BroadcastQueueWriterNoLock<TData, TResponse> : BroadcastQueueWriter
 
     /// <inheritdoc />
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
-        if ( _readers.Count == 0 ) {
+        if ( _readers.Length == 0 ) {
             return ValueTask.CompletedTask;
         }
 
-        if ( _readers.Count == 1 ) {
+        if ( _readers.Length == 1 ) {
             return _readers[ 0 ].channelWriter.WriteAsync( item, cancellationToken );
         }
 

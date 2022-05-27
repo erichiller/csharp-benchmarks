@@ -21,7 +21,7 @@ public class BroadcastQueueWriterSemaphoreSlim<TData, TResponse> : BroadcastQueu
         get {
             _semaphore.Wait();
             try {
-                return _readers.Count;
+                return _readers.Length;
             } finally {
                 _semaphore.Release();
             }
@@ -72,7 +72,7 @@ public class BroadcastQueueWriterSemaphoreSlim<TData, TResponse> : BroadcastQueu
     public override bool TryWrite( TData item ) {
         _semaphore.Wait();
         try {
-            if ( _readers.Count == 1 ) {
+            if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
 
@@ -91,11 +91,11 @@ public class BroadcastQueueWriterSemaphoreSlim<TData, TResponse> : BroadcastQueu
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
         _semaphore.Wait( cancellationToken );
         try {
-            if ( _readers.Count == 0 ) {
+            if ( _readers.Length == 0 ) {
                 return ValueTask.CompletedTask;
             }
 
-            if ( _readers.Count == 1 ) {
+            if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.WriteAsync( item, cancellationToken );
             }
 

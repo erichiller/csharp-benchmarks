@@ -34,8 +34,7 @@ public class BroadcastQueueLockedImmutableArrayWriter<TData, TResponse> : Broadc
 
     protected override void RemoveReader( BroadcastQueueReader<TData, TResponse> reader ) {
         lock ( _readersLock ) {
-            // URGENT
-            // TODO!!
+            _readers = _readers.Remove( _readers.Single( t => t.reader == reader ) );
         }
     }
 
@@ -61,6 +60,7 @@ public class BroadcastQueueLockedImmutableArrayWriter<TData, TResponse> : Broadc
             if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
+            if ( _readers.Length == 0 ) { return true; } // this returns true as if it had written regardless of if there was an actual reader to read it
 
             bool result = true;
             foreach ( var (_, channelWriter) in _readers ) {

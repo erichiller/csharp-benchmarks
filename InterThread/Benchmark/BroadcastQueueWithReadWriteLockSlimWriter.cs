@@ -21,7 +21,7 @@ public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueu
         get {
             _rwLockSlim.ExitReadLock();
             try {
-                return _readers.Count;
+                return _readers.Length;
             } finally {
                 _rwLockSlim.ExitReadLock();
             }
@@ -72,7 +72,7 @@ public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueu
     public override bool TryWrite( TData item ) {
         _rwLockSlim.EnterReadLock();
         try {
-            if ( _readers.Count == 1 ) {
+            if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
 
@@ -91,11 +91,11 @@ public class BroadcastQueueWriterReadWriteLock<TData, TResponse> : BroadcastQueu
     public override ValueTask WriteAsync( TData item, CancellationToken cancellationToken = default ) {
         _rwLockSlim.EnterReadLock();
         try {
-            if ( _readers.Count == 0 ) {
+            if ( _readers.Length == 0 ) {
                 return ValueTask.CompletedTask;
             }
 
-            if ( _readers.Count == 1 ) {
+            if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.WriteAsync( item, cancellationToken );
             }
 

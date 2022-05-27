@@ -21,11 +21,9 @@ namespace Benchmarks.InterThread.Benchmark;
 
 [ Config( typeof(BenchmarkConfig) ) ]
 public partial class Benchmarks {
+    // [ Params( 20_000, 200_000, 2_000_000 ) ]
     // [ Params( 200_000 ) ]
-    [ Params( 20_000, 200_000, 2_000_000 ) ]
-    // [ Params( 10, 10_000 ) ]
-    // [ Params( 1_000_000 ) ]
-    // [ Params( 2_000_000 ) ]
+    [ Params( 2_000_000 ) ]
     public int MessageCount;
 
     /* *************************************************************************************************************

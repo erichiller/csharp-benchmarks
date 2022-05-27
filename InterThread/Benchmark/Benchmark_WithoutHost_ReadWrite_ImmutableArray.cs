@@ -95,7 +95,7 @@ public partial class Benchmarks {
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    [ BenchmarkCategory( "OneSubscriber", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "LockedImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockedImmutableArrayWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ImmutableArrayWriter();
     
@@ -184,7 +184,7 @@ public partial class Benchmarks {
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    [ BenchmarkCategory( "TwoSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "LockedImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockedImmutableArrayWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_ImmutableArrayWriter();
     
@@ -293,7 +293,7 @@ public partial class Benchmarks {
     }
     
     [ Benchmark ]
-    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter" ) ]
+    [ BenchmarkCategory( "ThreeSubscribers", "BroadcastQueueAlt", "Locking", "ImmutableArrayWriter", "LockedImmutableArrayWriter" ) ]
     public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter( ) =>
         BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ImmutableArrayWriter();
     

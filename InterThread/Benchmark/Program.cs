@@ -304,13 +304,9 @@ public class Program {
     //     // => new LevelOneJsonBenchmarks().SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne();
 #else
     static void Main( string[] args ) {
-        if ( args.Contains( "deadlock-test" ) ) {
-            // DeadlockTest.Do( 10_000 );
-            
+        if ( args.Contains( "test" ) ) {
             var benchmarks = new Benchmarks() { MessageCount = 10_000 };
 
-            
-            
             benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
             benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
             benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
@@ -342,8 +338,5 @@ public class Program {
                 );
         }
     }
-
-    // static void Main( string[] args )
-    //     => Console.WriteLine( $"Main({args})\n23" );
 #endif
 }
