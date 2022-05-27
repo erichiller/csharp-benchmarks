@@ -79,6 +79,30 @@ public class BroadcastQueueTests : TestBase<BroadcastQueueTests> {
 
         return -1;
     }
+    
+    static async Task<int> writerTryWriteEnumerableTask( BroadcastQueueWriter<ChannelMessage, ChannelResponse> bqWriter, int messageCount, CancellationToken ct, ( int min, int max )? delayMs = null, ILogger? logger = null ) {
+        int i      = 0;
+        var random = new Random();
+        while ( await bqWriter.WaitToWriteAsync( ct ) ) {
+            var messages = new[] { new ChannelMessage( i++ ), new ChannelMessage( i++ ) };
+            while ( bqWriter.TryWrite( messages ) ) {
+                logger?.LogDebug( "[BroadcastQueueWriter] wrote messages: {Messages}", messages );
+                if ( i > messageCount ) {
+                    logger?.LogDebug( "[BroadcastQueueWriter] wrote messageCount: {MessageCount}", i );
+                    return i;
+                }
+
+                if ( delayMs is var (min, max) ) {
+                    await Task.Delay( random.Next( min, max ), ct );
+                }
+
+                // i++;
+                messages = new[] { new ChannelMessage( i++ ), new ChannelMessage( i++ ) };
+            }
+        }
+
+        return -1;
+    }
 
     static async Task<int> readerTask( BroadcastQueueReader<ChannelMessage, ChannelResponse> bqReader, int messageCount, string taskName, CancellationToken ct, ILogger? logger = null ) {
         int lastMessage = -1;
@@ -218,6 +242,33 @@ public class BroadcastQueueTests : TestBase<BroadcastQueueTests> {
         }
 
         List<Task> tasks = new List<Task>( readerTasks ) { writerTask( broadcastQueue.Writer, messageCount, cts.Token ) };
+
+
+        Task.WaitAll(
+            tasks.ToArray()
+        );
+        foreach ( var task in readerTasks ) {
+            task.Result.Should().Be( messageCount );
+            _logger.LogDebug( "Task had result {ResultMessageId}", task.Result );
+        }
+    }
+
+    [ Theory ]
+    [ InlineData( 1 ) ]
+    [ InlineData( 2 ) ]
+    [ InlineData( 3 ) ]
+    public void WriteEnumerableDataTest( int subscriberCount ) {
+        int messageCount   = 10_000;
+        var broadcastQueue = new BroadcastQueue<ChannelMessage, ChannelResponse>();
+        var cts            = new CancellationTokenSource();
+        cts.CancelAfter( 5_000 );
+
+        List<Task<int>> readerTasks = new List<Task<int>>();
+        for ( int i = 0 ; i < subscriberCount ; i++ ) {
+            readerTasks.Add( readerTask( broadcastQueue.GetReader(), messageCount, $"readerTask{i}", cts.Token ) );
+        }
+
+        List<Task> tasks = new List<Task>( readerTasks ) { writerTryWriteEnumerableTask( broadcastQueue.Writer, messageCount, cts.Token, logger: _logger ) };
 
 
         Task.WaitAll(

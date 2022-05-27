@@ -14,7 +14,8 @@ public partial class Benchmarks {
      * ************************************************************************************************************* */
 
     [ IterationSetup( Targets = new[] {
-        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync)
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteEnumerable), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync), nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync)
     } ) ]
     public void Setup_RunBroadcastQueueWithoutHostTest( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
@@ -24,13 +25,16 @@ public partial class Benchmarks {
 
     [ IterationCleanup( Targets = new[] {
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteEnumerable),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_ReadAllAsync),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteAsync),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_NoLockWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteEnumerable),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_NoLockWriter),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_WriteEnumerable),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse),
         nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_NoLockWriter),
     } ) ]
@@ -73,7 +77,44 @@ public partial class Benchmarks {
         if ( response?.ReadId != MessageCount ) {
             throw new Exception();
         }
-        // Console.WriteLine($"Response={response}");
+    }
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "OneSubscriber", "StandardBroadcastQueue", "WriteEnumerable" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteEnumerable( ) {
+        async Task writerTask( ) {
+            int i = 0;
+            while ( await _broadcastQueueWriter.WaitToWriteAsync() ) {
+                var messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
+                while ( _broadcastQueueWriter.TryWrite( messages ) ) {
+                    if ( i > MessageCount ) {
+                        return;
+                    }
+                    messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
+                }
+            }
+        }
+
+        async Task readerTask( ) {
+            while ( await _broadcastQueueReader1.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader1.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        await _broadcastQueueReader1.WriteResponseAsync( new ChannelResponse( result.Id, nameof(readerTask) ) );
+                        return;
+                    }
+                }
+            }
+        }
+
+        Task.WaitAll(
+            Task.Run( readerTask ),
+            Task.Run( writerTask )
+        );
+
+        _broadcastQueueWriter.TryReadResponse( out ChannelResponse? response );
+        if ( response?.ReadId != MessageCount ) {
+            throw new Exception();
+        }
     }
 
     [ Benchmark ]
@@ -141,7 +182,8 @@ public partial class Benchmarks {
 
     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader2;
 
-    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers), nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync), } ) ]
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers),
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteEnumerable), nameof(BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteAsync), } ) ]
     public void Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1 = _broadcastQueue.GetReader();
@@ -160,6 +202,56 @@ public partial class Benchmarks {
                     if ( i > MessageCount ) {
                         return;
                     }
+                }
+            }
+        }
+
+        async Task readerTask1( ) {
+            while ( await _broadcastQueueReader1.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader1.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        var response = new ChannelResponse( result.Id, nameof(readerTask1) );
+                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
+                        await _broadcastQueueReader1.WriteResponseAsync( response );
+                        return;
+                    }
+                }
+            }
+        }
+
+        async Task readerTask2( ) {
+            while ( await _broadcastQueueReader2.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader2.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        var response = new ChannelResponse( result.Id, nameof(readerTask2) );
+                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
+                        await _broadcastQueueReader2.WriteResponseAsync( response );
+                        return;
+                    }
+                }
+            }
+        }
+
+        Task.WaitAll(
+            Task.Run( readerTask1 ),
+            Task.Run( readerTask2 ),
+            Task.Run( writerTask )
+        );
+    }
+    
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "TwoSubscribers", "StandardBroadcastQueue", "WriteEnumerable" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteEnumerable( ) {
+        async Task writerTask( ) {
+            int i = 0;
+            while ( await _broadcastQueueWriter.WaitToWriteAsync() ) {
+                var messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
+                while ( _broadcastQueueWriter.TryWrite( messages ) ) {
+                    if ( i > MessageCount ) {
+                        return;
+                    }
+                    messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
                 }
             }
         }
@@ -245,7 +337,8 @@ public partial class Benchmarks {
 
     private BroadcastQueueReader<ChannelMessage, ChannelResponse> _broadcastQueueReader3;
 
-    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers), nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse), } ) ]
+    [ IterationSetup( Targets = new[] { nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers), 
+        nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_WriteEnumerable), nameof(BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_ConfigureAwaitFalse), } ) ]
     public void Setup_BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers( ) {
         _broadcastQueue        = new BroadcastQueue<ChannelMessage, ChannelResponse>();
         _broadcastQueueReader1 = _broadcastQueue.GetReader();
@@ -265,6 +358,69 @@ public partial class Benchmarks {
                     if ( i > MessageCount ) {
                         return;
                     }
+                }
+            }
+        }
+
+        async Task readerTask1( ) {
+            while ( await _broadcastQueueReader1.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader1.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        var response = new ChannelResponse( result.Id, nameof(readerTask1) );
+                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
+                        await _broadcastQueueReader1.WriteResponseAsync( response );
+                        return;
+                    }
+                }
+            }
+        }
+
+        async Task readerTask2( ) {
+            while ( await _broadcastQueueReader2.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader2.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        var response = new ChannelResponse( result.Id, nameof(readerTask2) );
+                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
+                        await _broadcastQueueReader2.WriteResponseAsync( response );
+                        return;
+                    }
+                }
+            }
+        }
+
+        async Task readerTask3( ) {
+            while ( await _broadcastQueueReader3.WaitToReadAsync() ) {
+                while ( _broadcastQueueReader3.TryRead( out ChannelMessage? result ) ) {
+                    if ( result.Id >= MessageCount ) {
+                        var response = new ChannelResponse( result.Id, nameof(readerTask3) );
+                        // Console.WriteLine($"ReaderTask Complete @ {MessageCount} - BroadcastQueue");
+                        await _broadcastQueueReader3.WriteResponseAsync( response );
+                        return;
+                    }
+                }
+            }
+        }
+
+        Task.WaitAll(
+            Task.Run( readerTask1 ),
+            Task.Run( readerTask2 ),
+            Task.Run( readerTask3 ),
+            Task.Run( writerTask )
+        );
+    }
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "ThreeSubscribers", "StandardBroadcastQueue", "WriteEnumerable" ) ]
+    public void BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_WriteEnumerable( ) {
+        async Task writerTask( ) {
+            int i = 0;
+            while ( await _broadcastQueueWriter.WaitToWriteAsync() ) {
+                var messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
+                while ( _broadcastQueueWriter.TryWrite( messages ) ) {
+                    if ( i > MessageCount ) {
+                        return;
+                    }
+                    messages = new[] { new ChannelMessage { Id = i++ }, new ChannelMessage{ Id = i++ } };
                 }
             }
         }

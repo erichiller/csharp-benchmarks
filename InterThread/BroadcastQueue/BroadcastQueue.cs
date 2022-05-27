@@ -64,7 +64,7 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData>, IDis
 
     public void Dispose( ) {
         lock ( _readersLock ) {
-            foreach ( var (reader, channelWriter) in _readers ) {
+            foreach ( var (_, channelWriter) in _readers ) {
                 channelWriter.TryComplete();
             }
         }
@@ -122,15 +122,42 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData>, IDis
             if ( _readers.Length == 1 ) {
                 return _readers[ 0 ].channelWriter.TryWrite( item );
             }
+
             if ( _readers.Length == 0 ) { return true; } // this returns true as if it had written regardless of if there was an actual reader to read it
-            
+
             bool result = true;
             foreach ( var (_, channelWriter) in _readers ) {
                 result &= channelWriter.TryWrite( item );
             }
 
             return result;
+        }
+    }
 
+    /// <summary>Write multiple <paramref name="items"/> to reader(s).</summary>
+    /// <remarks>This returns <c>true</c> as if it had written regardless of if there was an actual reader to read it.</remarks>
+    /// <seealso cref="TryWrite(TData)" />
+    public bool TryWrite( IEnumerable<TData> items ) {
+        lock ( _readersLock ) {
+            TData[] itemsArray = items as TData[] ?? items.ToArray();
+            bool    result     = true;
+            if ( _readers.Length == 1 ) {
+                foreach ( TData item in itemsArray ) {
+                    result &= _readers[ 0 ].channelWriter.TryWrite( item );
+                }
+
+                return result;
+            }
+
+            if ( _readers.Length == 0 ) { return true; } // this returns true as if it had written regardless of if there was an actual reader to read it
+
+            foreach ( var (_, channelWriter) in _readers ) {
+                foreach ( TData item in itemsArray ) {
+                    result &= channelWriter.TryWrite( item );
+                }
+            }
+
+            return result;
         }
     }
 
@@ -156,7 +183,7 @@ public class BroadcastQueueWriter<TData, TResponse> : ChannelWriter<TData>, IDis
 
     #endregion
 
-    /* ************************************************** */
+/* ************************************************** */
 }
 
 #endregion Writer
@@ -212,7 +239,7 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData>, IDis
 
     /// <inheritdoc />
     public override bool CanPeek => _dataReader.CanPeek;
-    
+
     /// <summary>
     /// Removes reader from BroadcastQueue
     /// </summary>
@@ -224,7 +251,7 @@ public class BroadcastQueueReader<TData, TResponse> : ChannelReader<TData>, IDis
     public void Complete( ) {
         this._queue.RemoveReader( this );
     }
-    
+
     /// <inheritdoc cref="Complete"/>
     public void Dispose( ) {
         this._queue.RemoveReader( this );
@@ -298,9 +325,9 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 await tasks[ i ].ConfigureAwait( false );
-            // } catch ( TaskCanceledException ) {
-            //     // TODO: is this correct?
-            //     return;
+                // } catch ( TaskCanceledException ) {
+                //     // TODO: is this correct?
+                //     return;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );
@@ -321,9 +348,9 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results[ i ] = await tasks[ i ].ConfigureAwait( false );
-            // } catch ( TaskCanceledException _ ) {
-            //     // TODO: is this correct?
-            //     return results;
+                // } catch ( TaskCanceledException _ ) {
+                //     // TODO: is this correct?
+                //     return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );
@@ -345,9 +372,9 @@ public static class ValueTaskExtensions {
         for ( var i = 0 ; i < tasks.Length ; i++ )
             try {
                 results &= await tasks[ i ].ConfigureAwait( false );
-            // } catch ( TaskCanceledException _ ) {
-            //     // TODO: is this correct?
-            //     return results;
+                // } catch ( TaskCanceledException _ ) {
+                //     // TODO: is this correct?
+                //     return results;
             } catch ( Exception ex ) {
                 exceptions ??= new List<Exception>( tasks.Length );
                 exceptions.Add( ex );

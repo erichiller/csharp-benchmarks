@@ -608,5 +608,15 @@ dotnet run -c RELEASE --filter "*WithoutHost*"
 | BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_LockedImmutableArrayWriter        | 2000000      | 1,094.212 ms | 33.9013 ms |  99.4266 ms | 1,099.929 ms | 13000.0000 | 1000.0000 |         - |  67,685,992 B |
 | BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                                   | 2000000      | 1,222.305 ms | 41.3897 ms | 122.0386 ms | 1,224.263 ms | 13000.0000 | 1000.0000 |         - |  66,636,968 B |
 
+| Method                                                                | MessageCount |  Mean [ms] | Error [ms] | StdDev [ms] |      Gen 0 |     Gen 1 | Allocated [B] |
+|-----------------------------------------------------------------------|--------------|-----------:|-----------:|------------:|-----------:|----------:|--------------:|
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteEnumerable    | 2000000      |   192.6 ms |    3.70 ms |     9.43 ms | 21000.0000 | 1000.0000 | 105,054,976 B |
+| BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber                    | 2000000      |   202.0 ms |   12.26 ms |    35.95 ms | 13000.0000 |         - |  64,070,072 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteEnumerable   | 2000000      |   618.5 ms |   12.07 ms |    31.80 ms | 22000.0000 |         - | 104,072,280 B |
+| BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers                   | 2000000      |   653.1 ms |   21.02 ms |    61.98 ms | 13000.0000 | 1000.0000 |  64,270,608 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_WriteEnumerable | 2000000      | 1,047.9 ms |   20.57 ms |    28.84 ms | 22000.0000 | 1000.0000 | 104,437,552 B |
+| BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers                 | 2000000      | 1,243.2 ms |   24.71 ms |    59.69 ms | 13000.0000 | 1000.0000 |  64,223,144 B |
+
+
 
 ***
