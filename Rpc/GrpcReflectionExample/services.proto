@@ -1,0 +1,13 @@
+syntax = "proto3";
+package Benchmarks.Rpc.GrpcReflection;
+
+message MultiplyRequest {
+   int32 X = 1;
+   int32 Y = 2;
+}
+message MultiplyResult {
+   int32 Result = 1;
+}
+service Calculator {
+   rpc Multiply (MultiplyRequest) returns (MultiplyResult);
+}

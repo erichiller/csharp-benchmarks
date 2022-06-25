@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Rpc/GrpcBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.Rpc.ListIAsyncEnumerableComparison-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertSimpleObjectLargeTableBenchmarks-report.csv">
           <value>
             <Attribute>

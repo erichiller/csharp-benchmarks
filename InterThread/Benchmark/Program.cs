@@ -12,6 +12,7 @@ using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -301,6 +302,9 @@ public class Program {
     //     => new SystemTextJsonSerializationBasic(){Iterations=1}.SystemTextJson_Deserialize_Scalars_NodaTimeWithAttribute_SourceGen();
     //     // => new LevelOneJsonBenchmarks().SystemTextJson_JsonSerializer_ReadAhead_Deserialize_LevelOne();
 #else
+    // static void printMemoryDiff( object var, long memoryStart, [ CallerArgumentExpression( "var" ) ] string? objectName = null) {
+    //     Console.WriteLine($"Memory difference after allocation for {objectName}: {memoryStart -System.GC.GetTotalMemory( true )} bytes");
+    // }
     static void Main( string[] args ) {
         if ( args.Contains( "test" ) ) {
             var benchmarks = new Benchmarks() { MessageCount = 10_000 };
@@ -308,19 +312,31 @@ public class Program {
             benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
             benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayWriter();
             benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
-            
+
             benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayForLoopWriter();
             benchmarks.BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_LockArrayForLoopWriter();
             benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
-            
+
             // benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayWriter();
             // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayWriter();
             // benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
-            
+
             // benchmarks.Setup_BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayForLoopWriter();
             // benchmarks.BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_LockArrayForLoopWriter();
             // benchmarks.Cleanup_RunBroadcastQueueWithoutHost_LockArrayWriter();
-
+        } else if ( args.Contains( "memtest" ) ) {
+            T printMemoryDiff<T>( Func<T> callback) {
+                long memoryStart = System.GC.GetTotalMemory( true );
+                var x = callback();
+                Console.WriteLine($"Memory difference after allocation for {typeof(T)}: {System.GC.GetTotalMemory( true ) - memoryStart} bytes");
+                return x;
+            }
+            var x = printMemoryDiff( Channel.CreateUnbounded<ChannelMessage> );
+            printMemoryDiff( ( ) => x.Reader );
+            printMemoryDiff( ( ) => x.Writer );
+            printMemoryDiff( () => Channel.CreateBounded<ChannelMessage>(10) );
+            printMemoryDiff( () => Channel.CreateBounded<ChannelMessage>(100) );
+            printMemoryDiff( () => Channel.CreateBounded<ChannelMessage>(1000) );
         } else {
             BenchmarkSwitcher
                 .FromAssembly( typeof(Program).Assembly )
