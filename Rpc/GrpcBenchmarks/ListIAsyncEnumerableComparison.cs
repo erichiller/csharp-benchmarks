@@ -19,8 +19,8 @@ namespace Benchmarks.Rpc;
 [ Config( typeof(BenchmarkConfig) ) ]
 public class ListIAsyncEnumerableComparison : IDisposable {
     [ UsedImplicitly ]
-    [ Params( 1, 10, 10_000, 100_000, 1_000_000 ) ]
-    // [ Params( 1, 10_000 ) ]
+    // [ Params( 1, 10, 10_000, 100_000, 1_000_000 ) ]
+    [ Params( 1, 10_000, 100_000 ) ]
     // [ Params( 1, 10 ) ]
     public int Count { get; set; }
 
@@ -111,6 +111,20 @@ public class ListIAsyncEnumerableComparison : IDisposable {
     public async Task<int> ListReplyAsync( ) {
         var client = _channel.CreateGrpcService<ICounterService>();
         return ( await client.ServerToClientListAsync( new CounterRequest() { Count = Count } ) ).Count;
+    }
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "Async", "Reply", "ReturnsMany", "List", "ValueTask" ) ]
+    public async Task<int> ListReplyValueTaskAsync( ) {
+        var client = _channel.CreateGrpcService<ICounterService>();
+        return ( await client.ServerToClientListValueTaskAsync( new CounterRequest() { Count = Count } ) ).Count;
+    }
+
+    [ Benchmark ]
+    [ BenchmarkCategory( "Sync", "Reply", "ReturnsMany", "List" ) ]
+    public int ListReplySync( ) {
+        var client = _channel.CreateGrpcService<ICounterService>();
+        return client.ServerToClientListSync( new CounterRequest() { Count = Count } ).Count;
     }
 
     [ Benchmark ]

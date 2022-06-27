@@ -49,6 +49,18 @@ public interface ICounterService {
     /// </summary>
     [ OperationContract ]
     public Task<List<CounterReply>> ServerToClientListAsync( CounterRequest request, CallContext context = default );
+
+    /// <summary>
+    /// Server sending to client
+    /// </summary>
+    [ OperationContract ]
+    public ValueTask<List<CounterReply>> ServerToClientListValueTaskAsync( CounterRequest request, CallContext context = default );
+
+    /// <summary>
+    /// Server sending to client
+    /// </summary>
+    [ OperationContract ]
+    public List<CounterReply> ServerToClientListSync( CounterRequest request, CallContext context = default );
     
     /// <summary>
     /// Server sending to client

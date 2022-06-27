@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Rpc\Shared\Shared
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrpcBenchmarksServer", "Rpc\GrpcBenchmarksServer\GrpcBenchmarksServer.csproj", "{D8A9745E-CB4B-4882-8A18-71157788A1AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageTests", "LanguageTests\LanguageTests.csproj", "{89402384-4789-462D-8B61-06B4E390A62D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,10 @@ Global
 		{D8A9745E-CB4B-4882-8A18-71157788A1AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8A9745E-CB4B-4882-8A18-71157788A1AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8A9745E-CB4B-4882-8A18-71157788A1AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89402384-4789-462D-8B61-06B4E390A62D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89402384-4789-462D-8B61-06B4E390A62D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89402384-4789-462D-8B61-06B4E390A62D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89402384-4789-462D-8B61-06B4E390A62D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{399C3EE3-0FC6-4C6C-B7AF-1E90C1CFC44B} = {5A9F401A-9294-4DD3-87C8-D11FA7BBED8A}

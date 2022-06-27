@@ -108,6 +108,34 @@ public class CounterService : ICounterService {
         return Task.FromResult( list );
     }
 
+    public ValueTask<List<CounterReply>> ServerToClientListValueTaskAsync( CounterRequest request, CallContext context ) {
+        var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
+        _logger.LogInformation( "Connection id: {ConnectionId}", httpContext.Connection.Id );
+
+        var random = new Random();
+        var list   = new List<CounterReply>();
+        int i      = 0;
+        while ( i++ <= request.Count && !context.CancellationToken.IsCancellationRequested ) {
+            list.Add( new CounterReply { Count = random.Next( 1, 10 ) } );
+        }
+
+        return ValueTask.FromResult( list );
+    }
+
+    public List<CounterReply> ServerToClientListSync( CounterRequest request, CallContext context ) {
+        var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
+        _logger.LogInformation( "Connection id: {ConnectionId}", httpContext.Connection.Id );
+
+        var random = new Random();
+        var list   = new List<CounterReply>();
+        int i      = 0;
+        while ( i++ <= request.Count && !context.CancellationToken.IsCancellationRequested ) {
+            list.Add( new CounterReply { Count = random.Next( 1, 10 ) } );
+        }
+
+        return list;
+    }
+
     public IEnumerable<CounterReply> ServerToClientIEnumerable( CounterRequest request, CallContext context ) {
         var httpContext = context.ServerCallContext?.GetHttpContext() ?? throw new GrpcCallContextException();
         _logger.LogInformation( "Connection id: {ConnectionId}", httpContext.Connection.Id );
