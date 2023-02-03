@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
@@ -36,6 +37,7 @@ public class BenchmarkConfig : ManualConfig {
                               printZeroValuesInContent: false,
                               ratioStyle: RatioStyle.Value
                           ) );
+        // if ( this.GetExporters().Any( exporter => exporter.GetType() == typeof(MarkdownExporter)) )
         AddExporter(
             MarkdownExporter.GitHub,
             // HtmlExporter.Default, // TODO: re-enable

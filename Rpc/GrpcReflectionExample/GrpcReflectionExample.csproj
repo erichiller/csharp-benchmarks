@@ -15,7 +15,7 @@
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
       <PackageReference Include="protobuf-net.Grpc.Reflection" Version="1.0.152" />
-      <PackageReference Include="System.ServiceModel.Primitives" Version="4.9.0" />
+      <PackageReference Include="System.ServiceModel.Primitives" Version="4.10.0" />
     </ItemGroup>
 
 </Project>
