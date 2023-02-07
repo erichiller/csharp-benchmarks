@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 
@@ -6,13 +7,11 @@ using BenchmarkDotNet.Attributes;
 
 using Benchmarks.Common;
 
-using Microsoft.Win32.SafeHandles;
-
 namespace Benchmarks.General;
 
 [ Config( typeof(BenchmarkConfig) ) ]
 public class StringByteArrayParsingBenchmarks {
-    Memory<byte> messageInputBuffer = new Memory<byte>( new byte[] {
+    internal static Memory<byte> MessageInputBuffer = new Memory<byte>( new byte[] {
         /*
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x45, 0x00,
         0x00, 0x89, 0x79, 0xfc, 0x40, 0x00, 0x40, 0x06, 0xc2, 0x70, 0x7f, 0x00, 0x00, 0x01, 0x7f, 0x00,
@@ -20,92 +19,16 @@ public class StringByteArrayParsingBenchmarks {
         0x02, 0x00, 0xfe, 0x7d, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x36, 0xce, 0xe2, 0xdb, 0x36, 0xce,
         0xe2, 0xdb, 
         */
-        0x00,
-        0x00,
-        0x00,
-        0x2e,
-        0x39,
-        0x39,
-        0x00,
-        0x31,
-        0x39,
-        0x30,
-        0x30,
-        0x33,
-        0x00,
-        0x33,
-        0x00,
-        0x31,
-        0x36,
-        0x37,
-        0x35,
-        0x33,
-        0x34,
-        0x33,
-        0x33,
-        0x33,
-        0x33,
-        0x00,
-        0x34,
-        0x31,
-        0x35,
-        0x34,
-        0x2e,
-        0x35,
-        0x30,
-        0x00,
-        0x34,
-        0x31,
-        0x35,
-        0x34,
-        0x2e,
-        0x37,
-        0x35,
-        0x00,
-        0x32,
-        0x31,
-        0x00,
-        0x32,
-        0x35,
-        0x00,
-        0x30,
-        0x00,
+        // @formatter:keep_existing_initializer_arrangement true
+        0x00, 0x00, 0x00, 0x2e, 0x39, 0x39, 0x00, 0x31, 0x39, 0x30, 0x30, 0x33, 0x00, 0x33, 0x00, 0x31,
+        0x36, 0x37, 0x35, 0x33, 0x34, 0x33, 0x33, 0x33, 0x33, 0x00, 0x34, 0x31, 0x35, 0x34, 0x2e, 0x35,
+        0x30, 0x00, 0x34, 0x31, 0x35, 0x34, 0x2e, 0x37, 0x35, 0x00, 0x32, 0x31, 0x00, 0x32, 0x35, 0x00,
+        0x30, 0x00,
 
-        0x00,
-        0x00,
-        0x00,
-        0x1f,
-        0x39,
-        0x39,
-        0x00,
-        0x31,
-        0x39,
-        0x30,
-        0x30,
-        0x34,
-        0x00,
-        0x34,
-        0x00,
-        0x31,
-        0x36,
-        0x37,
-        0x35,
-        0x33,
-        0x34,
-        0x33,
-        0x33,
-        0x33,
-        0x33,
-        0x00,
-        0x34,
-        0x31,
-        0x35,
-        0x34,
-        0x2e,
-        0x36,
-        0x32,
-        0x35,
-        0x00,
+        0x00, 0x00, 0x00, 0x1f, 0x39, 0x39, 0x00, 0x31, 0x39, 0x30, 0x30, 0x34, 0x00, 0x34, 0x00, 0x31,
+        0x36, 0x37, 0x35, 0x33, 0x34, 0x33, 0x33, 0x33, 0x33, 0x00, 0x34, 0x31, 0x35, 0x34, 0x2e, 0x36,
+        0x32, 0x35, 0x00,
+        // @formatter:keep_existing_initializer_arrangement restore
     } );
 
 
@@ -127,6 +50,7 @@ public class StringByteArrayParsingBenchmarks {
         bytesRead       += endOfField;
         return value;
     }
+
     private static long getFieldLong( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         long value      = 0;
         int  endOfField = remainingBuffer.Span.IndexOf( ( byte )0 );
@@ -138,27 +62,26 @@ public class StringByteArrayParsingBenchmarks {
         return value;
     }
 
-    private const byte plusSign     = 0x2b;
-    private const byte minusSign    = 0x2d;
-    private const byte decimalPlace = 0x2e;
+    private const byte _plusSign     = 0x2b;
+    private const byte _minusSign    = 0x2d;
+    private const byte _decimalPlace = 0x2e;
 
-    private static decimal getFieldDecimal( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
+    internal static decimal GetFieldDecimal( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         int     whole         = 0;
         int     fractional    = 0;
         int     decimalPlaces = 0;
         bool    isNegative    = false;
-        decimal value;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minusSign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
             position++;
         }
 
         while ( remainingBuffer.Span[ position ] != 0x00 && position < 10 ) {
-            if ( remainingBuffer.Span[ position ] is decimalPlace ) {
+            if ( remainingBuffer.Span[ position ] is _decimalPlace ) {
                 position++;
                 decimalPlaces = 1;
                 continue;
@@ -172,11 +95,7 @@ public class StringByteArrayParsingBenchmarks {
             // Console.WriteLine($"position=[{position}] {System.Text.Encoding.ASCII.GetString(remainingBuffer.Span.Slice(position,1))} (0x{remainingBuffer.Span[ position ]:x}) ; whole={whole} ; fractional={fractional} ; decimalPlaces={decimalPlaces}");
             position++;
         }
-        if ( fractional > 0 ) {
-            value = new decimal( whole + ( fractional / Math.Pow( 10, decimalPlaces - 1 ) ) );
-        } else {
-            value = new decimal( whole );
-        }
+        decimal value = fractional > 0 ? new decimal( whole + ( fractional / Math.Pow( 10, decimalPlaces - 1 ) ) ) : new decimal( whole );
         if ( isNegative ) {
             value *= -1;
         }
@@ -184,16 +103,16 @@ public class StringByteArrayParsingBenchmarks {
         bytesRead       += position;
         return value;
     }
-    
-    private static int getFieldIntV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
+
+    internal static int GetFieldIntV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         bool isNegative = false;
         int  value      = 0;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minusSign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
             position++;
         }
 
@@ -209,16 +128,16 @@ public class StringByteArrayParsingBenchmarks {
         bytesRead       += position;
         return value;
     }
-    
-    private static long getFieldLongV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
+
+    internal static long GetFieldLongV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         bool isNegative = false;
-        long  value      = 0;
+        long value      = 0;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minusSign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
             position++;
         }
 
@@ -235,16 +154,17 @@ public class StringByteArrayParsingBenchmarks {
         return value;
     }
 
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
     public record Message( int MessageType, int RequestId, int TickType, long UnixTimeSeconds, decimal Price );
 
 
-    private const int iterations = 10_000;
+    private const int _iterations = 10_000;
 
     [ Benchmark ]
     public Message? ParseIntManual( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -269,11 +189,11 @@ public class StringByteArrayParsingBenchmarks {
     }
 
     // Definitely slower!
-    [ Benchmark(Baseline = true) ]
+    [ Benchmark( Baseline = true ) ]
     public Message? NumberInterfaceParse( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -300,8 +220,8 @@ public class StringByteArrayParsingBenchmarks {
     [ Benchmark ]
     public Message? ParseDecimalManual( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -317,7 +237,7 @@ public class StringByteArrayParsingBenchmarks {
                 int     requestId       = getFieldValue<int>( ref remainingBuffer, ref parsedLength );
                 int     tickType        = getFieldValue<int>( ref remainingBuffer, ref parsedLength );
                 long    unixTimeSeconds = getFieldValue<long>( ref remainingBuffer, ref parsedLength );
-                decimal price           = getFieldDecimal( ref remainingBuffer, ref parsedLength );
+                decimal price           = GetFieldDecimal( ref remainingBuffer, ref parsedLength );
                 message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
                 currentMessageStart += sizeof(int) + length;
             }
@@ -328,8 +248,8 @@ public class StringByteArrayParsingBenchmarks {
     [ Benchmark ]
     public Message? ParseLongManual( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -356,8 +276,8 @@ public class StringByteArrayParsingBenchmarks {
     [ Benchmark ]
     public Message? ParseLongManualV2( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -372,7 +292,7 @@ public class StringByteArrayParsingBenchmarks {
                 int     messageType     = getFieldValue<int>( ref remainingBuffer, ref parsedLength );
                 int     requestId       = getFieldValue<int>( ref remainingBuffer, ref parsedLength );
                 int     tickType        = getFieldValue<int>( ref remainingBuffer, ref parsedLength );
-                long    unixTimeSeconds = getFieldLongV2( ref remainingBuffer, ref parsedLength );
+                long    unixTimeSeconds = GetFieldLongV2( ref remainingBuffer, ref parsedLength );
                 decimal price           = getFieldValue<decimal>( ref remainingBuffer, ref parsedLength );
                 message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
                 currentMessageStart += sizeof(int) + length;
@@ -380,11 +300,12 @@ public class StringByteArrayParsingBenchmarks {
         }
         return message;
     }
+
     [ Benchmark ]
     public Message? ParseIntManualV2( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -396,9 +317,9 @@ public class StringByteArrayParsingBenchmarks {
                     throw new Exception();
                 }
                 int     parsedLength    = 0;
-                int     messageType     = getFieldIntV2( ref remainingBuffer, ref parsedLength );
-                int     requestId       = getFieldIntV2( ref remainingBuffer, ref parsedLength );
-                int     tickType        = getFieldIntV2( ref remainingBuffer, ref parsedLength );
+                int     messageType     = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
+                int     requestId       = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
+                int     tickType        = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
                 long    unixTimeSeconds = getFieldValue<long>( ref remainingBuffer, ref parsedLength );
                 decimal price           = getFieldValue<decimal>( ref remainingBuffer, ref parsedLength );
                 message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
@@ -407,11 +328,12 @@ public class StringByteArrayParsingBenchmarks {
         }
         return message;
     }
+
     [ Benchmark ]
     public Message? ParseManualAll( ) {
         Message? message = null;
-        for ( int i = 0 ; i < iterations ; i++ ) {
-            Memory<byte> buffer              = messageInputBuffer;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
             int          currentMessageStart = 0;
             while ( buffer.Length > currentMessageStart + sizeof(int) ) {
                 int length = ( buffer.Span[ currentMessageStart ]       << 24 )
@@ -423,11 +345,11 @@ public class StringByteArrayParsingBenchmarks {
                     throw new Exception();
                 }
                 int     parsedLength    = 0;
-                int     messageType     = getFieldIntV2( ref remainingBuffer, ref parsedLength );
-                int     requestId       = getFieldIntV2( ref remainingBuffer, ref parsedLength );
-                int     tickType        = getFieldIntV2( ref remainingBuffer, ref parsedLength );
-                long    unixTimeSeconds = getFieldLongV2( ref remainingBuffer, ref parsedLength );
-                decimal price           = getFieldDecimal( ref remainingBuffer, ref parsedLength );
+                int     messageType     = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
+                int     requestId       = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
+                int     tickType        = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
+                long    unixTimeSeconds = GetFieldLongV2( ref remainingBuffer, ref parsedLength );
+                decimal price           = GetFieldDecimal( ref remainingBuffer, ref parsedLength );
                 message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
                 currentMessageStart += sizeof(int) + length;
             }

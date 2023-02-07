@@ -39,9 +39,9 @@ public class BenchmarkConfig : ManualConfig {
                           ) );
         // if ( this.GetExporters().Any( exporter => exporter.GetType() == typeof(MarkdownExporter)) )
         AddExporter(
-            MarkdownExporter.GitHub,
+            // MarkdownExporter.GitHub, // It says "Already Present" ; TODO: re-enable
             // HtmlExporter.Default, // TODO: re-enable
-            CsvExporter.Default, // TODO: re-enable
+            // CsvExporter.Default, // It says "Already Present" ; TODO: re-enable
             JsonExporter.Default //, // TODO: re-enable
             // RPlotExporter.Default // TODO: re-enable
         );

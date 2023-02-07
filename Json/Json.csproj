@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <RootNamespace>Benchmarks.Json</RootNamespace>
@@ -15,6 +15,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <!--        <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)"/>-->
+    <Exec Command="sudo setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />
+  </Target>
 
   <ItemGroup>
     <!-- https://docs.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2019 -->
@@ -32,10 +37,10 @@
   
   
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.4" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NodaTime" Version="3.1.0" />
+    <PackageReference Include="NodaTime" Version="3.1.6" />
     <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
     <PackageReference Include="NodaTime.Serialization.SystemTextJson" Version="1.0.0" />
   </ItemGroup>
