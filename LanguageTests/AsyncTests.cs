@@ -59,8 +59,9 @@ public class AsyncTests : TestBase<AsyncTests> {
         stopwatch.Restart();
         await Task.WhenAll( doSomeWork(), doSomeWork(), doSomeWork() );
         this._logger.LogInformation( "WhenAll with inline tasks x3 took: {Stopwatch}", stopwatch.Elapsed );
+    }
 
-
-
+    private bool poop( ) {
+        return String.Equals( "foo", "FOO" );
     }
 }

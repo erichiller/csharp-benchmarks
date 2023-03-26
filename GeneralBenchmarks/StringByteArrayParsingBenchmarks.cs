@@ -11,6 +11,7 @@ namespace Benchmarks.General;
 
 [ Config( typeof(BenchmarkConfig) ) ]
 public class StringByteArrayParsingBenchmarks {
+
     internal static Memory<byte> MessageInputBuffer = new Memory<byte>( new byte[] {
         /*
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x45, 0x00,
@@ -62,26 +63,28 @@ public class StringByteArrayParsingBenchmarks {
         return value;
     }
 
-    private const byte _plusSign     = 0x2b;
-    private const byte _minusSign    = 0x2d;
-    private const byte _decimalPlace = 0x2e;
+    // ReSharper disable InconsistentNaming
+    private const byte _plus_sign     = 0x2b;
+    private const byte _minus_sign    = 0x2d;
+    private const byte _decimal_place = 0x2e;
+    // ReSharper restore InconsistentNaming
 
     internal static decimal GetFieldDecimal( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
-        int     whole         = 0;
-        int     fractional    = 0;
-        int     decimalPlaces = 0;
-        bool    isNegative    = false;
+        int  whole         = 0;
+        int  fractional    = 0;
+        int  decimalPlaces = 0;
+        bool isNegative    = false;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is _minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minus_sign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plus_sign ) {
             position++;
         }
 
         while ( remainingBuffer.Span[ position ] != 0x00 && position < 10 ) {
-            if ( remainingBuffer.Span[ position ] is _decimalPlace ) {
+            if ( remainingBuffer.Span[ position ] is _decimal_place ) {
                 position++;
                 decimalPlaces = 1;
                 continue;
@@ -104,15 +107,50 @@ public class StringByteArrayParsingBenchmarks {
         return value;
     }
 
+    internal static decimal GetFieldDecimalV3( in Memory<byte> remainingBuffer, ref int bytesRead ) {
+        int  whole         = 0;
+        int  fractional    = 0;
+        int  decimalPlaces = 0;
+        bool isNegative    = false;
+
+        if ( remainingBuffer.Span[ bytesRead ] is _minus_sign ) {
+            isNegative = true;
+            bytesRead++;
+        } else if ( remainingBuffer.Span[ bytesRead ] is _plus_sign ) {
+            bytesRead++;
+        }
+
+        while ( remainingBuffer.Span[ bytesRead ] != 0x00 && bytesRead < 10 ) {
+            if ( remainingBuffer.Span[ bytesRead ] is _decimal_place ) {
+                bytesRead++;
+                decimalPlaces = 1;
+                continue;
+            }
+            if ( decimalPlaces != 0 ) {
+                fractional = ( fractional * 10 ) + ( remainingBuffer.Span[ bytesRead ] - 0x30 );
+                decimalPlaces++;
+            } else {
+                whole = ( whole * 10 ) + ( remainingBuffer.Span[ bytesRead ] - 0x30 );
+            }
+            // Console.WriteLine($"bytesRead=[{bytesRead}] {System.Text.Encoding.ASCII.GetString(remainingBuffer.Span.Slice(bytesRead,1))} (0x{remainingBuffer.Span[ bytesRead ]:x}) ; whole={whole} ; fractional={fractional} ; decimalPlaces={decimalPlaces}");
+            bytesRead++;
+        }
+        decimal value = fractional > 0 ? new decimal( whole + ( fractional / Math.Pow( 10, decimalPlaces - 1 ) ) ) : new decimal( whole );
+        if ( isNegative ) {
+            value *= -1;
+        }
+        return value;
+    }
+
     internal static int GetFieldIntV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         bool isNegative = false;
         int  value      = 0;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is _minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minus_sign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plus_sign ) {
             position++;
         }
 
@@ -129,15 +167,37 @@ public class StringByteArrayParsingBenchmarks {
         return value;
     }
 
+    internal static int GetFieldIntV3( in Memory<byte> remainingBuffer, ref int bytesRead ) {
+        bool isNegative = false;
+        int  value      = 0;
+
+        if ( remainingBuffer.Span[ bytesRead ] is _minus_sign ) {
+            isNegative = true;
+            bytesRead++;
+        } else if ( remainingBuffer.Span[ bytesRead ] is _plus_sign ) {
+            bytesRead++;
+        }
+
+        while ( remainingBuffer.Span[ bytesRead ] != 0x00 ) {
+            value = ( value * 10 ) + ( remainingBuffer.Span[ bytesRead ] - 0x30 );
+            bytesRead++;
+        }
+        bytesRead++; // NULL is still a part of the bytesRead
+        if ( isNegative ) {
+            value *= -1;
+        }
+        return value;
+    }
+
     internal static long GetFieldLongV2( ref Memory<byte> remainingBuffer, ref int bytesRead ) {
         bool isNegative = false;
         long value      = 0;
 
         int position = 0;
-        if ( remainingBuffer.Span[ position ] is _minusSign ) {
+        if ( remainingBuffer.Span[ position ] is _minus_sign ) {
             isNegative = true;
             position++;
-        } else if ( remainingBuffer.Span[ position ] is _plusSign ) {
+        } else if ( remainingBuffer.Span[ position ] is _plus_sign ) {
             position++;
         }
 
@@ -151,6 +211,29 @@ public class StringByteArrayParsingBenchmarks {
         }
         remainingBuffer =  remainingBuffer.Slice( position + 1 );
         bytesRead       += position;
+        return value;
+    }
+
+    internal static long GetFieldLongV3( in Memory<byte> remainingBuffer, ref int bytesRead ) {
+        bool isNegative = false;
+        long value      = 0;
+
+        if ( remainingBuffer.Span[ bytesRead ] is _minus_sign ) {
+            isNegative = true;
+            bytesRead++;
+        } else if ( remainingBuffer.Span[ bytesRead ] is _plus_sign ) {
+            bytesRead++;
+        }
+
+        while ( remainingBuffer.Span[ bytesRead ] != 0x00 && bytesRead < 10 ) {
+            value = ( value * 10 ) + ( remainingBuffer.Span[ bytesRead ] - 0x30 );
+            // Console.WriteLine($"bytesRead=[{bytesRead}] {System.Text.Encoding.ASCII.GetString(remainingBuffer.Span.Slice(bytesRead,1))} (0x{remainingBuffer.Span[ bytesRead ]:x}) ");
+            bytesRead++;
+        }
+        if ( isNegative ) {
+            value *= -1;
+        }
+        bytesRead       += bytesRead;
         return value;
     }
 
@@ -350,6 +433,34 @@ public class StringByteArrayParsingBenchmarks {
                 int     tickType        = GetFieldIntV2( ref remainingBuffer, ref parsedLength );
                 long    unixTimeSeconds = GetFieldLongV2( ref remainingBuffer, ref parsedLength );
                 decimal price           = GetFieldDecimal( ref remainingBuffer, ref parsedLength );
+                message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
+                currentMessageStart += sizeof(int) + length;
+            }
+        }
+        return message;
+    }
+    
+    [ Benchmark ]
+    public Message? ParseManualAllV3( ) {
+        Message? message = null;
+        for ( int i = 0 ; i < _iterations ; i++ ) {
+            Memory<byte> buffer              = MessageInputBuffer;
+            int          currentMessageStart = 0;
+            while ( buffer.Length > currentMessageStart + sizeof(int) ) {
+                int length = ( buffer.Span[ currentMessageStart ]       << 24 )
+                             + ( buffer.Span[ currentMessageStart + 1 ] << 16 )
+                             + ( buffer.Span[ currentMessageStart + 2 ] << 8 )
+                             + buffer.Span[ currentMessageStart + 3 ];
+                Memory<byte> remainingBuffer = buffer.Slice( currentMessageStart + sizeof(int) );
+                if ( remainingBuffer.Span.Length < length ) {
+                    throw new Exception();
+                }
+                int     parsedLength    = 0;
+                int     messageType     = GetFieldIntV3( in remainingBuffer, ref parsedLength );
+                int     requestId       = GetFieldIntV3( in remainingBuffer, ref parsedLength );
+                int     tickType        = GetFieldIntV3( in remainingBuffer, ref parsedLength );
+                long    unixTimeSeconds = GetFieldLongV3( in remainingBuffer, ref parsedLength );
+                decimal price           = GetFieldDecimalV3( in remainingBuffer, ref parsedLength );
                 message             =  new Message( messageType, requestId, tickType, unixTimeSeconds, price );
                 currentMessageStart += sizeof(int) + length;
             }

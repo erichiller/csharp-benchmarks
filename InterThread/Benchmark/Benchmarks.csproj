@@ -16,8 +16,8 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.13.4" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.5" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
     </ItemGroup>
 
 <!-- Give permission to set priority to built exe
