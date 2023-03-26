@@ -61,20 +61,14 @@ public class SqlSelectBenchmarks {
 
     [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBtreeIndex) ) ]
     public void SetupPartitionTableBtreeIndex( ) {
-        using var              db           = new SqlBenchmarksDbContext();
-        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
-        dbConnection.Open();
-        dbConnection.TypeMapper.UseNodaTime();
-        SimpleTestObject.CreatePartitionTableBtreeIndex( dbConnection );
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        SimpleTestObject.CreatePartitionTableBtreeIndex( connection );
         Thread.Sleep( 5000 );
     }
     [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBrinIndex) ) ]
     public void SetupPartitionTableBrinIndex( ) {
-        using var              db           = new SqlBenchmarksDbContext();
-        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
-        dbConnection.Open();
-        dbConnection.TypeMapper.UseNodaTime();
-        SimpleTestObject.CreatePartitionTableBrinIndex( dbConnection );
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        SimpleTestObject.CreatePartitionTableBrinIndex( connection );
         Thread.Sleep( 5000 );
     }
 

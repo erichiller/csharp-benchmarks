@@ -83,10 +83,7 @@ public class SqlCopyAsyncBenchmarks {
 
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using var              db           = new SqlBenchmarksDbContext();
-        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
-        dbConnection.Open();
-        dbConnection.TypeMapper.UseNodaTime();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }

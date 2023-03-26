@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
 using Benchmarks.Common;
+
+using JetBrains.Annotations;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -24,10 +25,13 @@ public class SqlInsertComplexObjectBenchmarks {
     // [ Params( 1, 10, 100, 1000 ) ]
     // [ Params( 1, 2, 5, 10 ) ]
     // [ Params( 1, 2, 10, 100 ) ]
-    [ Params( 2, 10 ) ]
+    // [ Params( 2, 10 ) ]
+    [ Params( 1, 2 ) ]
     // ReSharper disable once MemberCanBePrivate.Global
     // ReSharper disable once FieldCanBeMadeReadOnly.Global
-    public virtual int ObjectsPerSave { get; set; }
+    // ReSharper disable once MemberCanBeProtected.Global
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
+    public int ObjectsPerSave { get; set; }
 
     private int _count = 1;
 
@@ -40,7 +44,8 @@ public class SqlInsertComplexObjectBenchmarks {
     [ Params( 10, 100 ) ]
     // ReSharper disable once MemberCanBePrivate.Global
     // ReSharper disable once FieldCanBeMadeReadOnly.Global
-    public virtual int SaveIterations { get; set; }
+    [ UsedImplicitly ]
+    public int SaveIterations { get; set; }
 
     private ComplexTestObject getNewComplexObject( ) => new ComplexTestObject(
         id: _count,
@@ -50,20 +55,28 @@ public class SqlInsertComplexObjectBenchmarks {
         decCol1: 0.100m,
         decCol2: 0.100m,
         floatCol: 0.001f,
-        textArrayCol: new[] { "hello", "world", "foo", "bar" },
-        intArrayCol: new[] { 1, 2, 3 }
+        textArrayCol: new[] {
+            "hello",
+            "world",
+            "foo",
+            "bar"
+        },
+        intArrayCol: new[] {
+            1,
+            2,
+            3
+        }
     );
-    
-    
+
+
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using var              db           = new SqlBenchmarksDbContext();
-        using NpgsqlConnection dbConnection = db.Database.GetDbConnection() as NpgsqlConnection ?? throw new Exception();
-        dbConnection.Open();
-        dbConnection.TypeMapper.UseNodaTime();
-        using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = ComplexTestObject.CreateSqlString } ) {
-            cmd.ExecuteNonQuery();
-        }
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using var cmd = new NpgsqlCommand() {
+            Connection  = dbConnection,
+            CommandText = ComplexTestObject.CreateSqlString
+        };
+        cmd.ExecuteNonQuery();
         // TODO
         // using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreatePartitionTable } ) {
         //     cmd.ExecuteNonQuery();
@@ -100,7 +113,12 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "EfCore", "Insert", "NoQueryTracking" ) ]
     public void EfCoreInsert_NoAutoDetectChanges_NoQueryTracking( ) {
-        var db = new SqlBenchmarksDbContext { ChangeTracker = { AutoDetectChangesEnabled = false, QueryTrackingBehavior = QueryTrackingBehavior.NoTracking } };
+        var db = new SqlBenchmarksDbContext {
+            ChangeTracker = {
+                AutoDetectChangesEnabled = false,
+                QueryTrackingBehavior    = QueryTrackingBehavior.NoTracking
+            }
+        };
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 db.ComplexTestObjects.Add( getNewComplexObject() );
@@ -113,8 +131,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
@@ -138,8 +155,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue_Prepared( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
@@ -179,27 +195,96 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
         }
     }
 
+    [ Benchmark ]
+    [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed", "NpgsqlDbType", "NpgsqlValue", "Prepared" ) ]
+    public void NpgSqlInsert_SingularCommand_TypedValue_NpgsqlDbType_NpgsqlValue_Prepared( ) {
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
+                                                                        ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
+                                                                        VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
+        var idParam        = new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer };
+        var textParam      = new NpgsqlParameter<string> { NpgsqlDbType   = NpgsqlDbType.Text };
+        var tzParam        = new NpgsqlParameter<Instant> { NpgsqlDbType  = NpgsqlDbType.TimestampTz };
+        var intParam       = new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer };
+        var dec1Param      = new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric };
+        var dec2Param      = new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric };
+        var floatParam     = new NpgsqlParameter<float> { NpgsqlDbType    = NpgsqlDbType.Real };
+        var textArrayParam = new NpgsqlParameter<string[]> { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text };
+        var intArrayParam  = new NpgsqlParameter<int[]> { NpgsqlDbType    = NpgsqlDbType.Array | NpgsqlDbType.Integer };
+        cmd.Parameters.Add( idParam );
+        cmd.Parameters.Add( textParam );
+        cmd.Parameters.Add( tzParam );
+        cmd.Parameters.Add( intParam );
+        cmd.Parameters.Add( dec1Param );
+        cmd.Parameters.Add( dec2Param );
+        cmd.Parameters.Add( floatParam );
+        cmd.Parameters.Add( textArrayParam );
+        cmd.Parameters.Add( intArrayParam );
+        cmd.Prepare();
+        for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
+            for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
+                ComplexTestObject insertObject = getNewComplexObject();
+                idParam.TypedValue        = insertObject.Id;
+                textParam.TypedValue      = insertObject.TextCol;
+                tzParam.TypedValue        = insertObject.TzCol;
+                intParam.TypedValue       = insertObject.IntCol;
+                dec1Param.TypedValue      = insertObject.DecCol1;
+                dec2Param.TypedValue      = insertObject.DecCol2;
+                floatParam.TypedValue     = insertObject.FloatCol;
+                textArrayParam.TypedValue = insertObject.TextArrayCol;
+                intArrayParam.TypedValue  = insertObject.IntArrayCol;
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
     /* TEST THESE THREE ---> */
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
                 using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, NpgsqlValue                      = insertObject.Id } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Text, NpgsqlValue                         = insertObject.TextCol } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.TimestampTz, NpgsqlValue                  = insertObject.TzCol } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, NpgsqlValue                      = insertObject.IntCol } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Numeric, NpgsqlValue                      = insertObject.DecCol1 } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Numeric, NpgsqlValue                      = insertObject.DecCol2 } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Real, NpgsqlValue                       = insertObject.FloatCol } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text, NpgsqlValue    = insertObject.TextArrayCol } );
-                cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Integer, NpgsqlValue = insertObject.IntArrayCol } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.Id
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Text,
+                                        NpgsqlValue  = insertObject.TextCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.TimestampTz,
+                                        NpgsqlValue  = insertObject.TzCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.IntCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        NpgsqlValue  = insertObject.DecCol1
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        NpgsqlValue  = insertObject.DecCol2
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Real,
+                                        NpgsqlValue  = insertObject.FloatCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+                                        NpgsqlValue  = insertObject.TextArrayCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.IntArrayCol
+                                    } );
                 cmd.ExecuteNonQuery();
             }
         }
@@ -208,23 +293,49 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
                 using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
-                cmd.Parameters.Add( new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer, NpgsqlValue                      = insertObject.Id } );
-                cmd.Parameters.Add( new NpgsqlParameter<string> { NpgsqlDbType   = NpgsqlDbType.Text, NpgsqlValue                         = insertObject.TextCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<Instant> { NpgsqlDbType  = NpgsqlDbType.TimestampTz, NpgsqlValue                  = insertObject.TzCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer, NpgsqlValue                      = insertObject.IntCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric, NpgsqlValue                      = insertObject.DecCol1 } );
-                cmd.Parameters.Add( new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric, NpgsqlValue                      = insertObject.DecCol2 } );
-                cmd.Parameters.Add( new NpgsqlParameter<float> { NpgsqlDbType    = NpgsqlDbType.Real, NpgsqlValue                         = insertObject.FloatCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<string[]> { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text, NpgsqlValue    = insertObject.TextArrayCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<int[]> { NpgsqlDbType    = NpgsqlDbType.Array | NpgsqlDbType.Integer, NpgsqlValue = insertObject.IntArrayCol } );
+                cmd.Parameters.Add( new NpgsqlParameter<int> {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.Id
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<string> {
+                                        NpgsqlDbType = NpgsqlDbType.Text,
+                                        NpgsqlValue  = insertObject.TextCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<Instant> {
+                                        NpgsqlDbType = NpgsqlDbType.TimestampTz,
+                                        NpgsqlValue  = insertObject.TzCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<int> {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.IntCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<decimal> {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        NpgsqlValue  = insertObject.DecCol1
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<decimal> {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        NpgsqlValue  = insertObject.DecCol2
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<float> {
+                                        NpgsqlDbType = NpgsqlDbType.Real,
+                                        NpgsqlValue  = insertObject.FloatCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<string[]> {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+                                        NpgsqlValue  = insertObject.TextArrayCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<int[]> {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Integer,
+                                        NpgsqlValue  = insertObject.IntArrayCol
+                                    } );
                 cmd.ExecuteNonQuery();
             }
         }
@@ -233,23 +344,49 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
                 using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
-                cmd.Parameters.Add( new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer, TypedValue                      = insertObject.Id } );
-                cmd.Parameters.Add( new NpgsqlParameter<string> { NpgsqlDbType   = NpgsqlDbType.Text, TypedValue                         = insertObject.TextCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<Instant> { NpgsqlDbType  = NpgsqlDbType.TimestampTz, TypedValue                  = insertObject.TzCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<int> { NpgsqlDbType      = NpgsqlDbType.Integer, TypedValue                      = insertObject.IntCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric, TypedValue                      = insertObject.DecCol1 } );
-                cmd.Parameters.Add( new NpgsqlParameter<decimal> { NpgsqlDbType  = NpgsqlDbType.Numeric, TypedValue                      = insertObject.DecCol2 } );
-                cmd.Parameters.Add( new NpgsqlParameter<float> { NpgsqlDbType    = NpgsqlDbType.Real, TypedValue                         = insertObject.FloatCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<string[]> { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text, TypedValue    = insertObject.TextArrayCol } );
-                cmd.Parameters.Add( new NpgsqlParameter<int[]> { NpgsqlDbType    = NpgsqlDbType.Array | NpgsqlDbType.Integer, TypedValue = insertObject.IntArrayCol } );
+                cmd.Parameters.Add( new NpgsqlParameter<int> {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        TypedValue   = insertObject.Id
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<string> {
+                                        NpgsqlDbType = NpgsqlDbType.Text,
+                                        TypedValue   = insertObject.TextCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<Instant> {
+                                        NpgsqlDbType = NpgsqlDbType.TimestampTz,
+                                        TypedValue   = insertObject.TzCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<int> {
+                                        NpgsqlDbType = NpgsqlDbType.Integer,
+                                        TypedValue   = insertObject.IntCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<decimal> {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        TypedValue   = insertObject.DecCol1
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<decimal> {
+                                        NpgsqlDbType = NpgsqlDbType.Numeric,
+                                        TypedValue   = insertObject.DecCol2
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<float> {
+                                        NpgsqlDbType = NpgsqlDbType.Real,
+                                        TypedValue   = insertObject.FloatCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<string[]> {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+                                        TypedValue   = insertObject.TextArrayCol
+                                    } );
+                cmd.Parameters.Add( new NpgsqlParameter<int[]> {
+                                        NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Integer,
+                                        TypedValue   = insertObject.IntArrayCol
+                                    } );
                 cmd.ExecuteNonQuery();
             }
         }
@@ -258,8 +395,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
         using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
@@ -400,15 +536,14 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
     public void NpgsqlCopy( ) {
-        using NpgsqlConnection connection = new NpgsqlConnection( SqlBenchmarksDbContext.ConnectionString );
-        connection.Open();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
 
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             // using var writer = connection.BeginBinaryImport( @"
             //     COPY public.complex_test_objects 
             //         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col )
             //     FROM STDIN (FORMAT BINARY)" );
-            
+
             using var writer = connection.BeginBinaryImport( @"
                 COPY public.complex_test_objects 
                     ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col )
@@ -469,7 +604,6 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     // }
 
     //
-    // /// <inheritdoc />
     // public void Dispose( ) {
     //     this.DbConnection.Close();
     //     this.DbConnection.Dispose();

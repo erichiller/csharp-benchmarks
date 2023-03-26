@@ -1,9 +1,7 @@
-using System.Collections.Generic;
-
-using BenchmarkDotNet.Configs;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+
+using Npgsql;
 
 namespace Benchmarks.Sql;
 
@@ -11,7 +9,7 @@ public class SqlBenchmarksDbContext : DbContext {
     public static string ConnectionString = new ConfigurationBuilder()
                                             .AddJsonFile( @"./appsettings.json" )
                                             .Build()
-                                            .GetConnectionString( "default" );
+                                            .GetConnectionString( "default" )!;
     public DbSet<SimpleTestObject>         TestObjects        { get; set; }
     public DbSet<ComplexTestObject> ComplexTestObjects { get; set; }
 
@@ -29,4 +27,15 @@ public class SqlBenchmarksDbContext : DbContext {
                                   npgsqlOptions.UseNodaTime()
                   )
                   .UseSnakeCaseNamingConvention();
+    
+    
+    /// <summary>
+    /// Creates NpgsqlConnection, applies <see cref="NpgsqlNodaTimeExtensions.UseNodaTime"/> and returns an Open Connection.
+    /// </summary>
+    internal static NpgsqlConnection GetDbConnection( ) {
+        var dsb = new NpgsqlDataSourceBuilder( SqlBenchmarksDbContext.ConnectionString );
+        dsb.UseNodaTime();
+        using var dataSource = dsb.Build();
+        return dataSource.OpenConnection();
+    }
 }

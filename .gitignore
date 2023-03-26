@@ -82,6 +82,7 @@ BenchmarkDotNet.Artifacts
 #
 ## Sensitive or high-churn files
 .idea/**/dataSources/
+.idea/.idea.Benchmarks/.idea/riderMarkupCache.xml
 #.idea/**/dataSources.ids
 #.idea/**/dataSources.local.xml
 #.idea/**/sqlDataSources.xml
