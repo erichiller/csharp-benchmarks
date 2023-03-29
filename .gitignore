@@ -38,6 +38,7 @@ msbuild.wrn
 
 # Benchmark.Net
 BenchmarkDotNet.Artifacts
+sampleLogFile.log
 
 # Visual Studio 2015
 .vs/
