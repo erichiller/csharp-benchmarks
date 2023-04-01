@@ -39,9 +39,8 @@ namespace Benchmarks.General;
 | CompressFileToArchive |          Optimal |               Zip |     83.39 ms |   1.588 ms |    1.560 ms |     83.02 ms | 1833.3333 | 1833.3333 | 1833.3333 |    33433060 B |
 | CompressFileToArchive |     SmallestSize |               Zip |    143.42 ms |   1.304 ms |    1.220 ms |    143.26 ms | 1750.0000 | 1750.0000 | 1750.0000 |    33433138 B |
 
-
-
  */
+
 [ Config( typeof(BenchmarkConfig) ) ]
 [ SuppressMessage( "Performance", "CA1822:Mark members as static" ) ]
 public sealed class CompressionBenchmarks {
@@ -59,7 +58,6 @@ public sealed class CompressionBenchmarks {
     // ReSharper disable once FieldCanBeMadeReadOnly.Global
     public CompressionMethod CompressionMethod { get; set; }
 
-    // URGENT: try benchmarking using a TAR archive
     [ Benchmark ]
     public void CompressFileToArchive( ) {
         FileInfo         outputCompressedFilePath = new FileInfo( System.IO.Path.Join( _logFileInfo.DirectoryName, $"sampleLogFile_{CompressionMethod}_{CompressionLevel}" + CompressionMethod.GetFileExtension() ) );
@@ -89,32 +87,6 @@ public sealed class CompressionBenchmarks {
         // System.Console.WriteLine( outputCompressedFilePath.FullName + " length is " + outputCompressedFilePath.Length );
         // compressedFileStream.Flush();
     }
-
-    // [ Benchmark ]
-    // public void CompressFileToArchive_Zip( ) {
-    //     // if ( !_outputCompressedFileDirectoryInfo.Exists ) {
-    //     //     this._outputCompressedFileDirectoryInfo.Create();
-    //     // }
-    //     // string           outputCompressedFilePath = this._outputCompressedFileInfo.FullName;
-    //     using FileStream inputFileStream      = File.Open( _logFileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read );
-    //     using FileStream compressedFileStream = File.Open( "compressedSampleLogFile." + CompressionMethod.GetFileExtension(), FileMode.Create, FileAccess.ReadWrite );
-    //     if ( CompressionMethod == CompressionMethod.Zip ) {
-    //         // using FileStream compressedFileStream = File.Open( compressedOutputFile, FileMode.OpenOrCreate, FileAccess.ReadWrite );
-    //         using ZipArchive archive     = new ZipArchive( compressedFileStream, ZipArchiveMode.Update );
-    //         ZipArchiveEntry  entry       = archive.GetEntry( _logFileInfo.Name ) ?? archive.CreateEntry( _logFileInfo.Name, CompressionMethod == CompressionMethod.Zip ? _compressionLevel : CompressionLevel.NoCompression );
-    //         using var        entryStream = entry.Open();
-    //         inputFileStream.CopyTo( entryStream );
-    //     } else {
-    //         using Stream compressor = this.CompressionMethod switch {
-    //                                       CompressionMethod.Brotli  => new BrotliStream( compressedFileStream, _compressionLevel ),
-    //                                       CompressionMethod.Gzip    => new GZipStream( compressedFileStream, _compressionLevel ),
-    //                                       CompressionMethod.Deflate => new DeflateStream( compressedFileStream, _compressionLevel ),
-    //                                       _                         => throw new System.ComponentModel.InvalidEnumArgumentException( nameof(_compressionLevel), ( int )_compressionLevel, typeof(CompressionMethod) )
-    //                                   };
-    //         inputFileStream.CopyTo( compressor );
-    //     }
-    //     compressedFileStream.Flush(true);
-    // }
 
     [ GlobalCleanup ]
     public void GlobalCleanup( ) {
