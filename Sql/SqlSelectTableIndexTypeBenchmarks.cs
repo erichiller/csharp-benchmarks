@@ -17,7 +17,7 @@ using NpgsqlTypes;
 namespace Benchmarks.Sql;
 
 [ Config( typeof(BenchmarkConfig) ) ]
-public class SqlSelectBenchmarks {
+public class SqlSelectTableIndexTypeBenchmarks {
 
     [ Params( 200 ) ]
     // ReSharper disable once MemberCanBePrivate.Global
@@ -59,15 +59,15 @@ public class SqlSelectBenchmarks {
     //     }
     // }
 
-    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBtreeIndex) ) ]
+    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBtreeIndex) ) ] // URGENT: shouldn't each method have a setup?
     public void SetupPartitionTableBtreeIndex( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         SimpleTestObject.CreatePartitionTableBtreeIndex( connection );
         Thread.Sleep( 5000 );
     }
-    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBrinIndex) ) ]
+    [ GlobalSetup( Target = nameof(SelectFromPartitionTableUsingBrinIndex) ) ] // URGENT: shouldn't each method have a setup?
     public void SetupPartitionTableBrinIndex( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         SimpleTestObject.CreatePartitionTableBrinIndex( connection );
         Thread.Sleep( 5000 );
     }

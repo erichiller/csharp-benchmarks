@@ -32,7 +32,7 @@ public class SqlBenchmarksDbContext : DbContext {
     /// <summary>
     /// Creates NpgsqlConnection, applies <see cref="NpgsqlNodaTimeExtensions.UseNodaTime"/> and returns an Open Connection.
     /// </summary>
-    internal static NpgsqlConnection GetDbConnection( ) {
+    internal static NpgsqlConnection GetOpenDbConnection( ) {
         var dsb = new NpgsqlDataSourceBuilder( SqlBenchmarksDbContext.ConnectionString );
         dsb.UseNodaTime();
         using var dataSource = dsb.Build();

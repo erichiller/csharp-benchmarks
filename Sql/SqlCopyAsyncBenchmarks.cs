@@ -83,7 +83,7 @@ public class SqlCopyAsyncBenchmarks {
 
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }

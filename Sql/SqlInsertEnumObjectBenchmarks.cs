@@ -65,7 +65,7 @@ public class SqlInsertEnumObjectBenchmarks {
 
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = EnumTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }
@@ -94,7 +94,7 @@ public class SqlInsertEnumObjectBenchmarks {
     [ Benchmark ]
     // [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue_EnumUnknown( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -113,11 +113,16 @@ public class SqlInsertEnumObjectBenchmarks {
             }
         }
     }
+    
+    // URGENT; Test TypeValue with NpgsqlDbType provided as well
+    // URGENT: Test different null value ways of doing things.
+    // URGENT: Test when all value types (Eg. Integer or Enum)
+    // URGENT: Test when all reference types (Eg. string)
 
     [ Benchmark ]
     // [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue_EnumTyped( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -140,7 +145,7 @@ public class SqlInsertEnumObjectBenchmarks {
     [ Benchmark ]
     // [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Typed_NpgsqlDbType_TypedValue_EnumTyped( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -164,7 +169,7 @@ public class SqlInsertEnumObjectBenchmarks {
     [ Benchmark ]
     // [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Typed_TypedValue_EnumTyped( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {

@@ -15,6 +15,9 @@
     <Configuration>Release</Configuration>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <PropertyGroup>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
 
 
   <ItemGroup>

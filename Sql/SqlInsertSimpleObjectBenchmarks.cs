@@ -69,7 +69,7 @@ public class SqlInsertSimpleObjectBenchmarks {
 
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }
@@ -122,7 +122,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 SimpleTestObject insertObject = getNewObject();
@@ -139,7 +139,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue_Prepared( ) {
-        using NpgsqlConnection connection    = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection    = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var              cmd           = new NpgsqlCommand( @"INSERT INTO public.test_objects ( id, name, integers, datetime ) VALUES ( $1, $2, $3, $4 )", connection );
         var                    idParam       = new NpgsqlParameter<int>();
         var                    nameParam     = new NpgsqlParameter<string>();
@@ -165,7 +165,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 SimpleTestObject insertObject = getNewObject();
@@ -182,7 +182,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var              cmd        = new NpgsqlCommand( @"INSERT INTO public.test_objects ( id, name, integers, datetime ) VALUES ( $1, $2, $3, $4 )", connection );
         NpgsqlParameter[] parameters = new[] {
             cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer } ),
@@ -206,7 +206,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue", "Prepared", "Async" ) ]
     public async Task NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared_Async( ) {
-        await using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        await using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         await using var        cmd        = new NpgsqlCommand( @"INSERT INTO public.test_objects ( id, name, integers, datetime ) VALUES ( $1, $2, $3, $4 )", connection );
         NpgsqlParameter[] parameters = new[] {
             cmd.Parameters.Add( new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer } ),
@@ -231,7 +231,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "Value" ) ]
     public void NpgsqlInsert_Batched_Boxed_Value( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -251,7 +251,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -271,7 +271,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlDbType" ) ]
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_Value_LessDefinedVars( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -350,7 +350,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "Boxed", "NpgsqlValue" ) ]
     public void NpgsqlInsert_Batched_Boxed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -369,7 +369,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Batched", "TypedValue" ) ]
     public void NpgsqlInsert_Batched_TypedValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var batch = new NpgsqlBatch( connection );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -389,7 +389,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
     public void NpgsqlCopy( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -408,7 +408,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
     public void NpgsqlCopyWithTypesAsString( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -427,7 +427,7 @@ public class SqlInsertSimpleObjectBenchmarks {
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy", "PartitionTable" ) ]
     public void NpgsqlCopyToPartitionTable( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_object_partition_table (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {

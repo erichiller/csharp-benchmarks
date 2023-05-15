@@ -71,7 +71,7 @@ public class SqlInsertComplexObjectBenchmarks {
 
     [ GlobalSetup ]
     public void GlobalSetup( ) {
-        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var cmd = new NpgsqlCommand() {
             Connection  = dbConnection,
             CommandText = ComplexTestObject.CreateSqlString
@@ -131,7 +131,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
@@ -155,7 +155,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue_Prepared( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
@@ -198,7 +198,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Typed", "NpgsqlDbType", "NpgsqlValue", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_TypedValue_NpgsqlDbType_NpgsqlValue_Prepared( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
@@ -242,7 +242,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
@@ -293,7 +293,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_NpgsqlValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
@@ -344,7 +344,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue" ) ]
     public void NpgSqlInsert_SingularCommand_Typed_NpgsqlDbType_TypedValue( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
                 ComplexTestObject insertObject = getNewComplexObject();
@@ -395,7 +395,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Insert", "Singular", "Boxed", "NpgsqlValue", "Prepared" ) ]
     public void NpgSqlInsert_SingularCommand_Boxed_NpgsqlDbType_NpgsqlValue_Prepared( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using var cmd = new NpgsqlCommand( @"INSERT INTO public.complex_test_objects 
                                                                         ( id, text_col, tz_col, int_col, dec_col1, dec_col2, float_col, text_array_col, int_array_col  ) 
                                                                         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )", connection );
@@ -536,7 +536,7 @@ SELECT count(*) FROM td.time_sale_futures_original WHERE trade_time BETWEEN '202
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
     public void NpgsqlCopy( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
 
         for ( int o = 0 ; o < SaveIterations ; o++, _count++ ) {
             // using var writer = connection.BeginBinaryImport( @"

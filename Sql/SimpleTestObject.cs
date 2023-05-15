@@ -27,11 +27,15 @@ public record SimpleTestObject {
 
         return originTime.Plus( Duration.FromDays( _rand.Next( floor, floor + ( 365 * 2 ) ) ) );
     }
-    
+
     public static SimpleTestObject GetNewObject( int id, int groups = 5 ) => new SimpleTestObject {
-        Id       = id,
-        Name     = $"Group{id%groups}",
-        Integers = new[] { _rand.Next(), _rand.Next(), _rand.Next() },
+        Id   = id,
+        Name = $"Group{id % groups}",
+        Integers = new[] {
+            _rand.Next(),
+            _rand.Next(),
+            _rand.Next()
+        },
         Datetime = GetRandomInstant()
     };
 
@@ -46,6 +50,32 @@ public record SimpleTestObject {
             CONSTRAINT pk_test_object_id PRIMARY KEY (id)
         )
             TABLESPACE pg_default;";
+
+    public static void CreateTableAndPopulate( NpgsqlConnection connection, int startId, int createCount ) {
+        // for ( int i = 0 ; i < createObjectCount ; i++ ) {
+        //     SimpleTestObject insertObject = GetNewObject( i );
+        //     using var        cmd          = new NpgsqlCommand( @"INSERT INTO public.test_objects ( id, name, integers, datetime ) VALUES ( $1, $2, $3, $4 )", connection );
+        //     cmd.Parameters.Add( new NpgsqlParameter<int> { TypedValue     = insertObject.Id } );
+        //     cmd.Parameters.Add( new NpgsqlParameter<string> { TypedValue  = insertObject.Name } );
+        //     cmd.Parameters.Add( new NpgsqlParameter<int[]> { TypedValue   = insertObject.Integers } );
+        //     cmd.Parameters.Add( new NpgsqlParameter<Instant> { TypedValue = insertObject.Datetime } );
+        //     cmd.ExecuteNonQuery();
+        // }
+        using ( var cmd = new NpgsqlCommand() { Connection = connection, CommandText = SimpleTestObject.CreateSqlString } ) {
+            cmd.ExecuteNonQuery();
+        }
+        using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
+        for ( int i = 0 ; i < createCount ; i++ ) {
+            SimpleTestObject insertObject = GetNewObject( startId + i );
+            writer.StartRow();
+            writer.Write( insertObject.Id, NpgsqlDbType.Integer );
+            writer.Write( insertObject.Name, NpgsqlDbType.Text );
+            // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
+            writer.Write( insertObject.Integers, NpgsqlDbType.Array | NpgsqlDbType.Integer );
+            writer.Write( insertObject.Datetime, NpgsqlDbType.TimestampTz );
+        }
+        writer.Complete();
+    }
 
     //language=sql
     private static string _createPartitionTableSql = @"
@@ -92,7 +122,7 @@ public record SimpleTestObject {
         };
         cmd.ExecuteNonQuery();
     }
-    
+
     public static void CreatePartitionTableBrinIndex( NpgsqlConnection dbConnection ) {
         using var cmd = new NpgsqlCommand() {
             Connection = dbConnection,
@@ -103,7 +133,7 @@ public record SimpleTestObject {
                     ON public.test_object_partition_table USING brin (id)
                     WITH ( autosummarize = on );
                 -- REINDEX INDEX my_index;
-                " 
+                "
         };
         cmd.ExecuteNonQuery();
     }
@@ -130,7 +160,7 @@ public record SimpleTestObject {
     }
 
     private static bool IsPartitionTablePopulated( NpgsqlConnection dbConnection, int minimumCountThreshold = 100_000 ) =>
-        getPartitionTableCount(dbConnection) > minimumCountThreshold;
+        getPartitionTableCount( dbConnection ) > minimumCountThreshold;
 
     /// <summary>
     /// 
@@ -155,6 +185,7 @@ public record SimpleTestObject {
                 writer.StartRow();
                 writer.Write( insertObject.Id, NpgsqlDbType.Integer );
                 writer.Write( insertObject.Name, NpgsqlDbType.Text );
+                // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
                 writer.Write( insertObject.Integers, NpgsqlDbType.Array | NpgsqlDbType.Integer );
                 writer.Write( insertObject.Datetime, NpgsqlDbType.TimestampTz );
             }
@@ -183,7 +214,10 @@ public record SimpleTestObject {
     }
 
     public static int CreatePartitionTable( NpgsqlConnection dbConnection ) {
-        using var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject._createPartitionTableSql };
+        using var cmd = new NpgsqlCommand() {
+            Connection  = dbConnection,
+            CommandText = SimpleTestObject._createPartitionTableSql
+        };
         return cmd.ExecuteNonQuery();
     }
 
@@ -199,7 +233,7 @@ public record SimpleTestObject {
     /// Otherwise returns the count of rows which already exist.
     /// This number can then be added back to the caller's <c>_count</c>
     /// </returns>
-    public static int CreateAndPopulateIfNotExists( NpgsqlConnection dbConnection, int startId, int createCount, int threshold = 10_000 ) {
+    public static int CreateAndPopulatePartitionTableIfNotExists( NpgsqlConnection dbConnection, int startId, int createCount, int threshold = 10_000 ) {
         if ( !DoesPartitionTableExist( dbConnection ) ) {
             CreatePartitionTable( dbConnection );
         }

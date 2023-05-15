@@ -60,7 +60,7 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
 
     [ GlobalSetup(Targets= new []{ nameof(NonPartitionTableSimpleTestObjectCopy) } ) ]
     public void SimpleTestObjectNonPartitionTableSetup( ) {
-        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection dbConnection = SqlBenchmarksDbContext.GetOpenDbConnection();
         using ( var cmd = new NpgsqlCommand() { Connection = dbConnection, CommandText = SimpleTestObject.CreateSqlString } ) {
             cmd.ExecuteNonQuery();
         }
@@ -91,7 +91,7 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
     [ Benchmark(Description = "Copy to Non-Partition Table SimpleTestObject") ]
     [ BenchmarkCategory( "Npgsql", "Copy" ) ]
     public void NonPartitionTableSimpleTestObjectCopy( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_objects (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
@@ -186,11 +186,11 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
 
     [ GlobalSetup (Targets = new []{ nameof(NpgsqlCopyToPartitionTable)}) ]
     public void PartitionTableSetup( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
 
         _count = 1;
         if ( InitialTableObjects != 0 ) {
-            _count = SimpleTestObject.CreateAndPopulateIfNotExists( connection, startId: _count, createCount: InitialTableObjects );
+            _count = SimpleTestObject.CreateAndPopulatePartitionTableIfNotExists( connection, startId: _count, createCount: InitialTableObjects );
         }
     }
 
@@ -210,7 +210,7 @@ public class SqlInsertSimpleObjectLargeTableBenchmarks : SqlInsertsSimpleObjectL
     [ Benchmark ]
     [ BenchmarkCategory( "Npgsql", "Copy", "PartitionTable" ) ]
     public void NpgsqlCopyToPartitionTable( ) {
-        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetDbConnection();
+        using NpgsqlConnection connection = SqlBenchmarksDbContext.GetOpenDbConnection();
         for ( int o = 0 ; o < SaveIterations ; o++ ) {
             using var writer = connection.BeginBinaryImport( "COPY public.test_object_partition_table (id, name, integers, datetime ) FROM STDIN (FORMAT BINARY)" );
             for ( int i = 0 ; i < ObjectsPerSave ; i++, _count++ ) {
