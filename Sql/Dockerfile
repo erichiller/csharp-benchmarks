@@ -26,6 +26,6 @@ CMD ["--list","tree"]
 
 # ###### USE #######
 # Build like:
-# docker build --name csharp-benchmark-sql --file ./Sql/Dockerfile .
+# docker build --tag csharp-benchmark-sql:dev --file ./Sql/Dockerfile .
 # Run like:
-# docker run --rm -it csharp-benchmark-sql --anyCategories Reader
+# docker run --rm -it --name csharp-benchmark-sql-instance --privileged csharp-benchmark-sql:dev --anyCategories Reader
