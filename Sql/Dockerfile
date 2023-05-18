@@ -4,6 +4,8 @@ WORKDIR /app
 
 VOLUME /app/Sql/BenchmarkDotNet.Artifacts/
 
+ENV DOTNET_ENVIRONMENT=Release
+
 COPY ["Sql/Sql.csproj", "Sql/"]
 COPY ["Common/Common.csproj", "Common/"]
 RUN dotnet restore "Sql/Sql.csproj"
@@ -14,14 +16,12 @@ WORKDIR "/app/Sql"
 #FROM build AS publish
 #RUN dotnet publish "Sql.csproj" -c Release -o /app/publish
 
-ENV DOTNET_ENVIRONMENT=Release
-
 #FROM base AS final
 #WORKDIR /app
 #COPY --from=build /src/Sql/Sql.csproj .
 #COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "run", "-c", "Release", "--"]
-CMD ["--list","tree"]
+#CMD ["--list","tree"]
 
 
 # ###### USE #######

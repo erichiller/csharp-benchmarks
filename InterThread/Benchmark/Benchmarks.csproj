@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
         <RootNamespace>Benchmarks.InterThread.Benchmark</RootNamespace>
+        <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
     <PropertyGroup>
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -46,9 +47,5 @@ ADD:
     <ItemGroup>
         <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
         <ProjectReference Include="..\..\Common\Common.csproj" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="InterThread" />
     </ItemGroup>
 </Project>
