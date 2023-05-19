@@ -75,7 +75,7 @@ public class BroadcastPublisher : BackgroundService {
 #if DEBUG
             _logger.LogDebug( "[Thread ID: {ThreadId}] Adding to Channel count {Id} at: {Datetime}", Thread.CurrentThread.ManagedThreadId, _id, DateTimeOffset.Now );
 #endif
-            var message = new ChannelMessage { Id = _id, Property_1 = "some string" };
+            var message = new ChannelMessage { Id = _id, Property1 = "some string" };
             _broadcastQueueWriter.TryWrite( message );
 
             if ( _id == MaxMessageCount ) {

@@ -3,6 +3,20 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.QueueBaseTypes-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Json/BenchmarkDotNet.Artifacts/results/Benchmarks.Json.LevelOneJsonBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Results/SQL Insert Methods/General/Benchmarks.Sql.SqlInsertBenchmarks-report.csv">
           <value>
             <Attribute>

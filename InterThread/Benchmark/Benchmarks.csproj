@@ -32,7 +32,7 @@ ADD:
     cap_sys_nice     USERNAME_HERE 
 
 -->
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+<!--    <Target Name="PostBuild" AfterTargets="PostBuildEvent">-->
 <!--        <Exec Command="echo '' >> postbuild.txt " />-->
 <!--        <Exec Command="echo `date` >> postbuild.txt " />-->
 <!--        <Exec Command="echo 'TargetDir: $(TargetDir)' >> postbuild.txt " />-->
@@ -40,10 +40,15 @@ ADD:
 <!--        <Exec Command="echo 'AssemblyName: $(AssemblyName)' >> postbuild.txt " />-->
 <!--        <Exec Command="echo 'TargetFrameworkVersion: $(TargetFrameworkVersion)' >> postbuild.txt " />-->
 <!--        <Exec Command="${SUDOPASS} | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(OutputPath)$(AssemblyName)" />-->
-        <Exec Command="echo $(SUDOPASS) | sudo --stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />
-        
-    </Target>
+<!--        <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />-->
+<!--    </Target>-->
 
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <!--        <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)"/>-->
+        <Exec Command="sudo setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />
+    </Target>
+    
     <ItemGroup>
         <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
         <ProjectReference Include="..\..\Common\Common.csproj" />

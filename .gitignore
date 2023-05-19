@@ -37,7 +37,9 @@ msbuild.err
 msbuild.wrn
 
 # Benchmark.Net
-BenchmarkDotNet.Artifacts
+#BenchmarkDotNet.Artifacts/
+/**/BenchmarkDotNet.Artifacts/*
+!/**/BenchmarkDotNet.Artifacts/results
 sampleLogFile.log
 
 # Visual Studio 2015

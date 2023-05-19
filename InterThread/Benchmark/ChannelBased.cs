@@ -16,7 +16,7 @@ namespace Benchmarks.InterThread.Benchmark;
 
 public record ChannelMessage {
     public int    Id         { get; set; }
-    public string Property_1 { get; set; }
+    public string Property1 { get; set; }
 }
 
 public record ChannelResponse(
@@ -67,7 +67,7 @@ public class ChannelPublisher : BackgroundService {
 #if DEBUG
             _logger.LogDebug( $"[Thread ID: {Thread.CurrentThread.ManagedThreadId}] Adding to Channel count {id} at: {DateTimeOffset.Now}" );
 #endif
-            var message = new ChannelMessage { Id = id, Property_1 = "some string" };
+            var message = new ChannelMessage { Id = id, Property1 = "some string" };
             _channelWriter.TryWrite( message );
 
 
