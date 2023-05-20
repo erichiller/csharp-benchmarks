@@ -8,6 +8,8 @@ using BenchmarkDotNet.Attributes;
 
 using Benchmarks.Common;
 
+using BroadcastChannelMux;
+
 namespace Benchmarks.InterThread.Benchmark;
 
 /*
@@ -23,20 +25,22 @@ total_messages = 10_000
  
 total_messages = 100_000
 ========================
-
-|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |     Gen1 |     Gen2 | Allocated [B] |
-|----------------------------- |----------:|-----------:|------------:|---------:|---------:|---------:|--------------:|
-|         ConcurrentQueueBased |  6.409 ms |  0.1257 ms |   0.1589 ms | 687.5000 | 132.8125 |        - |     3266328 B |
-|           QueueWithLockBased |  9.904 ms |  0.1962 ms |   0.4388 ms | 625.0000 | 171.8750 |  78.1250 |     3500955 B |
-|  Channel_SyncWrite_AsyncRead | 10.633 ms |  0.0731 ms |   0.0610 ms | 875.0000 | 875.0000 | 484.3750 |     5301660 B |
-| Channel_AsyncWrite_AsyncRead | 11.588 ms |  0.0512 ms |   0.0428 ms | 890.6250 | 890.6250 | 500.0000 |     5301913 B |
-|   Channel_SyncWrite_SyncRead | 14.113 ms |  0.2762 ms |   0.3070 ms | 687.5000 | 109.3750 |        - |     3267660 B |
-
+|                                                                     Method | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|--------------------------------------------------------------------------- |----------:|-----------:|------------:|---------:|---------:|---------:|--------------:|
+|                                          SingleProducerSingleConsumerQueue |  4.411 ms |  0.0766 ms |   0.0716 ms | 687.5000 |  78.1250 |        - |     3233036 B |
+| Channel_SyncWrite_AsyncReadWait_SyncReadLoop_SingleProducer_SingleConsumer |  5.015 ms |  0.0922 ms |   0.0863 ms | 570.3125 | 546.8750 | 281.2500 |     4254436 B |
+|                                                       ConcurrentQueueBased |  6.370 ms |  0.1245 ms |   0.1164 ms | 687.5000 | 125.0000 |        - |     3265626 B |
+|                               Channel_SyncWrite_AsyncReadWait_SyncReadLoop |  8.046 ms |  0.0634 ms |   0.0562 ms | 890.6250 | 890.6250 | 500.0000 |     5301806 B |
+|                                                         QueueWithLockBased |  9.952 ms |  0.1986 ms |   0.4442 ms | 640.6250 |  93.7500 |  46.8750 |     3409784 B |
+|                                   Channel_SyncWrite_AsyncReadWait_SyncRead |  9.975 ms |  0.1399 ms |   0.1374 ms | 890.6250 | 890.6250 | 500.0000 |     5301947 B |
+|                                                Channel_SyncWrite_AsyncRead | 10.662 ms |  0.0177 ms |   0.0165 ms | 890.6250 | 890.6250 | 500.0000 |     5301843 B |
+|                                               Channel_AsyncWrite_AsyncRead | 11.634 ms |  0.0523 ms |   0.0489 ms | 890.6250 | 890.6250 | 500.0000 |     5301950 B |
+|                                                 Channel_SyncWrite_SyncRead | 14.067 ms |  0.2458 ms |   0.2299 ms | 687.5000 |  78.1250 |        - |     3237339 B |
 
 */
 
 [ Config( typeof(BenchmarkConfig) ) ]
-public class QueueBaseTypes {
+public class QueueTypeBenchmarks {
     private int total_messages = 100_000;
 
     [ Benchmark ]
@@ -48,9 +52,39 @@ public class QueueBaseTypes {
             int i = 0;
             while ( i++ < total_messages ) {
                 queue.Enqueue( new ChannelMessage {
-                                   Id        = i,
-                                   Property1 = @"some_text"
-                               } );
+                    Id        = i,
+                    Property1 = @"some_text"
+                } );
+            }
+        } );
+        Task consumer = new Task( ( ) => {
+            while ( received < total_messages ) {
+                if ( queue.TryDequeue( out ChannelMessage? _ ) ) {
+                    received++;
+                }
+            }
+        } );
+        producer.Start();
+        consumer.Start();
+        await producer;
+        await consumer;
+        if ( received != total_messages ) {
+            throw new Exception();
+        }
+    }
+
+    [ Benchmark ]
+    public async Task SingleProducerSingleConsumerQueue( ) {
+        SingleProducerSingleConsumerQueue<ChannelMessage> queue    = new ();
+        int                             received = 0;
+
+        Task producer = new Task( ( ) => {
+            int i = 0;
+            while ( i++ < total_messages ) {
+                queue.Enqueue( new ChannelMessage {
+                    Id        = i,
+                    Property1 = @"some_text"
+                } );
             }
         } );
         Task consumer = new Task( ( ) => {
@@ -237,6 +271,81 @@ public class QueueBaseTypes {
             while ( received < total_messages ) {
                 await reader.WaitToReadAsync();
                 if ( reader.TryRead( out ChannelMessage? _ ) ) {
+                    received++;
+                }
+            }
+        }
+    }
+    [ Benchmark ]
+    public async Task Channel_SyncWrite_AsyncReadWait_SyncReadLoop( ) {
+        Channel<ChannelMessage> channel  = Channel.CreateUnbounded<ChannelMessage>();
+        var                     reader   = channel.Reader;
+        var                     writer   = channel.Writer;
+        int                     received = 0;
+        
+        var producer = Produce();
+        var consumer = Consume();
+        await producer;
+        await consumer;
+        if ( received != total_messages ) {
+            throw new Exception();
+        }
+
+        Task Produce( ) {
+            int i = 0;
+            while ( i++ < total_messages ) {
+                writer.TryWrite( new ChannelMessage {
+                    Id        = i,
+                    Property1 = @"some_text"
+                } );
+            }
+            writer.Complete();
+            return Task.CompletedTask;
+        }
+
+        async Task Consume( ) {
+            while ( received < total_messages ) {
+                await reader.WaitToReadAsync();
+                while( reader.TryRead( out ChannelMessage? _ ) ) {
+                    received++;
+                }
+            }
+        }
+    }
+    [ Benchmark ]
+    public async Task Channel_SyncWrite_AsyncReadWait_SyncReadLoop_SingleProducer_SingleConsumer( ) {
+        Channel<ChannelMessage> channel  = Channel.CreateUnbounded<ChannelMessage>( new UnboundedChannelOptions() {
+            SingleReader = true,
+            SingleWriter = true
+        });
+        var                     reader   = channel.Reader;
+        var                     writer   = channel.Writer;
+        int                     received = 0;
+        
+        var producer = Produce();
+        var consumer = Consume();
+        await producer;
+        await consumer;
+        if ( received != total_messages ) {
+            throw new Exception();
+        }
+
+        Task Produce( ) {
+            int i = 0;
+            while ( i++ < total_messages ) {
+                writer.TryWrite( new ChannelMessage {
+                    Id        = i,
+                    Property1 = @"some_text"
+                } );
+            }
+            writer.Complete();
+            return Task.CompletedTask;
+        }
+
+        async Task Consume( ) {
+            while ( received < total_messages ) {
+                await reader.WaitToReadAsync();
+                while( reader.TryRead( out ChannelMessage? _ ) ) {
                     received++;
                 }
             }

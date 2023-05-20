@@ -1,7 +1,8 @@
-// #define DEBUG
+#define DEBUG
 
-#undef DEBUG
-// #define DEBUG_BROADCAST
+// #undef DEBUG
+#define DEBUG_MUX
+#define DEBUG_BROADCAST
 // #define DEBUG_CHANNEL
 // #define DEBUG_OBSERVER
 // # define DEBUG_THREAD_PRIORITY
@@ -29,6 +30,10 @@ using Microsoft.Extensions.Logging;
 
 using Benchmarks.InterThread.BroadcastQueue;
 
+using BroadcastChannel;
+
+using BroadcastChannelMux;
+
 namespace Benchmarks.InterThread.Benchmark;
 
 public class Program {
@@ -53,18 +58,203 @@ public class Program {
     //     }
     // }
 
+    [Conditional("SHOULD_LOG")]
+    private static void Log( string? msg ) => Console.WriteLine( msg );
+
 
     static async Task<int> Main( string[] args ) {
         IHost                   host;
         CancellationTokenSource cts = new CancellationTokenSource();
         ILogger<Program>        logger;
         int                     lastReadId = 0;
-        CancellationToken       ct = cts.Token;
+        CancellationToken       ct         = cts.Token;
         Stopwatch               stopwatch;
 
         // System.Console.WriteLine( $"Starting Program. Thread ID: {Thread.CurrentThread.ManagedThreadId}" );
 
         /* ************************************************************************ */
+
+#if DEBUG_MUX
+        Console.WriteLine( "DEBUG_MUX" );
+
+        // {
+        //     static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, Func<int, T> objectFactory ) {
+        //         int i = 0;
+        //         while ( i++ < totalMessages ) {
+        //             Console.WriteLine( $"{typeof(T).Name} Producer, writing item #{i}" );
+        //             writer.TryWrite( objectFactory( i ) );
+        //             // if ( i % 3 == 0 ) {
+        //             //     Thread.Sleep( Random.Shared.Next( 500, 1500 ) ); // milliseconds
+        //             // }
+        //         }
+        //         writer.Complete();
+        //     }
+        //     int               totalMessages = 100;
+        //
+        //     BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1       = new ();
+        //     BroadcastChannel<ClassA>                              channel2       = new ();
+        //     var                                                   channelReader1 = channel1.GetReader();
+        //     var                                                   channelReader2 = channel2.GetReader();
+        //     Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+        //                                                         Id   = i,
+        //                                                         Name = @"some_text"
+        //                                                     } ), ct );
+        //     Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+        //                                                         Id   = i,
+        //                                                         Name = @"some_text"
+        //                                                     } ), ct );
+        //     int receivedCountStructA = 0;
+        //     int receivedCountClassA  = 0;
+        //     // cts.CancelAfter( 500 );
+        //     Task reader1 = Task.Run( async ( ) => {
+        //         Console.WriteLine("Reader1: begin");
+        //         while ( await channelReader1.WaitToReadAsync( ct ) ) {
+        //             Console.WriteLine("Reader1: awake");
+        //             if ( channelReader1.TryRead( out StructA? structA ) ) {
+        //                 receivedCountStructA++;
+        //                 Console.WriteLine($"Reader1: read success: {{nameof(receivedCountStructA)}}: {receivedCountStructA}");
+        //             }
+        //         }
+        //     } );
+        //     Task reader2 = Task.Run( async ( ) => {
+        //         Console.WriteLine("Reader2: begin");
+        //         while ( await channelReader2.WaitToReadAsync( ct ) ) {
+        //             Console.WriteLine("Reader2: awake");
+        //             if ( channelReader2.TryRead( out ClassA? classA ) ) {
+        //                 Console.WriteLine("Reader2: read success");
+        //                 receivedCountClassA++;
+        //                 Console.WriteLine($"Reader1: read success: {{nameof(receivedCountClassA)}}: {receivedCountClassA}");
+        //             }
+        //                 
+        //         }
+        //     } );
+        //     await producer1;
+        //     await producer2;
+        //     await reader1;
+        //     await reader2;
+        //     if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+        //         throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
+        //     }
+        //
+        //
+        //     return 0;
+        // }
+        {
+            Console.WriteLine( "DEBUG_MUX" );
+            BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+            BroadcastChannel<ClassA>                              channel2 = new ();
+            ChannelMux<StructA?, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
+            // int                                                  totalMessages = 100;
+            int totalMessages = 100_000;
+
+            static void ProducerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, Func<int, T> objectFactory ) {
+                int i = 0;
+                while ( i++ < totalMessages ) {
+                    Log( $"{typeof(T).Name} Producer, writing item #{i}" );
+                    writer.TryWrite( objectFactory( i ) );
+                    // if ( i % 3 == 0 ) {
+                    //     Thread.Sleep( Random.Shared.Next( 500, 1500 ) ); // milliseconds
+                    // }
+                }
+                writer.Complete();
+            }
+
+            Task producer1 = Task.Run( ( ) => ProducerTask( channel1.Writer, totalMessages, i => new StructA {
+                                                                Id   = i,
+                                                                Name = @"some_text"
+                                                            } ), ct );
+            Task producer2 = Task.Run( ( ) => ProducerTask( channel2.Writer, totalMessages, i => new ClassA {
+                                                                Id   = i,
+                                                                Name = @"some_text"
+                                                            } ), ct );
+            // producer1.Start();
+            // producer2.Start();
+
+            int       receivedCount        = 0;
+            int       receivedCountStructA = 0;
+            int       receivedCountClassA  = 0;
+            int       loopCount            = 0;
+            const int maxLoopCount         = 20;
+            ClassA?   classA               = null;
+            StructA?  structA              = null;
+            Log( "Waiting to read..." );
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                Log( "Awake" );
+                //     if ( mux.TryRead( out ClassA? classA ) ) {
+                //         receivedCount++;
+                //         Console.WriteLine( classA );
+                //         receivedCountClassA++;
+                //     }
+                //     if ( mux.TryRead( out StructA structA ) ) {
+                //         receivedCount++;
+                //         Console.WriteLine( structA.ToString() );
+                //         receivedCountStructA++;
+                //     }
+                while ( mux.TryRead( out classA ) || mux.TryRead( out structA ) ) {
+                    if ( classA is { } ) {
+                        receivedCount++;
+                        Log( classA.ToString() );
+                        receivedCountClassA++;
+                        classA = null;
+                    }
+                    if ( structA is { } ) {
+                        receivedCount++;
+                        Log( structA.ToString() );
+                        receivedCountStructA++;
+                        structA = null;
+                    }
+                }
+
+                // while ( loopRead ) {
+                //     loopRead = false;
+                //     bool chanResult1 = mux.TryRead( out ClassA? classA );
+                //     Console.WriteLine( $"{nameof(chanResult1)}: {chanResult1}" );
+                //     if ( chanResult1 ) {
+                //         receivedCount++;
+                //         Console.WriteLine( classA );
+                //         receivedCountClassA++;
+                //         loopRead = true;
+                //     }
+                //     bool chanResult2 = mux.TryRead( out StructA structA );
+                //     Console.WriteLine( $"{nameof(chanResult2)}: {chanResult2}" );
+                //     if ( chanResult2 ) {
+                //         receivedCount++;
+                //         Console.WriteLine( structA.ToString() );
+                //         receivedCountStructA++;
+                //         loopRead = true;
+                //     }
+                // }
+
+                // if ( classA is { } ) {
+                //     receivedCount++;
+                //     Console.WriteLine( classA );
+                //     receivedCountClassA++;
+                // }
+                // if ( structA is not default ) {
+                //     receivedCount++;
+                //     Console.WriteLine( structA.ToString() );
+                //     receivedCountStructA++;
+                // }
+                /* end experiment */
+                // if ( receivedCount > ( totalMessages * 2 ) + 5 ) {
+                //     Console.WriteLine( $"receivedCount exceeded {( totalMessages * 2 ) + 5}" );
+                //     break;
+                // }
+                // if ( loopCount > maxLoopCount ) {
+                //     Console.WriteLine( $"Loop count exceeded {maxLoopCount}" );
+                //     break;
+                // }
+                loopCount++;
+                Log( $"Waiting to read... loopCount: {loopCount}" );
+            }
+            Console.WriteLine( $"Done.\n\t"                                        +
+                               $"receivedCount:        {receivedCount}\n\t"        +
+                               $"receivedCountStructA: {receivedCountStructA}\n\t" +
+                               $"receivedCountClassA:  {receivedCountClassA}\n\t"  +
+                               $"loopCount:            {loopCount}" );
+            // await producer1;
+        }
+#endif
 
 #if DEBUG_THREAD_PRIORITY
         Console.WriteLine($"PRE: Current Thread Priority is {Thread.CurrentThread.Priority}");
@@ -85,7 +275,6 @@ public class Program {
 #endif
 
 #if DEBUG_BROADCAST
-
         // const int readCount = 100;
         // const int readCount = 500;
         // const int readCount = 10_000;
