@@ -15,21 +15,16 @@ namespace BroadcastChannelMux;
 public abstract class ChannelMux {
     private readonly bool _runContinuationsAsynchronously;
     /// <summary>A waiting reader (e.g. WaitForReadAsync) if there is one.</summary>
-    private AsyncOperation<bool>? _waitingReader;
+    private          bool                 _isWaitingReader = false;
     private readonly AsyncOperation<bool> _waiterSingleton;
-
-    private          int  _readableItems  = 0;
-    private          int  _closedChannels = 0;
-    private readonly int  _totalChannels;
-    private          bool _areAllChannelsComplete => _closedChannels >= _totalChannels;
-
-    // private readonly Func<AggregateException?> _getAllExceptions;
-    protected abstract AggregateException? getAllExceptions( );
+    private          int                  _readableItems  = 0;
+    private          int                  _closedChannels = 0;
+    private readonly int                  _totalChannels;
+    private readonly TaskCompletionSource _completion;
+    private readonly object               _waitingReaderLock = new object();
+    private          bool                 _areAllChannelsComplete => _closedChannels >= _totalChannels;
 
     /// <summary>Task that indicates the channel has completed.</summary>
-    private readonly TaskCompletionSource _completion;
-    private readonly object _lockObj = new object();
-
     public Task Completion => _completion.Task;
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
@@ -40,60 +35,8 @@ public abstract class ChannelMux {
         _totalChannels                  = totalChannels;
     }
 
-    // /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.WaitToReadAsync"/>
-    // public ValueTask<bool> WaitToReadAsync( CancellationToken cancellationToken ) {
-    //     log( nameof(WaitToReadAsync), $"{nameof(_readableItems)}: {_readableItems}" );
-    //     // Outside of the lock, check if there are any items waiting to be read.  If there are, we're done.
-    //     if ( cancellationToken.IsCancellationRequested ) {
-    //         return new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) );
-    //     }
-    //
-    //     if ( _readableItems > 0 ) {
-    //         log( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
-    //         return new ValueTask<bool>( true ); // TODO: try caching, but it's unlikely the problem
-    //     }
-    //     AsyncOperation<bool>? oldWaitingReader, newWaitingReader;
-    //     // lock ( _lockObj ) {
-    //     //    Log( nameof(WaitToReadAsync), "in lock" );
-    //     //    // Again while holding the lock, check to see if there are any items available.
-    //     //    if ( _readableItems > 0 ) {
-    //     //        Log( nameof(WaitToReadAsync), "in lock", $"_readableItems > 0 : {_readableItems}" );
-    //     //        return new ValueTask<bool>( true );
-    //     //    }
-    //     // There aren't any items; if we're done writing, there never will be more items.
-    //     if ( _areAllChannelsComplete ) {
-    //         log( nameof(WaitToReadAsync), "_allChannelsDoneWriting" );
-    //         return getAllExceptions() is { } allExceptions ? new ValueTask<bool>( Task.FromException<bool>( allExceptions ) ) : default;
-    //     }
-    //     // Try to use the singleton waiter.  If it's currently being used, then the channel
-    //     // is being used erroneously, and we cancel the outstanding operation.
-    //     if ( !cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset() ) {
-    //         newWaitingReader = _waiterSingleton;
-    //         // URGENT: run tests on a single thread. able to configure in xunit?
-    //         oldWaitingReader = Interlocked.Exchange( ref this._waitingReader, newWaitingReader ); // TODO: do I even need the newWaitingReader or can I use with the singleton directly?
-    //         log( nameof(WaitToReadAsync), "!cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset()" );
-    //         if ( newWaitingReader == oldWaitingReader ) {
-    //             log( nameof(WaitToReadAsync), "newWaitingReader == oldWaitingReader" );
-    //             // The previous operation completed, so null out the "old" waiter
-    //             // so we don't end up canceling the new operation.
-    //             oldWaitingReader = null;
-    //         }
-    //     } else {
-    //         // TODO: SHOULD NEVER REACH HERE!
-    //         // throw new Exception(); // replace with something better & a throw helper.
-    //         log( nameof(WaitToReadAsync), "ELSE" );
-    //         newWaitingReader = new AsyncOperation<bool>( _runContinuationsAsynchronously, cancellationToken );
-    //         oldWaitingReader = Interlocked.Exchange( ref this._waitingReader, newWaitingReader ); // TODO: do I even need the newWaitingReader or can I use with the singleton directly?
-    //     }
-    //     log( nameof(WaitToReadAsync), $"newWaitingReader is {newWaitingReader}" );
-    //     _waitingReader = newWaitingReader;
-    //     // } // NOTE: REMOVED LOCK; ONLY ONE THREAD EVER AWAITS
-    //
-    //     log( nameof(WaitToReadAsync), $"oldWaitingReader is {newWaitingReader}" );
-    //     oldWaitingReader?.TrySetCanceled( default );
-    //     return newWaitingReader.ValueTaskOfT;
-    // }
-    
+    protected abstract AggregateException? getAllExceptions( );
+
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.WaitToReadAsync"/>
     public ValueTask<bool> WaitToReadAsync( CancellationToken cancellationToken ) {
         log( nameof(WaitToReadAsync), $"{nameof(_readableItems)}: {_readableItems}" );
@@ -107,7 +50,7 @@ public abstract class ChannelMux {
             return new ValueTask<bool>( true );
         }
         AsyncOperation<bool>? oldWaitingReader, newWaitingReader;
-        lock ( _lockObj ) {
+        lock ( _waitingReaderLock ) {
             log( nameof(WaitToReadAsync), "in lock" );
             // Again while holding the lock, check to see if there are any items available.
             if ( _readableItems > 0 ) {
@@ -150,19 +93,18 @@ public abstract class ChannelMux {
         Console.WriteLine( $"{this.GetType().Name} > {String.Join( " > ", contextAndMessage )}" );
     }
 
-
-    //
-
+    /*
+     * ChannelMuxInput
+     */
 
     protected sealed class ChannelMuxInput<TData> : ChannelWriter<TData>, IDisposable {
         private readonly ChannelMux                               _parent;
         private readonly RemoveWriterByHashCode                   _removeWriterCallback;
-        private readonly SingleProducerSingleConsumerQueue<TData> _queue = new SingleProducerSingleConsumerQueue<TData>(); // TODO: convert to SingleProducerSingleConsumerQueue
-        // private readonly ConcurrentQueue<TData> _queue = new ConcurrentQueue<TData>(); // TODO: convert to SingleProducerSingleConsumerQueue
+        private readonly SingleProducerSingleConsumerQueue<TData> _queue = new SingleProducerSingleConsumerQueue<TData>();
 
         /// <summary>non-null if the channel has been marked as complete for writing.</summary>
-        private Exception? _completeException;   // URGENT: else have a separate volatile bool to represent exception presence
-        private  bool       _isComplete = false; // TODO: I don't think I need volatile here
+        private Exception? _completeException;
+        private  bool       _isComplete = false;
         internal Exception? Exception => _completeException;
 
         internal ChannelMuxInput( BroadcastChannelWriter<TData, IBroadcastChannelResponse> channel, ChannelMux parent ) {
@@ -170,6 +112,8 @@ public abstract class ChannelMux {
             _parent               = parent;
             _parent.log( nameof(ChannelMuxInput<TData>), "constructor" );
         }
+
+        private int exchangeCount = 0;
 
         /// <inheritdoc />
         public override bool TryWrite( TData item ) {
@@ -181,21 +125,21 @@ public abstract class ChannelMux {
             _queue.Enqueue( item );
 
             Interlocked.Increment( ref _parent._readableItems );
+            if ( ++exchangeCount % 1000 != 0 ) { // KILL
+                return true;
+            }
             AsyncOperation<bool>? waitingReader = Interlocked.Exchange(
                 ref _parent._waitingReader,
                 null );
-            // URGENT: try replacing the lock with a volatile bool or Interlocked exchange
             if ( waitingReader == null ) {
                 _parent.log( nameof(TryWrite), "waitingReader is null" );
                 return true;
             }
-            _parent.log( nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
-            // If we get here, we grabbed a waiting reader.
-            waitingReader?.TrySetResult( item: true );
+            _parent.log( nameof(TryWrite), "waiting reader exists, setting result to true" );
+            // If we get here, we have a waiting reader, set its result to true to resume
+            waitingReader.TrySetResult( item: true );
             return true;
         }
-
-        // public bool IsComplete( ) => isComplete;
 
         /// <inheritdoc />
         /// <remarks>
@@ -222,13 +166,11 @@ public abstract class ChannelMux {
             // Mark as complete for writing.
             _isComplete = true;
             if ( exception is { } ) {
-                // lock(_parent._exceptionLock){ // TODO
-                _completeException = exception;
-                // }
+                Interlocked.Exchange( ref _completeException, exception );
             }
 
             Interlocked.Increment( ref _parent._closedChannels );
-            // if all channels are closed, or if this complete was reported with an exception, close everything
+            // if all channels are closed, or if this TryComplete call was reported with an exception, close everything
             // TODO: should a single closing exception closed the entire mux?? Could make it configurable??
             if ( _parent._closedChannels >= _parent._totalChannels || exception is { } ) {
                 _parent.log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(exception)}: {( exception?.ToString() ?? "null" )}" );
@@ -243,7 +185,7 @@ public abstract class ChannelMux {
                     // TODO: what to do here. If one channel closes should the whole mux stop working? seems like no.
                     completeTask = true;
                     // URGENT: THIS PROBABLY NEEDS TO BE CLEANED UP
-                    lock ( _parent._lockObj ) {
+                    lock ( _parent._waitingReaderLock ) {
                         if ( _parent._waitingReader != null ) {
                             waitingReader          = _parent._waitingReader;
                             _parent._waitingReader = null;
@@ -259,7 +201,7 @@ public abstract class ChannelMux {
                 _parent.log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(waitingReader)}: {( waitingReader?.ToString() ?? "null" )}" );
                 _parent.log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(_parent._closedChannels)}: {_parent._closedChannels}" );
                 _parent.log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(_parent._totalChannels)}: {_parent._totalChannels}" );
-                // Complete a waiting reader if there is one
+                // Complete a waiting reader if there is one and all channels are closed
                 if ( waitingReader != null && _parent._closedChannels >= _parent._totalChannels ) {
                     _parent.log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), "waitingReader != null" );
                     if ( exception != null ) {
