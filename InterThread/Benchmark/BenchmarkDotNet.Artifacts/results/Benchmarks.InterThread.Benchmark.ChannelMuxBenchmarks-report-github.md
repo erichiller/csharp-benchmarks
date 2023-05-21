@@ -8,7 +8,6 @@ Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical c
 
 
 ```
-|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |     Gen1 | Allocated [B] |
-|----------------------------- |----------:|-----------:|------------:|---------:|---------:|--------------:|
-|       ChannelMux_LoopTryRead |  37.76 ms |   0.696 ms |    0.617 ms | 857.1429 | 214.2857 |     4201950 B |
-| ChannelMux_AsyncWaitLoopOnly |  39.57 ms |   0.525 ms |    0.466 ms | 846.1538 |  76.9231 |     4132924 B |
+|                 Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| ChannelMux_LoopTryRead |  21.36 ms |   0.420 ms |    0.575 ms | 1218.7500 | 687.5000 | 593.7500 |     6956826 B |

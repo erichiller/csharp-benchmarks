@@ -46,7 +46,7 @@ ADD:
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <!--        <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)"/>-->
-<!--        <Exec Command="sudo setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />-->
+        <Exec Command="sudo setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />
     </Target>
     
     <ItemGroup>
