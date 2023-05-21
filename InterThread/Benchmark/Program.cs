@@ -238,7 +238,7 @@ public class Program {
                 Log( $"Waiting to read... loopCount: {loopCount}" );
             }
             stopwatch.Stop();
-            Console.WriteLine( $"WaitToReadAsync Loop only\n\t"                                                             +
+            Console.WriteLine( $"WaitToReadAsync Loop only\n\t"                                                               +
                                $"Completed in {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedTicks:N0} ticks).\n\t" +
                                $"receivedCount:        {receivedCount:N0}\n\t"                                                +
                                $"receivedCountStructA: {receivedCountStructA:N0}\n\t"                                         +
@@ -246,13 +246,13 @@ public class Program {
                                $"loopCount:            {loopCount:N0}" );
             // await producer1;
         }
-        {
+        for ( int iter = 0 ; iter < 100_000 ; iter++ ) {
             stopwatch = Stopwatch.StartNew();
             BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
             BroadcastChannel<ClassA>                              channel2 = new ();
             ChannelMux<StructA?, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
             // int                                                  totalMessages = 10;
-            int totalMessages = 10_000_000;
+            int totalMessages = 100_000;
 
             static void ProducerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, Func<int, T> objectFactory ) {
                 int i = 0;
@@ -301,13 +301,18 @@ public class Program {
                 Log( $"Waiting to read... loopCount: {loopCount}" );
             }
             stopwatch.Stop();
-            Console.WriteLine( $"With TryRead Loop\n\t"                                                                     +
+
+            await producer1;
+            await producer2;
+            if ( !producer1.IsCompletedSuccessfully || !producer2.IsCompletedSuccessfully ) {
+                throw new Exception( "producer failed" );
+            }
+            Console.WriteLine( $"{iter}. With TryRead Loop\n\t"                                                               +
                                $"Completed in {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedTicks:N0} ticks).\n\t" +
                                $"receivedCount:        {receivedCount:N0}\n\t"                                                +
                                $"receivedCountStructA: {receivedCountStructA:N0}\n\t"                                         +
                                $"receivedCountClassA:  {receivedCountClassA:N0}\n\t"                                          +
                                $"loopCount:            {loopCount:N0}" );
-            // await producer1;
         }
 #endif
 

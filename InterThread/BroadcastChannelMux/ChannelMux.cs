@@ -15,7 +15,8 @@ namespace BroadcastChannelMux;
 public abstract class ChannelMux {
     private readonly bool _runContinuationsAsynchronously;
     /// <summary>A waiting reader (e.g. WaitForReadAsync) if there is one.</summary>
-    private          bool                 _isWaitingReader = false;
+    private AsyncOperation<bool>? _waitingReader;
+    // private          bool                 _isWaitingReader = false; // URGENT: RESTORE?
     private readonly AsyncOperation<bool> _waiterSingleton;
     private          int                  _readableItems  = 0;
     private          int                  _closedChannels = 0;
@@ -85,6 +86,7 @@ public abstract class ChannelMux {
 
         log( nameof(WaitToReadAsync), $"oldWaitingReader is {newWaitingReader}" );
         oldWaitingReader?.TrySetCanceled( default );
+        // _isWaitingReader = true; // URGENT: RESTORE?
         return newWaitingReader.ValueTaskOfT;
     }
 
@@ -113,8 +115,6 @@ public abstract class ChannelMux {
             _parent.log( nameof(ChannelMuxInput<TData>), "constructor" );
         }
 
-        private int exchangeCount = 0;
-
         /// <inheritdoc />
         public override bool TryWrite( TData item ) {
             _parent.log( nameof(TryWrite) );
@@ -125,12 +125,13 @@ public abstract class ChannelMux {
             _queue.Enqueue( item );
 
             Interlocked.Increment( ref _parent._readableItems );
-            if ( ++exchangeCount % 1000 != 0 ) { // KILL
-                return true;
-            }
+            // if ( !_parent._isWaitingReader ) { // URGENT: RESTORE?
+            //     return true;
+            // }
             AsyncOperation<bool>? waitingReader = Interlocked.Exchange(
                 ref _parent._waitingReader,
                 null );
+            // _parent._isWaitingReader = false;// URGENT: RESTORE?
             if ( waitingReader == null ) {
                 _parent.log( nameof(TryWrite), "waitingReader is null" );
                 return true;
@@ -191,6 +192,7 @@ public abstract class ChannelMux {
                             _parent._waitingReader = null;
                         }
                     }
+                    // _parent._isWaitingReader = false; // URGENT: RESTORE?
                 }
                 // Complete the channel task if necessary
                 if ( completeTask ) {
