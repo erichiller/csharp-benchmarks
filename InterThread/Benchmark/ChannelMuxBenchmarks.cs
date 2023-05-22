@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,7 +52,10 @@ lock in TryWrite replaced with Monitor.TryEnter
 |       ChannelMux_LoopTryRead |  23.70 ms |   0.470 ms |    0.674 ms | 1187.5000 | 406.2500 | 312.5000 |     6701274 B |
 | ChannelMux_AsyncWaitLoopOnly |  24.56 ms |   0.313 ms |    0.293 ms | 1687.5000 | 406.2500 | 187.5000 |     8332670 B |
 
-
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  23.37 ms |   0.218 ms |    0.204 ms | 1375.0000 | 468.7500 | 343.7500 |     6643177 B |
+| ChannelMux_AsyncWaitLoopOnly |  24.97 ms |   0.401 ms |    0.376 ms | 1062.5000 |  62.5000 |        - |     5223778 B |
 
 
  */
@@ -82,16 +86,21 @@ public class ChannelMuxBenchmarks {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        int receivedCountStructA = 0;
-        int receivedCountClassA  = 0;
+        int     receivedCountStructA = 0;
+        int     receivedCountClassA  = 0;
+        
+        // ReSharper disable UnusedVariable        
+        ClassA? classA;
+        StructA structA;
         while ( await mux.WaitToReadAsync( ct ) ) {
-            if ( mux.TryRead( out ClassA? classA ) ) {
+            if ( mux.TryRead( out classA ) ) {
                 receivedCountClassA++;
             }
-            if ( mux.TryRead( out StructA structA ) ) {
+            if ( mux.TryRead( out structA ) ) {
                 receivedCountStructA++;
             }
         }
+        // ReSharper restore UnusedVariable
         await producer1;
         await producer2;
         if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
@@ -115,13 +124,11 @@ public class ChannelMuxBenchmarks {
                                                         } ), ct );
         int      receivedCountStructA = 0;
         int      receivedCountClassA  = 0;
-        ClassA?  classA               = null;
         StructA? structA              = null;
         while ( await mux.WaitToReadAsync( ct ) ) {
-            while ( mux.TryRead( out classA ) || mux.TryRead( out structA ) ) {
+            while ( mux.TryRead( out ClassA? classA ) || mux.TryRead( out structA ) ) {
                 if ( classA is { } ) {
                     receivedCountClassA++;
-                    classA = null;
                 }
                 if ( structA is { } ) {
                     receivedCountStructA++;
@@ -153,6 +160,7 @@ public class ChannelMuxBenchmarks {
                                                         } ), ct );
         int receivedCountStructA = 0;
         int receivedCountClassA  = 0;
+        // ReSharper disable UnusedVariable
         Task reader1 = Task.Run( async ( ) => {
             while ( await channelReader1.WaitToReadAsync( ct ) ) {
                 if ( channelReader1.TryRead( out StructA? structA ) ) {
@@ -167,6 +175,7 @@ public class ChannelMuxBenchmarks {
                 }
             }
         } );
+        // ReSharper restore UnusedVariable
         await producer1;
         await producer2;
         await reader1;
@@ -175,4 +184,18 @@ public class ChannelMuxBenchmarks {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
         }
     }
+}
+
+public struct StructA {
+    public          int    Id;
+    public          string Name;
+    public          string Description;
+    public override string ToString( ) => $"{nameof(StructA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassA {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
 }

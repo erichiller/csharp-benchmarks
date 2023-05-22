@@ -307,6 +307,9 @@ public class Program {
             if ( !producer1.IsCompletedSuccessfully || !producer2.IsCompletedSuccessfully ) {
                 throw new Exception( "producer failed" );
             }
+            if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+                throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
+            }
             Console.WriteLine( $"{iter}. With TryRead Loop\n\t"                                                               +
                                $"Completed in {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedTicks:N0} ticks).\n\t" +
                                $"receivedCount:        {receivedCount:N0}\n\t"                                                +

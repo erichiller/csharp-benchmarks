@@ -1,7 +1,6 @@
 #undef DEBUG
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -87,11 +86,12 @@ public abstract class ChannelMux {
             _waitingReader = newWaitingReader;
         }
 
-        if ( _readableItems > 0 ) { // KILL ??
+        if ( _readableItems > 0 ) {
+            // KILL ??
             Log( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
             return new ValueTask<bool>( true );
         }
-        
+
         Log( nameof(WaitToReadAsync), $"oldWaitingReader is {newWaitingReader}" );
         oldWaitingReader?.TrySetCanceled( default );
         return newWaitingReader.ValueTaskOfT;
@@ -132,9 +132,8 @@ public abstract class ChannelMux {
 
             _queue.Enqueue( item );
             Interlocked.Increment( ref _parent._readableItems );
-            // lock ( _parent._lockObj ) { // URGENT: try Monitor.TryEnter here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            AsyncOperation<bool>? waitingReader = null;
             if ( Monitor.TryEnter( _parent._lockObj ) ) {
-                AsyncOperation<bool>? waitingReader = null;
                 try {
                     _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryWrite), "in lock" );
                     waitingReader = _parent._waitingReader;
@@ -148,6 +147,8 @@ public abstract class ChannelMux {
                     Monitor.Exit( _parent._lockObj );
                 }
                 _parent.Log( nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
+            }
+            if ( waitingReader != null ) {
                 // If we get here, we grabbed a waiting reader.
                 waitingReader?.TrySetResult( item: true );
             }
@@ -373,39 +374,5 @@ public class ChannelMux<T1, T2, T3> : ChannelMux<T1, T2>, IDisposable {
             _isDisposed = true;
         }
         base.Dispose( disposing );
-    }
-}
-
-/*
- * DEMO
- */
-
-public struct StructA {
-    public          int    Id;
-    public          string Name;
-    public          string Description;
-    public override string ToString( ) => $"{nameof(StructA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
-}
-
-public class ClassA {
-    public          int    Id;
-    public          string Name        = String.Empty;
-    public          string Description = String.Empty;
-    public override string ToString( ) => $"{nameof(ClassA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
-}
-
-public class MuxConsumerDemo {
-    public static async Task UseMux( BroadcastChannelWriter<StructA> writer1, BroadcastChannelWriter<ClassA> writer2 ) {
-        ChannelMux<StructA, ClassA> mux = new (writer1, writer2);
-        while ( await mux.WaitToReadAsync( CancellationToken.None ) ) {
-            if ( mux.TryRead( out ClassA? classA ) ) {
-                Console.WriteLine( classA );
-                // do stuff
-            }
-            if ( mux.TryRead( out StructA structA ) ) {
-                Console.WriteLine( structA );
-                // do stuff
-            }
-        }
     }
 }
