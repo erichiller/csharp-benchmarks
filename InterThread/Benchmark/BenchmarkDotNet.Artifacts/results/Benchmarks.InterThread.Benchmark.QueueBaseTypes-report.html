@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>BenchmarkRun-joined-2023-05-19-13-20-01</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.13.5, OS=ubuntu 22.04
+Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
+.NET SDK=7.0.203
+  [Host]     : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>                                                              Method</th><th>Mean [ms]</th><th>Error [ms]</th><th>StdDev [ms]</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated [B]</th>
+</tr>
+</thead><tbody><tr><td>SingleProducerSingleConsumerQueue</td><td>4.411 ms</td><td>0.0766 ms</td><td>0.0716 ms</td><td>687.5000</td><td>78.1250</td><td>-</td><td>3233036 B</td>
+</tr><tr><td>Channel_SyncWrite_AsyncReadWait_SyncReadLoop_SingleProducer_SingleConsumer</td><td>5.015 ms</td><td>0.0922 ms</td><td>0.0863 ms</td><td>570.3125</td><td>546.8750</td><td>281.2500</td><td>4254436 B</td>
+</tr><tr><td>ConcurrentQueueBased</td><td>6.370 ms</td><td>0.1245 ms</td><td>0.1164 ms</td><td>687.5000</td><td>125.0000</td><td>-</td><td>3265626 B</td>
+</tr><tr><td>Channel_SyncWrite_AsyncReadWait_SyncReadLoop</td><td>8.046 ms</td><td>0.0634 ms</td><td>0.0562 ms</td><td>890.6250</td><td>890.6250</td><td>500.0000</td><td>5301806 B</td>
+</tr><tr><td>QueueWithLockBased</td><td>9.952 ms</td><td>0.1986 ms</td><td>0.4442 ms</td><td>640.6250</td><td>93.7500</td><td>46.8750</td><td>3409784 B</td>
+</tr><tr><td>Channel_SyncWrite_AsyncReadWait_SyncRead</td><td>9.975 ms</td><td>0.1399 ms</td><td>0.1374 ms</td><td>890.6250</td><td>890.6250</td><td>500.0000</td><td>5301947 B</td>
+</tr><tr><td>Channel_SyncWrite_AsyncRead</td><td>10.662 ms</td><td>0.0177 ms</td><td>0.0165 ms</td><td>890.6250</td><td>890.6250</td><td>500.0000</td><td>5301843 B</td>
+</tr><tr><td>Channel_AsyncWrite_AsyncRead</td><td>11.634 ms</td><td>0.0523 ms</td><td>0.0489 ms</td><td>890.6250</td><td>890.6250</td><td>500.0000</td><td>5301950 B</td>
+</tr><tr><td>Channel_SyncWrite_SyncRead</td><td>14.067 ms</td><td>0.2458 ms</td><td>0.2299 ms</td><td>687.5000</td><td>78.1250</td><td>-</td><td>3237339 B</td>
+</tr></tbody></table>
+</body>
+</html>

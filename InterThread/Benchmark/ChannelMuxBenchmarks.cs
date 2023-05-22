@@ -36,6 +36,24 @@ namespace Benchmarks.InterThread.Benchmark;
 |             ChannelMux |  36.24 ms |   0.419 ms |    0.392 ms | 785.7143 |  71.4286 |        - |     4085486 B |
 
 
+
+lock replaced with SpinLock
+|                 Method | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |    Gen1 | Allocated [B] |
+|----------------------- |----------:|-----------:|------------:|---------:|--------:|--------------:|
+| ChannelMux_LoopTryRead |  47.16 ms |   0.926 ms |    1.716 ms | 818.1818 | 90.9091 |     4192649 B |
+
+
+
+
+lock in TryWrite replaced with Monitor.TryEnter
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  23.70 ms |   0.470 ms |    0.674 ms | 1187.5000 | 406.2500 | 312.5000 |     6701274 B |
+| ChannelMux_AsyncWaitLoopOnly |  24.56 ms |   0.313 ms |    0.293 ms | 1687.5000 | 406.2500 | 187.5000 |     8332670 B |
+
+
+
+
  */
 
 [ Config( typeof(BenchmarkConfig) ) ]

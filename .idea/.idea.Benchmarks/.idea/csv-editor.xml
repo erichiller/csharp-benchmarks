@@ -3,6 +3,13 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.Benchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.ChannelMuxBenchmarks-report.csv">
           <value>
             <Attribute>

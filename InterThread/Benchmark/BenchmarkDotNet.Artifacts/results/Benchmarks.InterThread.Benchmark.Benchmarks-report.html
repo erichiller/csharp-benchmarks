@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>BenchmarkRun-joined-2022-05-27-08-23-04</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.13.1, OS=ubuntu 21.10
+Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
+.NET SDK=6.0.300
+  [Host]     : .NET 6.0.5 (6.0.522.21309), X64 RyuJIT
+  Job-DCWPAL : .NET 6.0.5 (6.0.522.21309), X64 RyuJIT
+</code></pre>
+<pre><code>InvocationCount=1  UnrollFactor=1  
+</code></pre>
+
+<table>
+<thead><tr><th>                                                         Method</th><th>MessageCount</th><th>Mean [ms]</th><th>Error [ms]</th><th>StdDev [ms]</th><th>Gen 0</th><th>Gen 1</th><th>Allocated [B]</th>
+</tr>
+</thead><tbody><tr><td>BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber_WriteEnumerable</td><td>2000000</td><td>192.6 ms</td><td>3.70 ms</td><td>9.43 ms</td><td>21000.0000</td><td>1000.0000</td><td>105,054,976 B</td>
+</tr><tr><td>BroadcastQueue_WithoutHost_ReadWrite_OneSubscriber</td><td>2000000</td><td>202.0 ms</td><td>12.26 ms</td><td>35.95 ms</td><td>13000.0000</td><td>-</td><td>64,070,072 B</td>
+</tr><tr><td>BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers_WriteEnumerable</td><td>2000000</td><td>618.5 ms</td><td>12.07 ms</td><td>31.80 ms</td><td>22000.0000</td><td>-</td><td>104,072,280 B</td>
+</tr><tr><td>BroadcastQueue_WithoutHost_ReadWrite_TwoSubscribers</td><td>2000000</td><td>653.1 ms</td><td>21.02 ms</td><td>61.98 ms</td><td>13000.0000</td><td>1000.0000</td><td>64,270,608 B</td>
+</tr><tr><td>BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers_WriteEnumerable</td><td>2000000</td><td>1,047.9 ms</td><td>20.57 ms</td><td>28.84 ms</td><td>22000.0000</td><td>1000.0000</td><td>104,437,552 B</td>
+</tr><tr><td>BroadcastQueue_WithoutHost_ReadWrite_ThreeSubscribers</td><td>2000000</td><td>1,243.2 ms</td><td>24.71 ms</td><td>59.69 ms</td><td>13000.0000</td><td>1000.0000</td><td>64,223,144 B</td>
+</tr></tbody></table>
+</body>
+</html>
