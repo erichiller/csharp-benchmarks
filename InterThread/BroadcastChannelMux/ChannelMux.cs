@@ -1,7 +1,6 @@
 #undef DEBUG
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
@@ -13,22 +12,19 @@ using BroadcastChannel;
 namespace BroadcastChannelMux;
 
 public abstract class ChannelMux {
-    private readonly bool _runContinuationsAsynchronously;
     /// <summary>A waiting reader (e.g. WaitForReadAsync) if there is one.</summary>
     private AsyncOperation<bool>? _waitingReader;
     private readonly AsyncOperation<bool> _waiterSingleton;
-
-    private volatile int  _readableItems  = 0;
-    private volatile int  _closedChannels = 0;
-    private readonly int  _totalChannels;
-    private          bool _areAllChannelsComplete => _closedChannels >= _totalChannels;
-
-    // private readonly Func<AggregateException?> _getAllExceptions;
-    protected abstract AggregateException? getAllExceptions( );
+    private readonly bool                 _runContinuationsAsynchronously;
+    private readonly object               _lockObj           = new ();
+    private          Exception?           _completeException = null;
+    private volatile int                  _readableItems     = 0;
+    private volatile int                  _closedChannels    = 0;
+    private readonly int                  _totalChannels;
+    private          bool                 _areAllChannelsComplete => _closedChannels >= _totalChannels;
 
     /// <summary>Task that indicates the channel has completed.</summary>
     private readonly TaskCompletionSource _completion;
-    private readonly object _lockObj = new object();
 
     public Task Completion => _completion.Task;
 
@@ -63,8 +59,8 @@ public abstract class ChannelMux {
             // There aren't any items; if we're done writing, there never will be more items.
             if ( _areAllChannelsComplete ) {
                 Log( nameof(WaitToReadAsync), "_allChannelsDoneWriting" );
-                // if its not the known to be a non-error s_doneWritingSentinel, then return a cancelled ValueTask with the exception contained in s_doneWritingSentinel.
-                return getAllExceptions() is { } allExceptions ? new ValueTask<bool>( Task.FromException<bool>( allExceptions ) ) : default;
+                // if an exception is present, return a cancelled ValueTask with the exception.
+                return _completeException is { } exception ? new ValueTask<bool>( Task.FromException<bool>( exception ) ) : default;
             }
             // Try to use the singleton waiter.  If it's currently being used, then the channel
             // is being used erroneously, and we cancel the outstanding operation.
@@ -86,8 +82,8 @@ public abstract class ChannelMux {
             _waitingReader = newWaitingReader;
         }
 
+        // KILL ??
         if ( _readableItems > 0 ) {
-            // KILL ??
             Log( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
             return new ValueTask<bool>( true );
         }
@@ -109,13 +105,8 @@ public abstract class ChannelMux {
     protected sealed class ChannelMuxInput<TData> : ChannelWriter<TData>, IDisposable {
         private readonly ChannelMux                               _parent;
         private readonly RemoveWriterByHashCode                   _removeWriterCallback;
-        private readonly SingleProducerSingleConsumerQueue<TData> _queue = new SingleProducerSingleConsumerQueue<TData>(); // TODO: convert to SingleProducerSingleConsumerQueue
-        // private readonly ConcurrentQueue<TData> _queue = new ConcurrentQueue<TData>(); // TODO: convert to SingleProducerSingleConsumerQueue
-
-        /// <summary>non-null if the channel has been marked as complete for writing.</summary>
-        private volatile Exception? _doneWriting;
-
-        internal Exception? Exception => _doneWriting == ChannelUtilities.s_doneWritingSentinel ? null : _doneWriting;
+        private readonly SingleProducerSingleConsumerQueue<TData> _queue      = new SingleProducerSingleConsumerQueue<TData>();
+        private          bool                                     _isComplete = false; // TODO: I don't think I need volatile here
 
         internal ChannelMuxInput( BroadcastChannelWriter<TData, IBroadcastChannelResponse> channel, ChannelMux parent ) {
             _removeWriterCallback = channel.AddReader( this );
@@ -126,7 +117,7 @@ public abstract class ChannelMux {
         /// <inheritdoc />
         public override bool TryWrite( TData item ) {
             _parent.Log( nameof(TryWrite) );
-            if ( _doneWriting != null ) {
+            if ( _isComplete ) {
                 return false;
             }
 
@@ -146,9 +137,9 @@ public abstract class ChannelMux {
                     // Ensure that the lock is released.
                     Monitor.Exit( _parent._lockObj );
                 }
-                _parent.Log( nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
             }
             if ( waitingReader != null ) {
+                _parent.Log( nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
                 // If we get here, we grabbed a waiting reader.
                 waitingReader?.TrySetResult( item: true );
             }
@@ -179,18 +170,16 @@ public abstract class ChannelMux {
         //     return true;
         // }
 
-        public bool IsComplete( ) => _doneWriting is not null;
-
         /// <inheritdoc />
         /// <remarks>
         /// This will always return immediately.
         /// </remarks>
         public override ValueTask<bool> WaitToWriteAsync( CancellationToken cancellationToken = new CancellationToken() ) {
-            Exception? doneWriting = _doneWriting;
-            return cancellationToken.IsCancellationRequested          ? new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) ) :
-                doneWriting == null                                   ? new ValueTask<bool>( true ) :
-                doneWriting != ChannelUtilities.s_doneWritingSentinel ? new ValueTask<bool>( Task.FromException<bool>( doneWriting ) ) :
-                                                                        default;
+            Exception? completeException = _parent._completeException; // URGENT: maybe setting to a local is something I need to do elsewhere?
+            return cancellationToken.IsCancellationRequested ? new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) ) :
+                !_isComplete                                 ? new ValueTask<bool>( true ) :
+                completeException is {}                      ? new ValueTask<bool>( Task.FromException<bool>( completeException ) ) :
+                                                               default;
         }
 
         public override bool TryComplete( Exception? exception = null ) {
@@ -199,12 +188,16 @@ public abstract class ChannelMux {
             _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryComplete) );
 
             // If we're already marked as complete, there's nothing more to do.
-            if ( _doneWriting != null ) {
+            if ( _isComplete ) {
                 return false;
             }
 
             // Mark as complete for writing.
-            _doneWriting = exception ?? ChannelUtilities.s_doneWritingSentinel;
+            _isComplete = true;
+            if ( exception is { } ) {
+                exception.Data.Add( nameof(ChannelMux) + " Type", typeof(TData) );
+                Interlocked.Exchange( ref _parent._completeException, exception );
+            }
 
             Interlocked.Increment( ref _parent._closedChannels );
             // if all channels are closed, or if this complete was reported with an exception, close everything
@@ -238,7 +231,7 @@ public abstract class ChannelMux {
                 _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(_parent._closedChannels)}: {_parent._closedChannels}" );
                 _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), $"{nameof(_parent._totalChannels)}: {_parent._totalChannels}" );
                 // Complete a waiting reader if there is one
-                if ( waitingReader != null && _parent._closedChannels >= _parent._totalChannels ) {
+                if ( waitingReader != null ) {
                     _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryComplete), "waitingReader != null" );
                     if ( exception != null ) {
                         waitingReader.TrySetException( exception );
@@ -260,8 +253,8 @@ public abstract class ChannelMux {
                 _parent.Log( nameof(ChannelMuxInput<TData>) + $"<{typeof(TData).Name}>", $"{nameof(_parent._readableItems)}: was {_parent._readableItems}" );
                 Interlocked.Decrement( ref _parent._readableItems );
                 _parent.Log( nameof(ChannelMuxInput<TData>) + $"<{typeof(TData).Name}>", $"{nameof(_parent._readableItems)}: now {_parent._readableItems}" );
-                if ( _doneWriting != null && _queue.IsEmpty ) {
-                    ChannelUtilities.Complete( _parent._completion, _doneWriting );
+                if ( _isComplete && _queue.IsEmpty ) {
+                    ChannelUtilities.Complete( _parent._completion, _parent._completeException );
                 }
                 return true;
             }
@@ -273,7 +266,7 @@ public abstract class ChannelMux {
             // so just TryWrite and return a completed task.
             cancellationToken.IsCancellationRequested ? new ValueTask( Task.FromCanceled( cancellationToken ) ) :
             TryWrite( item )                          ? default :
-                                                        new ValueTask( Task.FromException( ChannelUtilities.CreateInvalidCompletionException( _doneWriting ) ) );
+                                                        new ValueTask( Task.FromException( ChannelUtilities.CreateInvalidCompletionException( _parent._completeException ) ) );
 
         /// <inheritdoc />
         public void Dispose( ) {
@@ -292,18 +285,6 @@ public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
     protected ChannelMux( BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1, BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2, int totalChannels ) : base( totalChannels: totalChannels ) {
         _input1 = new ChannelMuxInput<T1>( channel1, this );
         _input2 = new ChannelMuxInput<T2>( channel2, this );
-    }
-
-    /// <inheritdoc />
-    protected override AggregateException? getAllExceptions( ) {
-        List<Exception> exceptions = new ();
-        if ( _input1.Exception is { } ) {
-            exceptions.Add( _input1.Exception );
-        }
-        if ( _input2.Exception is { } ) {
-            exceptions.Add( _input2.Exception );
-        }
-        return exceptions.Count != 0 ? new AggregateException( exceptions ) : null;
     }
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
@@ -343,18 +324,6 @@ public class ChannelMux<T1, T2, T3> : ChannelMux<T1, T2>, IDisposable {
 
     protected ChannelMux( BroadcastChannelWriter<T1> channel1, BroadcastChannelWriter<T2> channel2, BroadcastChannelWriter<T3> channel3, int totalChannels ) : base( channel1, channel2, totalChannels: totalChannels ) {
         _input = new ChannelMuxInput<T3>( channel3, this );
-    }
-
-    /// <inheritdoc />
-    protected override AggregateException? getAllExceptions( ) {
-        List<Exception> exceptions = new ();
-        if ( base.getAllExceptions() is { } baseExceptions ) {
-            exceptions.AddRange( baseExceptions.InnerExceptions );
-        }
-        if ( _input.Exception is { } ) {
-            exceptions.Add( _input.Exception );
-        }
-        return exceptions.Count != 0 ? new AggregateException( exceptions ) : null;
     }
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>

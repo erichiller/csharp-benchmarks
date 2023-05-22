@@ -39,6 +39,7 @@ namespace Benchmarks.InterThread.Benchmark;
 
 
 lock replaced with SpinLock
+======================================
 |                 Method | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |    Gen1 | Allocated [B] |
 |----------------------- |----------:|-----------:|------------:|---------:|--------:|--------------:|
 | ChannelMux_LoopTryRead |  47.16 ms |   0.926 ms |    1.716 ms | 818.1818 | 90.9091 |     4192649 B |
@@ -47,6 +48,7 @@ lock replaced with SpinLock
 
 
 lock in TryWrite replaced with Monitor.TryEnter
+================================================
 |                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
 |----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
 |       ChannelMux_LoopTryRead |  23.70 ms |   0.470 ms |    0.674 ms | 1187.5000 | 406.2500 | 312.5000 |     6701274 B |
@@ -56,6 +58,14 @@ lock in TryWrite replaced with Monitor.TryEnter
 |----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
 |       ChannelMux_LoopTryRead |  23.37 ms |   0.218 ms |    0.204 ms | 1375.0000 | 468.7500 | 343.7500 |     6643177 B |
 | ChannelMux_AsyncWaitLoopOnly |  24.97 ms |   0.401 ms |    0.376 ms | 1062.5000 |  62.5000 |        - |     5223778 B |
+
+lock in TryWrite replaced with Monitor.TryEnter + revised Exception code
+==========================================================================
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  23.55 ms |   0.464 ms |    0.476 ms | 1125.0000 | 406.2500 | 343.7500 |     6601251 B |
+| ChannelMux_AsyncWaitLoopOnly |  24.77 ms |   0.247 ms |    0.219 ms | 1187.5000 | 156.2500 |        - |     5841614 B |
+
 
 
  */
