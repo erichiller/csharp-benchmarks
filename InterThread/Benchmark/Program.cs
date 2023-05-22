@@ -15,26 +15,12 @@
 
 
 using System;
-using System.CodeDom.Compiler;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Extensions;
-using BenchmarkDotNet.Running;
-
-using Benchmarks.Common;
-
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
-using Benchmarks.InterThread.BroadcastQueue;
 
 using BroadcastChannel;
 
@@ -246,7 +232,9 @@ public class Program {
                                $"loopCount:            {loopCount:N0}" );
             // await producer1;
         }
-        for ( int iter = 0 ; iter < 100_000 ; iter++ ) {
+        // System.IO.File.Delete( "/home/eric/Downloads/marks.csv" );
+        // for ( int iter = 0 ; iter < 2_000 ; iter++ ) {
+            for ( int iter = 0 ; iter < 100_000 ; iter++ ) {
             stopwatch = Stopwatch.StartNew();
             BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
             BroadcastChannel<ClassA>                              channel2 = new ();
@@ -310,6 +298,33 @@ public class Program {
             if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
                 throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
             }
+            // Console.WriteLine( /* Testing */ // KILL
+            //     /* Testing */                // KILL
+            //     $"\n\t"                                                         +
+            //     $"_WaitToReadAsync_mark1: {mux._WaitToReadAsync_mark1}\n\t"     +
+            //     $"_WaitToReadAsync__mark2: {mux._WaitToReadAsync__mark2}\n\t"   +
+            //     $"_WaitToReadAsync__mark3: {mux._WaitToReadAsync__mark3}\n\t"   +
+            //     $"_WaitToReadAsync__mark4: {mux._WaitToReadAsync__mark4}\n\t"   +
+            //     $"_WaitToReadAsync__mark5: {mux._WaitToReadAsync__mark5}\n\t"   +
+            //     $"_WaitToReadAsync__mark6: {mux._WaitToReadAsync__mark6}\n\t"   +
+            //     $"_WaitToReadAsync__mark7: {mux._WaitToReadAsync__mark7}\n\t"   +
+            //     $"_WaitToReadAsync__mark8: {mux._WaitToReadAsync__mark8}\n\t"   +
+            //     $"_WaitToReadAsync__mark9: {mux._WaitToReadAsync__mark9}\n\t"   +
+            //     $"_WaitToReadAsync__mark10: {mux._WaitToReadAsync__mark10}\n\t" +
+            //     $"_WaitToReadAsync__mark11: {mux._WaitToReadAsync__mark11}\n\t" +
+            //     $"_WaitToReadAsync__mark12: {mux._WaitToReadAsync__mark12}\n\t" +
+            //     $"_tryWrite_mark1: {mux._tryWrite_mark1}\n\t"                   +
+            //     $"_tryWrite_mark2: {mux._tryWrite_mark2}\n\t"                   +
+            //     $"_tryWrite_mark3: {mux._tryWrite_mark3}\n\t"                   +
+            //     $"_tryWrite_mark4: {mux._tryWrite_mark4}\n\t"                   +
+            //     $"_tryWrite_mark5: {mux._tryWrite_mark5}\n\t"                   +
+            //     $"_tryWrite_mark6: {mux._tryWrite_mark6}\n\t"                   +
+            //     $"_tryWrite_mark7: {mux._tryWrite_mark7}\n\t"                   +
+            //     $"_tryWrite_mark8: {mux._tryWrite_mark8}\n\t" );
+            // System.IO.File.AppendAllText( "/home/eric/Downloads/marks.csv",
+            //                               $"{stopwatch.ElapsedTicks},"                                                                                                                                                                                                                                                                                                                                                  +
+            //                               $"{mux._WaitToReadAsync_mark1},{mux._WaitToReadAsync__mark2},{mux._WaitToReadAsync__mark3},{mux._WaitToReadAsync__mark4},{mux._WaitToReadAsync__mark5},{mux._WaitToReadAsync__mark6},{mux._WaitToReadAsync__mark7},{mux._WaitToReadAsync__mark8},{mux._WaitToReadAsync__mark9},{mux._WaitToReadAsync__mark10},{mux._WaitToReadAsync__mark11},{mux._WaitToReadAsync__mark12}," +
+            //                               $"{mux._tryWrite_mark1},{mux._tryWrite_mark2},{mux._tryWrite_mark3},{mux._tryWrite_mark4},{mux._tryWrite_mark5},{mux._tryWrite_mark6},{mux._tryWrite_mark7},{mux._tryWrite_mark8}\n" );
             Console.WriteLine( $"{iter}. With TryRead Loop\n\t"                                                               +
                                $"Completed in {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedTicks:N0} ticks).\n\t" +
                                $"receivedCount:        {receivedCount:N0}\n\t"                                                +

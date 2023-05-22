@@ -1,4 +1,14 @@
-#undef DEBUG
+// #undef DEBUG
+#if DEBUG
+#define DEBUG_MUX
+#endif
+// #define DEBUG_BROADCAST
+// #define DEBUG_CHANNEL
+// #define DEBUG_OBSERVER
+// # define DEBUG_THREAD_PRIORITY
+#if DEBUG_MUX
+#define DEBUG
+#endif
 
 using System;
 using System.Diagnostics;
@@ -22,11 +32,37 @@ public abstract class ChannelMux {
     private volatile int                  _closedChannels    = 0;
     private readonly int                  _totalChannels;
     private          bool                 _areAllChannelsComplete => _closedChannels >= _totalChannels;
+    private volatile bool                 _isReaderWaiting = false;
+    
+    /* Testing */ // KILL
+    public int _WaitToReadAsync_mark1   = 0;
+    public int _WaitToReadAsync__mark2  = 0;
+    public int _WaitToReadAsync__mark3  = 0;
+    public int _WaitToReadAsync__mark4  = 0;
+    public int _WaitToReadAsync__mark5  = 0;
+    public int _WaitToReadAsync__mark6  = 0;
+    public int _WaitToReadAsync__mark7  = 0;
+    public int _WaitToReadAsync__mark8  = 0;
+    public int _WaitToReadAsync__mark9  = 0;
+    public int _WaitToReadAsync__mark10 = 0;
+    public int _WaitToReadAsync__mark11 = 0;
+    public int _WaitToReadAsync__mark12 = 0;
+    public int _tryWrite_mark1          = 0;
+    public int _tryWrite_mark2          = 0;
+    public int _tryWrite_mark3          = 0;
+    public int _tryWrite_mark4          = 0;
+    public int _tryWrite_mark5          = 0;
+    public int _tryWrite_mark6          = 0;
+    public int _tryWrite_mark7          = 0;
+    public int _tryWrite_mark8          = 0;
+    
+    /* End Testing */
 
     /// <summary>Task that indicates the channel has completed.</summary>
     private readonly TaskCompletionSource _completion;
 
     public Task Completion => _completion.Task;
+
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
         // TODO: actually do something with this?
@@ -38,65 +74,87 @@ public abstract class ChannelMux {
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.WaitToReadAsync"/>
     public ValueTask<bool> WaitToReadAsync( CancellationToken cancellationToken ) {
+        DebugIncrement( ref _WaitToReadAsync_mark1 ); // KILL
         Log( nameof(WaitToReadAsync), $"{nameof(_readableItems)}: {_readableItems}" );
         // Outside of the lock, check if there are any items waiting to be read.  If there are, we're done.
         if ( cancellationToken.IsCancellationRequested ) {
+            _isReaderWaiting = false; // URGENT: try marking as false once, then selectively marking as true.
+            DebugIncrement( ref _WaitToReadAsync__mark2 ); // KILL
             return new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) );
         }
 
         if ( _readableItems > 0 ) {
+            DebugIncrement( ref _WaitToReadAsync__mark3 ); // KILL
             Log( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
+            _isReaderWaiting = false;
             return new ValueTask<bool>( true );
         }
         AsyncOperation<bool>? oldWaitingReader, newWaitingReader;
         lock ( _lockObj ) {
+            DebugIncrement( ref _WaitToReadAsync__mark4 ); // KILL
             Log( nameof(WaitToReadAsync), "in lock" );
             // Again while holding the lock, check to see if there are any items available.
             if ( _readableItems > 0 ) {
+                DebugIncrement( ref _WaitToReadAsync__mark5 ); // KILL
                 Log( nameof(WaitToReadAsync), "in lock", $"_readableItems > 0 : {_readableItems}" );
+                _isReaderWaiting = false;
                 return new ValueTask<bool>( true );
             }
             // There aren't any items; if we're done writing, there never will be more items.
             if ( _areAllChannelsComplete ) {
+                DebugIncrement( ref _WaitToReadAsync__mark6 ); // KILL
                 Log( nameof(WaitToReadAsync), "_allChannelsDoneWriting" );
+                _isReaderWaiting = false;
                 // if an exception is present, return a cancelled ValueTask with the exception.
                 return _completeException is { } exception ? new ValueTask<bool>( Task.FromException<bool>( exception ) ) : default;
             }
             // Try to use the singleton waiter.  If it's currently being used, then the channel
             // is being used erroneously, and we cancel the outstanding operation.
             oldWaitingReader = _waitingReader;
-            if ( !cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset() ) {
+            if ( /* !cancellationToken.CanBeCanceled && */ _waiterSingleton.TryOwnAndReset() ) {
+                DebugIncrement( ref _WaitToReadAsync__mark7 ); // KILL
                 Log( nameof(WaitToReadAsync), "!cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset()" );
                 newWaitingReader = _waiterSingleton;
                 if ( newWaitingReader == oldWaitingReader ) {
+                    DebugIncrement( ref _WaitToReadAsync__mark8 ); // KILL
                     Log( nameof(WaitToReadAsync), "newWaitingReader == oldWaitingReader" );
                     // The previous operation completed, so null out the "old" waiter
                     // so we don't end up canceling the new operation.
                     oldWaitingReader = null;
                 }
             } else {
+                DebugIncrement( ref _WaitToReadAsync__mark9 ); // KILL
                 Log( nameof(WaitToReadAsync), "ELSE" );
                 newWaitingReader = new AsyncOperation<bool>( _runContinuationsAsynchronously, cancellationToken );
             }
+            DebugIncrement( ref _WaitToReadAsync__mark10 ); // KILL
             Log( nameof(WaitToReadAsync), $"newWaitingReader is {newWaitingReader}" );
-            _waitingReader = newWaitingReader;
+            _isReaderWaiting = true;
+            _waitingReader   = newWaitingReader;
         }
 
         // KILL ??
         if ( _readableItems > 0 ) {
+            DebugIncrement( ref _WaitToReadAsync__mark11 ); // KILL
+            // _isReaderWaiting = false;
             Log( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
             return new ValueTask<bool>( true );
         }
 
+        DebugIncrement( ref _WaitToReadAsync__mark12 ); // KILL
         Log( nameof(WaitToReadAsync), $"oldWaitingReader is {newWaitingReader}" );
         oldWaitingReader?.TrySetCanceled( default );
         return newWaitingReader.ValueTaskOfT;
     }
 
-    [ Conditional( "DEBUG" ) ]
+    [ Conditional( "LOG" ) ]
     protected void Log( params string[] contextAndMessage ) {
         Console.WriteLine( $"{this.GetType().Name} > {String.Join( " > ", contextAndMessage )}" );
     }
+    
+    
+    [ Conditional( "DEBUG" ) ]
+    private static void DebugIncrement( ref int n ) => Interlocked.Increment( ref n );
 
 
     //
@@ -117,32 +175,44 @@ public abstract class ChannelMux {
         /// <inheritdoc />
         public override bool TryWrite( TData item ) {
             _parent.Log( nameof(TryWrite) );
+            DebugIncrement( ref _parent._tryWrite_mark1 ); // KILL
             if ( _isComplete ) {
+                DebugIncrement( ref _parent._tryWrite_mark2 ); // KILL
                 return false;
             }
 
             _queue.Enqueue( item );
             Interlocked.Increment( ref _parent._readableItems );
+            if ( ! _parent._isReaderWaiting ){
+                DebugIncrement( ref _parent._tryWrite_mark3 ); // KILL
+                return true;
+            }
             AsyncOperation<bool>? waitingReader = null;
             if ( Monitor.TryEnter( _parent._lockObj ) ) {
+                DebugIncrement( ref _parent._tryWrite_mark4 ); // KILL
                 try {
                     _parent.Log( nameof(ChannelMuxInput<TData>), nameof(TryWrite), "in lock" );
                     waitingReader = _parent._waitingReader;
                     if ( waitingReader == null ) {
+                        DebugIncrement( ref _parent._tryWrite_mark5 ); // KILL
                         _parent.Log( nameof(TryWrite), "waitingReader is null" );
                         return true;
                     }
-                    _parent._waitingReader = null; // URGENT: try replacing the lock with a volatile bool
+                    DebugIncrement( ref _parent._tryWrite_mark6 ); // KILL
+                    _parent._isReaderWaiting = false;
+                    _parent._waitingReader   = null; // URGENT: try replacing the lock with a volatile bool
                 } finally {
                     // Ensure that the lock is released.
                     Monitor.Exit( _parent._lockObj );
                 }
             }
             if ( waitingReader != null ) {
+                DebugIncrement( ref _parent._tryWrite_mark7 ); // KILL
                 _parent.Log( nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
                 // If we get here, we grabbed a waiting reader.
                 waitingReader?.TrySetResult( item: true );
             }
+            DebugIncrement( ref _parent._tryWrite_mark8 ); // KILL
             return true;
         }
 

@@ -46,7 +46,6 @@ lock replaced with SpinLock
 
 
 
-
 lock in TryWrite replaced with Monitor.TryEnter
 ================================================
 |                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
@@ -59,12 +58,52 @@ lock in TryWrite replaced with Monitor.TryEnter
 |       ChannelMux_LoopTryRead |  23.37 ms |   0.218 ms |    0.204 ms | 1375.0000 | 468.7500 | 343.7500 |     6643177 B |
 | ChannelMux_AsyncWaitLoopOnly |  24.97 ms |   0.401 ms |    0.376 ms | 1062.5000 |  62.5000 |        - |     5223778 B |
 
+
+
 lock in TryWrite replaced with Monitor.TryEnter + revised Exception code
 ==========================================================================
 |                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
 |----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
 |       ChannelMux_LoopTryRead |  23.55 ms |   0.464 ms |    0.476 ms | 1125.0000 | 406.2500 | 343.7500 |     6601251 B |
 | ChannelMux_AsyncWaitLoopOnly |  24.77 ms |   0.247 ms |    0.219 ms | 1187.5000 | 156.2500 |        - |     5841614 B |
+
+
+
+lock in TryWrite replaced with Monitor.TryEnter + revised Exception code + volatile bool pre-check for waitingReader
+====================================================================================================================
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  15.96 ms |   0.308 ms |    0.342 ms | 1125.0000 | 937.5000 | 906.2500 |     8112448 B |
+| ChannelMux_AsyncWaitLoopOnly |  26.04 ms |   0.535 ms |    1.569 ms | 1593.7500 | 500.0000 | 375.0000 |     8718857 B |
+
+
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  17.52 ms |   0.348 ms |    0.572 ms | 1343.7500 | 812.5000 | 812.5000 |     8508873 B |
+| ChannelMux_AsyncWaitLoopOnly |  27.44 ms |   0.542 ms |    1.339 ms | 1718.7500 | 625.0000 | 343.7500 |     8855990 B |
+
+
+
+w/ if ( Interlocked.Increment( ref _parent._readableItems ) > 1 ) ;; pre-check
+==============================================================================
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  22.63 ms |   0.530 ms |    1.562 ms | 1843.7500 | 468.7500 | 343.7500 |     9014399 B |
+| ChannelMux_AsyncWaitLoopOnly |  26.92 ms |   0.533 ms |    1.555 ms | 1250.0000 | 687.5000 | 437.5000 |     6799739 B |
+
+
+using singleton
+==================
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|       ChannelMux_LoopTryRead |  13.96 ms |   0.231 ms |    0.216 ms | 1015.6250 | 968.7500 | 968.7500 |     8268526 B |
+| ChannelMux_AsyncWaitLoopOnly |  20.85 ms |   0.413 ms |    1.081 ms | 1125.0000 | 781.2500 | 625.0000 |     7056407 B |
+
+|                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+|     ChannelMux_LoopTryRead_2 |  11.27 ms |   0.222 ms |    0.272 ms | 1109.3750 | 781.2500 | 500.0000 |     6044332 B |
+|       ChannelMux_LoopTryRead |  13.95 ms |   0.178 ms |    0.166 ms | 1046.8750 | 968.7500 | 968.7500 |     8227056 B |
+| ChannelMux_AsyncWaitLoopOnly |  21.47 ms |   0.426 ms |    1.243 ms | 1343.7500 | 812.5000 | 437.5000 |     7189697 B |
 
 
 
@@ -96,9 +135,9 @@ public class ChannelMuxBenchmarks {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        int     receivedCountStructA = 0;
-        int     receivedCountClassA  = 0;
-        
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
+
         // ReSharper disable UnusedVariable        
         ClassA? classA;
         StructA structA;
@@ -143,6 +182,39 @@ public class ChannelMuxBenchmarks {
                 if ( structA is { } ) {
                     receivedCountStructA++;
                     structA = null;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
+        }
+    }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead_2( ) {
+        BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+        BroadcastChannel<ClassA>                              channel2 = new ();
+        ChannelMux<StructA?, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
+        CancellationToken                                     ct       = CancellationToken.None;
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        int      receivedCountStructA = 0;
+        int      receivedCountClassA  = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( ( mux.TryRead( out ClassA? classA ), mux.TryRead( out StructA? structA ) ) != ( false, false ) ) {
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( structA is { } ) {
+                    receivedCountStructA++;
                 }
             }
         }
