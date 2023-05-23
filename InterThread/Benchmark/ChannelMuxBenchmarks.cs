@@ -92,7 +92,7 @@ w/ if ( Interlocked.Increment( ref _parent._readableItems ) > 1 ) ;; pre-check
 | ChannelMux_AsyncWaitLoopOnly |  26.92 ms |   0.533 ms |    1.555 ms | 1250.0000 | 687.5000 | 437.5000 |     6799739 B |
 
 
-using singleton
+using singleton AsyncOperation
 ==================
 |                       Method | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
 |----------------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
@@ -106,14 +106,31 @@ using singleton
 | ChannelMux_AsyncWaitLoopOnly |  21.47 ms |   0.426 ms |    1.243 ms | 1343.7500 | 812.5000 | 437.5000 |     7189697 B |
 
 
+|                                                                        Method | MessageCount | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |      Gen1 |      Gen2 | Allocated [B] |
+|------------------------------------------------------------------------------ |------------- |----------:|-----------:|------------:|----------:|----------:|----------:|--------------:|
+|           ChannelMux_LoopTryRead2_4Producer_4Tasks_1ValueType_3ReferenceTypes |       100000 |  42.20 ms |   0.842 ms |    1.899 ms | 3750.0000 | 2083.3333 | 583.3333  |    22639463 B |
+|                      ChannelMux_LoopTryRead2_4Producer_4Tasks_4ReferenceTypes |       100000 |  42.23 ms |   0.821 ms |    1.966 ms | 4000.0000 | 2500.0000 | 750.0000  |    22910485 B |
+|            ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes |       100000 |  99.11 ms |   1.141 ms |    0.891 ms | 2500.0000 |         - |        -  |    12011148 B |
+| ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes_WriteAsync |       100000 | 108.61 ms |   0.073 ms |    0.061 ms | 5600.0000 |         - |        -  |    27211277 B |
+|                                      ChannelMux_LoopTryRead2_8Producer_8Tasks |       100000 |  88.84 ms |   1.749 ms |    3.765 ms | 6500.0000 | 4166.6667 | 1333.3333 |    39397537 B |
+
+
+
 
  */
 
 [ Config( typeof(BenchmarkConfig) ) ]
 public class ChannelMuxBenchmarks {
-    private int totalMessages = 100_000;
+    [ Params( 100_000 ) ]
+    // [ Params( 100 ) ]
+    // ReSharper disable once UnassignedField.Global
+    public int MessageCount;
 
-    static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
+    // [ Params( 100_000 ) ]
+    // // ReSharper disable once UnassignedField.Global
+    // public int MessageCount;
+
+    private static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
         int i = 0;
         while ( i++ < totalMessages ) {
             writer.TryWrite( objectFactory( i ) );
@@ -127,11 +144,11 @@ public class ChannelMuxBenchmarks {
         BroadcastChannel<ClassA>                             channel2 = new ();
         ChannelMux<StructA, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
         CancellationToken                                    ct       = CancellationToken.None;
-        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
@@ -152,7 +169,7 @@ public class ChannelMuxBenchmarks {
         // ReSharper restore UnusedVariable
         await producer1;
         await producer2;
-        if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
         }
     }
@@ -163,11 +180,11 @@ public class ChannelMuxBenchmarks {
         BroadcastChannel<ClassA>                              channel2 = new ();
         ChannelMux<StructA?, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
         CancellationToken                                     ct       = CancellationToken.None;
-        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
@@ -187,27 +204,27 @@ public class ChannelMuxBenchmarks {
         }
         await producer1;
         await producer2;
-        if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
         }
     }
 
     [ Benchmark ]
-    public async Task ChannelMux_LoopTryRead_2( ) {
+    public async Task ChannelMux_LoopTryRead2_2Producer( ) {
         BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
         BroadcastChannel<ClassA>                              channel2 = new ();
         ChannelMux<StructA?, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);
         CancellationToken                                     ct       = CancellationToken.None;
-        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        int      receivedCountStructA = 0;
-        int      receivedCountClassA  = 0;
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
         while ( await mux.WaitToReadAsync( ct ) ) {
             while ( ( mux.TryRead( out ClassA? classA ), mux.TryRead( out StructA? structA ) ) != ( false, false ) ) {
                 if ( classA is { } ) {
@@ -220,10 +237,445 @@ public class ChannelMuxBenchmarks {
         }
         await producer1;
         await producer2;
-        if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
         }
     }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_3Producer( ) {
+        BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+        BroadcastChannel<ClassA>                              channel2 = new ();
+        BroadcastChannel<ClassB>                              channel3 = new ();
+        ChannelMux<StructA?, ClassA, ClassB>                  mux      = new (channel1.Writer, channel2.Writer, channel3.Writer);
+        CancellationToken                                     ct       = CancellationToken.None;
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer3 = Task.Run( ( ) => producerTask( channel3.Writer, MessageCount, i => new ClassB {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
+        int receivedCountClassB  = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out StructA? structA ),
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ) ) != ( false, false, false ) ) {
+                if ( structA is { } ) {
+                    receivedCountStructA++;
+                }
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        await producer3;
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount || receivedCountClassB != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"    +
+                                        $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t" +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t"   +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t"
+            );
+        }
+    }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_4Producer_4Tasks_1ValueType_3ReferenceTypes( ) {
+        BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+        BroadcastChannel<ClassA>                              channel2 = new ();
+        BroadcastChannel<ClassB>                              channel3 = new ();
+        BroadcastChannel<ClassC>                              channel4 = new ();
+        ChannelMux<StructA?, ClassA, ClassB, ClassC>          mux      = new (channel1.Writer, channel2.Writer, channel3.Writer, channel4.Writer);
+        CancellationToken                                     ct       = CancellationToken.None;
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer3 = Task.Run( ( ) => producerTask( channel3.Writer, MessageCount, i => new ClassB {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer4 = Task.Run( ( ) => producerTask( channel4.Writer, MessageCount, i => new ClassC {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
+        int receivedCountClassB  = 0;
+        int receivedCountClassC  = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out StructA? structA ),
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ),
+                       mux.TryRead( out ClassC? classC ) ) != ( false, false, false, false ) ) {
+                if ( structA is { } ) {
+                    receivedCountStructA++;
+                }
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+                if ( classC is { } ) {
+                    receivedCountClassC++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        await producer3;
+        await producer4;
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount || receivedCountClassB != MessageCount || receivedCountClassC != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"    +
+                                        $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t" +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t"   +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t"   +
+                                        $"{nameof(receivedCountClassC)}: {receivedCountClassC}\n\t"
+            );
+        }
+    }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_4Producer_4Tasks_4ReferenceTypes( ) {
+        BroadcastChannel<ClassA>                   channel1 = new ();
+        BroadcastChannel<ClassB>                   channel2 = new ();
+        BroadcastChannel<ClassC>                   channel3 = new ();
+        BroadcastChannel<ClassD>                   channel4 = new ();
+        ChannelMux<ClassA, ClassB, ClassC, ClassD> mux      = new (channel1.Writer, channel2.Writer, channel3.Writer, channel4.Writer);
+        CancellationToken                          ct       = CancellationToken.None;
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new ClassA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassB {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer3 = Task.Run( ( ) => producerTask( channel3.Writer, MessageCount, i => new ClassC {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer4 = Task.Run( ( ) => producerTask( channel4.Writer, MessageCount, i => new ClassD {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        int receivedCountClassA = 0;
+        int receivedCountClassB = 0;
+        int receivedCountClassC = 0;
+        int receivedCountClassD = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ),
+                       mux.TryRead( out ClassC? classC ),
+                       mux.TryRead( out ClassD? classD ) ) != ( false, false, false, false ) ) {
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+                if ( classC is { } ) {
+                    receivedCountClassC++;
+                }
+                if ( classD is { } ) {
+                    receivedCountClassD++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        await producer3;
+        await producer4;
+        if ( receivedCountClassA != MessageCount || receivedCountClassB != MessageCount || receivedCountClassC != MessageCount || receivedCountClassD != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"  +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t" +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t" +
+                                        $"{nameof(receivedCountClassC)}: {receivedCountClassC}\n\t" +
+                                        $"{nameof(receivedCountClassD)}: {receivedCountClassD}\n\t"
+            );
+        }
+    }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes( ) {
+        BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+        BroadcastChannel<ClassA>                              channel2 = new ();
+        BroadcastChannel<ClassB>                              channel3 = new ();
+        BroadcastChannel<ClassC>                              channel4 = new ();
+        ChannelMux<StructA?, ClassA, ClassB, ClassC>          mux      = new (channel1.Writer, channel2.Writer, channel3.Writer, channel4.Writer);
+        CancellationToken                                     ct       = CancellationToken.None;
+        Task                                                  producer = Task.Run( producerTaskMultiChannel, ct );
+
+        void producerTaskMultiChannel( ) {
+            int i = 0;
+            while ( i++ < MessageCount ) {
+                channel1.Writer.TryWrite( new StructA {
+                                              Id   = i,
+                                              Name = @"some_text"
+                                          } );
+                channel2.Writer.TryWrite( new ClassA {
+                                              Id   = i,
+                                              Name = @"some_text"
+                                          } );
+                channel3.Writer.TryWrite( new ClassB {
+                                              Id   = i,
+                                              Name = @"some_text"
+                                          } );
+                channel4.Writer.TryWrite( new ClassC {
+                                              Id   = i,
+                                              Name = @"some_text"
+                                          } );
+            }
+            channel1.Writer.Complete();
+            channel2.Writer.Complete();
+            channel3.Writer.Complete();
+            channel4.Writer.Complete();
+        }
+
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
+        int receivedCountClassB  = 0;
+        int receivedCountClassC  = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out StructA? structA ),
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ),
+                       mux.TryRead( out ClassC? classC ) ) != ( false, false, false, false ) ) {
+                if ( structA is { } ) {
+                    receivedCountStructA++;
+                }
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+                if ( classC is { } ) {
+                    receivedCountClassC++;
+                }
+            }
+        }
+        await producer;
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount || receivedCountClassB != MessageCount || receivedCountClassC != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"    +
+                                        $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t" +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t"   +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t"   +
+                                        $"{nameof(receivedCountClassC)}: {receivedCountClassC}\n\t"
+            );
+        }
+    }
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes_WriteAsync( ) {
+        BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
+        BroadcastChannel<ClassA>                              channel2 = new ();
+        BroadcastChannel<ClassB>                              channel3 = new ();
+        BroadcastChannel<ClassC>                              channel4 = new ();
+        ChannelMux<StructA?, ClassA, ClassB, ClassC>          mux      = new (channel1.Writer, channel2.Writer, channel3.Writer, channel4.Writer);
+        CancellationToken                                     ct       = CancellationToken.None;
+        Task                                                  producer = Task.Run( producerTaskMultiChannel, ct );
+
+        async Task producerTaskMultiChannel( ) {
+            int i = 0;
+            while ( i++ < MessageCount ) {
+                await channel1.Writer.WriteAsync( new StructA {
+                                                      Id   = i,
+                                                      Name = @"some_text"
+                                                  }, ct ).ConfigureAwait( false );
+                await channel2.Writer.WriteAsync( new ClassA {
+                                                      Id   = i,
+                                                      Name = @"some_text"
+                                                  }, ct ).ConfigureAwait( false );
+                await channel3.Writer.WriteAsync( new ClassB {
+                                                      Id   = i,
+                                                      Name = @"some_text"
+                                                  }, ct ).ConfigureAwait( false );
+                await channel4.Writer.WriteAsync( new ClassC {
+                                                      Id   = i,
+                                                      Name = @"some_text"
+                                                  }, ct ).ConfigureAwait( false );
+            }
+            channel1.Writer.Complete();
+            channel2.Writer.Complete();
+            channel3.Writer.Complete();
+            channel4.Writer.Complete();
+        }
+
+        int receivedCountStructA = 0;
+        int receivedCountClassA  = 0;
+        int receivedCountClassB  = 0;
+        int receivedCountClassC  = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out StructA? structA ),
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ),
+                       mux.TryRead( out ClassC? classC ) ) != ( false, false, false, false ) ) {
+                if ( structA is { } ) {
+                    receivedCountStructA++;
+                }
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+                if ( classC is { } ) {
+                    receivedCountClassC++;
+                }
+            }
+        }
+        await producer;
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount || receivedCountClassB != MessageCount || receivedCountClassC != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"    +
+                                        $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t" +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t"   +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t"   +
+                                        $"{nameof(receivedCountClassC)}: {receivedCountClassC}\n\t"
+            );
+        }
+    }
+
+
+    [ Benchmark ]
+    public async Task ChannelMux_LoopTryRead2_8Producer_8Tasks( ) {
+        BroadcastChannel<ClassA> channel1 = new ();
+        BroadcastChannel<ClassB> channel2 = new ();
+        BroadcastChannel<ClassC> channel3 = new ();
+        BroadcastChannel<ClassD> channel4 = new ();
+        BroadcastChannel<ClassE> channel5 = new ();
+        BroadcastChannel<ClassF> channel6 = new ();
+        BroadcastChannel<ClassG> channel7 = new ();
+        BroadcastChannel<ClassH> channel8 = new ();
+        ChannelMux<ClassA, ClassB, ClassC, ClassD, ClassE, ClassF, ClassG, ClassH> mux = new (
+            channel1.Writer, channel2.Writer, channel3.Writer, channel4.Writer,
+            channel5.Writer, channel6.Writer, channel7.Writer, channel8.Writer);
+        CancellationToken ct = CancellationToken.None;
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new ClassA {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassB {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer3 = Task.Run( ( ) => producerTask( channel3.Writer, MessageCount, i => new ClassC {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer4 = Task.Run( ( ) => producerTask( channel4.Writer, MessageCount, i => new ClassD {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer5 = Task.Run( ( ) => producerTask( channel5.Writer, MessageCount, i => new ClassE {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer6 = Task.Run( ( ) => producerTask( channel6.Writer, MessageCount, i => new ClassF {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer7 = Task.Run( ( ) => producerTask( channel7.Writer, MessageCount, i => new ClassG {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        Task producer8 = Task.Run( ( ) => producerTask( channel8.Writer, MessageCount, i => new ClassH {
+                                                            Id   = i,
+                                                            Name = @"some_text"
+                                                        } ), ct );
+        int receivedCountClassA = 0;
+        int receivedCountClassB = 0;
+        int receivedCountClassC = 0;
+        int receivedCountClassD = 0;
+        int receivedCountClassE = 0;
+        int receivedCountClassF = 0;
+        int receivedCountClassG = 0;
+        int receivedCountClassH = 0;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( (
+                       mux.TryRead( out ClassA? classA ),
+                       mux.TryRead( out ClassB? classB ),
+                       mux.TryRead( out ClassC? classC ),
+                       mux.TryRead( out ClassD? classD ),
+                       mux.TryRead( out ClassE? classE ),
+                       mux.TryRead( out ClassF? classF ),
+                       mux.TryRead( out ClassG? classG ),
+                       mux.TryRead( out ClassH? classH ) ) != ( false, false, false, false, false, false, false, false ) ) {
+                if ( classA is { } ) {
+                    receivedCountClassA++;
+                }
+                if ( classB is { } ) {
+                    receivedCountClassB++;
+                }
+                if ( classC is { } ) {
+                    receivedCountClassC++;
+                }
+                if ( classD is { } ) {
+                    receivedCountClassD++;
+                }
+                if ( classE is { } ) {
+                    receivedCountClassE++;
+                }
+                if ( classF is { } ) {
+                    receivedCountClassF++;
+                }
+                if ( classG is { } ) {
+                    receivedCountClassG++;
+                }
+                if ( classH is { } ) {
+                    receivedCountClassH++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        await producer3;
+        await producer4;
+        await producer5;
+        await producer6;
+        await producer7;
+        await producer8;
+        if ( receivedCountClassA    != MessageCount || receivedCountClassB != MessageCount || receivedCountClassC != MessageCount || receivedCountClassD != MessageCount
+             || receivedCountClassE != MessageCount || receivedCountClassF != MessageCount || receivedCountClassG != MessageCount || receivedCountClassH != MessageCount ) {
+            throw new System.Exception( $"Not all messages were read. Expected {MessageCount}\n\t"  +
+                                        $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t" +
+                                        $"{nameof(receivedCountClassB)}: {receivedCountClassB}\n\t" +
+                                        $"{nameof(receivedCountClassC)}: {receivedCountClassC}\n\t" +
+                                        $"{nameof(receivedCountClassD)}: {receivedCountClassD}\n\t" +
+                                        $"{nameof(receivedCountClassE)}: {receivedCountClassE}\n\t" +
+                                        $"{nameof(receivedCountClassF)}: {receivedCountClassF}\n\t" +
+                                        $"{nameof(receivedCountClassG)}: {receivedCountClassG}\n\t" +
+                                        $"{nameof(receivedCountClassH)}: {receivedCountClassH}\n\t"
+            );
+        }
+    }
+
+
+    /*
+     * 
+     */
 
     [ Benchmark ]
     public async Task BroadcastChannelOnly( ) {
@@ -232,11 +684,11 @@ public class ChannelMuxBenchmarks {
         var                                                   channelReader1 = channel1.GetReader(); // these must be setup BEFORE the producer begins
         var                                                   channelReader2 = channel2.GetReader();
         CancellationToken                                     ct             = CancellationToken.None;
-        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, totalMessages, i => new StructA {
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, MessageCount, i => new StructA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
-        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, totalMessages, i => new ClassA {
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, MessageCount, i => new ClassA {
                                                             Id   = i,
                                                             Name = @"some_text"
                                                         } ), ct );
@@ -262,7 +714,7 @@ public class ChannelMuxBenchmarks {
         await producer2;
         await reader1;
         await reader2;
-        if ( receivedCountClassA != totalMessages || receivedCountStructA != totalMessages ) {
+        if ( receivedCountClassA != MessageCount || receivedCountStructA != MessageCount ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
         }
     }
@@ -280,4 +732,53 @@ public class ClassA {
     public          string Name        = String.Empty;
     public          string Description = String.Empty;
     public override string ToString( ) => $"{nameof(ClassA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassB {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassB)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassC {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassC)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassD {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassD)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassE {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassE)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassF {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassF)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassG {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassG)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
+}
+
+public class ClassH {
+    public          int    Id;
+    public          string Name        = String.Empty;
+    public          string Description = String.Empty;
+    public override string ToString( ) => $"{nameof(ClassH)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
 }

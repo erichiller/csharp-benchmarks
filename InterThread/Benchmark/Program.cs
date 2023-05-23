@@ -11,14 +11,27 @@
 // # define DEBUG_THREAD_PRIORITY
 #if DEBUG_MUX
 #define DEBUG
+#define LOG
 #endif
 
-
+// ReSharper disable RedundantUsingDirective
 using System;
+using System.CodeDom.Compiler;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Extensions;
+using BenchmarkDotNet.Running;
+
+using Benchmarks.Common;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -26,9 +39,11 @@ using BroadcastChannel;
 
 using BroadcastChannelMux;
 
+// ReSharper restore RedundantUsingDirective
+
 namespace Benchmarks.InterThread.Benchmark;
 
-public class Program {
+public partial class Program {
 #if DEBUG
     // public class ResponseChecker {
     //     private ChannelReader<ChannelResponse> _reader;
@@ -50,7 +65,7 @@ public class Program {
     //     }
     // }
 
-    [ Conditional( "SHOULD_LOG" ) ]
+    [ Conditional( "LOG" ) ]
     private static void Log( string? msg ) => Console.WriteLine( msg );
 
 
@@ -68,6 +83,33 @@ public class Program {
 
 #if DEBUG_MUX
         Console.WriteLine( "DEBUG_MUX" );
+
+        Console.WriteLine( $"args len={args.Length} ; {String.Join( ", ", args )}" );
+
+        if ( args.Length == 1 ) {
+            switch ( args[ 0 ] ) {
+                case nameof(ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes):
+                    await ChannelMux_LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes();
+                    break;
+                case nameof(ChannelMux_LoopTryRead2_4Producer_4Tasks_1ValueType_3ReferenceTypes):
+                    await ChannelMux_LoopTryRead2_4Producer_4Tasks_1ValueType_3ReferenceTypes();
+                    break;
+                case nameof(ChannelMux_LoopTryRead2_4Producer_4Tasks_4ReferenceTypes):
+                    await ChannelMux_LoopTryRead2_4Producer_4Tasks_4ReferenceTypes();
+                    break;
+                case nameof(ChannelMux_LoopTryRead2_8Producer_8Tasks):
+                    await ChannelMux_LoopTryRead2_8Producer_8Tasks();
+                    break;
+                case nameof(LatencyTest):
+                    await LatencyTest();
+                    break;
+                default:
+                    Log( $"not known: {args[ 0 ]}" );
+                    return 1;
+                    break;
+            }
+            return 0;
+        }
 
         // {
         //     static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, Func<int, T> objectFactory ) {
@@ -201,21 +243,19 @@ public class Program {
                                                                 Id   = i,
                                                                 Name = @"some_text"
                                                             } ), ct );
-            int      receivedCount        = 0;
-            int      receivedCountStructA = 0;
-            int      receivedCountClassA  = 0;
-            int      loopCount            = 0;
-            ClassA?  classA               = null;
-            StructA? structA              = null;
+            int receivedCount        = 0;
+            int receivedCountStructA = 0;
+            int receivedCountClassA  = 0;
+            int loopCount            = 0;
             Log( "Waiting to read..." );
             while ( await mux.WaitToReadAsync( ct ) ) {
                 Log( "Awake" );
-                if ( mux.TryRead( out classA ) ) {
+                if ( mux.TryRead( out ClassA? classA ) ) {
                     receivedCount++;
                     Log( classA.ToString() );
                     receivedCountClassA++;
                 }
-                if ( mux.TryRead( out structA ) ) {
+                if ( mux.TryRead( out StructA? structA ) ) {
                     receivedCount++;
                     Log( structA.ToString() );
                     receivedCountStructA++;
@@ -234,7 +274,7 @@ public class Program {
         }
         // System.IO.File.Delete( "/home/eric/Downloads/marks.csv" );
         // for ( int iter = 0 ; iter < 2_000 ; iter++ ) {
-            for ( int iter = 0 ; iter < 100_000 ; iter++ ) {
+        for ( int iter = 0 ; iter < 100_000 ; iter++ ) {
             stopwatch = Stopwatch.StartNew();
             BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1 = new ();
             BroadcastChannel<ClassA>                              channel2 = new ();

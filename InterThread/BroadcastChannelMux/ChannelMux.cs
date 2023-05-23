@@ -1,4 +1,3 @@
-// #undef DEBUG
 #if DEBUG
 #define DEBUG_MUX
 #endif
@@ -8,7 +7,13 @@
 // # define DEBUG_THREAD_PRIORITY
 #if DEBUG_MUX
 #define DEBUG
+#define LOG
 #endif
+
+#undef DEBUG
+#undef DEBUG_MUX
+#undef LOG
+
 
 using System;
 using System.Diagnostics;
@@ -33,7 +38,7 @@ public abstract class ChannelMux {
     private readonly int                  _totalChannels;
     private          bool                 _areAllChannelsComplete => _closedChannels >= _totalChannels;
     private volatile bool                 _isReaderWaiting = false;
-    
+
     /* Testing */ // KILL
     public int _WaitToReadAsync_mark1   = 0;
     public int _WaitToReadAsync__mark2  = 0;
@@ -55,7 +60,7 @@ public abstract class ChannelMux {
     public int _tryWrite_mark6          = 0;
     public int _tryWrite_mark7          = 0;
     public int _tryWrite_mark8          = 0;
-    
+
     /* End Testing */
 
     /// <summary>Task that indicates the channel has completed.</summary>
@@ -78,7 +83,7 @@ public abstract class ChannelMux {
         Log( nameof(WaitToReadAsync), $"{nameof(_readableItems)}: {_readableItems}" );
         // Outside of the lock, check if there are any items waiting to be read.  If there are, we're done.
         if ( cancellationToken.IsCancellationRequested ) {
-            _isReaderWaiting = false; // URGENT: try marking as false once, then selectively marking as true.
+            _isReaderWaiting = false;                      // URGENT: try marking as false once, then selectively marking as true.
             DebugIncrement( ref _WaitToReadAsync__mark2 ); // KILL
             return new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) );
         }
@@ -151,8 +156,8 @@ public abstract class ChannelMux {
     protected void Log( params string[] contextAndMessage ) {
         Console.WriteLine( $"{this.GetType().Name} > {String.Join( " > ", contextAndMessage )}" );
     }
-    
-    
+
+
     [ Conditional( "DEBUG" ) ]
     private static void DebugIncrement( ref int n ) => Interlocked.Increment( ref n );
 
@@ -183,7 +188,7 @@ public abstract class ChannelMux {
 
             _queue.Enqueue( item );
             Interlocked.Increment( ref _parent._readableItems );
-            if ( ! _parent._isReaderWaiting ){
+            if ( !_parent._isReaderWaiting ) {
                 DebugIncrement( ref _parent._tryWrite_mark3 ); // KILL
                 return true;
             }
@@ -248,7 +253,7 @@ public abstract class ChannelMux {
             Exception? completeException = _parent._completeException; // URGENT: maybe setting to a local is something I need to do elsewhere?
             return cancellationToken.IsCancellationRequested ? new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) ) :
                 !_isComplete                                 ? new ValueTask<bool>( true ) :
-                completeException is {}                      ? new ValueTask<bool>( Task.FromException<bool>( completeException ) ) :
+                completeException is { }                     ? new ValueTask<bool>( Task.FromException<bool>( completeException ) ) :
                                                                default;
         }
 
@@ -359,11 +364,11 @@ public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
     [ SuppressMessage( "ReSharper", "RedundantNullableFlowAttribute" ) ]
-    public bool TryRead( [ MaybeNullWhen( false ) ] out T1? item ) => _input1.TryRead( out item );
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T1 item ) => _input1.TryRead( out item );
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
     [ SuppressMessage( "ReSharper", "RedundantNullableFlowAttribute" ) ]
-    public bool TryRead( [ MaybeNullWhen( false ) ] out T2? item ) => _input2.TryRead( out item );
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T2 item ) => _input2.TryRead( out item );
 
     /*
      * IDisposable implementation
@@ -390,14 +395,254 @@ public class ChannelMux<T1, T2, T3> : ChannelMux<T1, T2>, IDisposable {
     // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T3> _input;
 
-    public ChannelMux( BroadcastChannelWriter<T1> channel1, BroadcastChannelWriter<T2> channel2, BroadcastChannelWriter<T3> channel3 ) : this( channel1, channel2, channel3, totalChannels: 3 ) { }
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3
+    ) : this( channel1, channel2, channel3, totalChannels: 3 ) { }
 
-    protected ChannelMux( BroadcastChannelWriter<T1> channel1, BroadcastChannelWriter<T2> channel2, BroadcastChannelWriter<T3> channel3, int totalChannels ) : base( channel1, channel2, totalChannels: totalChannels ) {
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, totalChannels: totalChannels ) {
         _input = new ChannelMuxInput<T3>( channel3, this );
     }
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
     public bool TryRead( [ MaybeNullWhen( false ) ] out T3 item ) => _input.TryRead( out item );
+
+    /*
+     * Disposal
+     */
+
+    private bool _isDisposed = false;
+
+    protected override void Dispose( bool disposing ) {
+        if ( !_isDisposed ) {
+            if ( disposing ) {
+                _input.Dispose();
+            }
+            _isDisposed = true;
+        }
+        base.Dispose( disposing );
+    }
+}
+
+public class ChannelMux<T1, T2, T3, T4> : ChannelMux<T1, T2, T3>, IDisposable {
+    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
+    // TODO: should handle responses? (the second type arg of BroadcastChannel)
+    private readonly ChannelMuxInput<T4> _input;
+
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4
+    ) : this( channel1, channel2, channel3, channel4, totalChannels: 4 ) { }
+
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, channel3, totalChannels: totalChannels ) {
+        _input = new ChannelMuxInput<T4>( channel4, this );
+    }
+
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T4 item ) => _input.TryRead( out item );
+
+    /*
+     * Disposal
+     */
+
+    private bool _isDisposed = false;
+
+    protected override void Dispose( bool disposing ) {
+        if ( !_isDisposed ) {
+            if ( disposing ) {
+                _input.Dispose();
+            }
+            _isDisposed = true;
+        }
+        base.Dispose( disposing );
+    }
+}
+
+public class ChannelMux<T1, T2, T3, T4, T5> : ChannelMux<T1, T2, T3, T4>, IDisposable {
+    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
+    // TODO: should handle responses? (the second type arg of BroadcastChannel)
+    private readonly ChannelMuxInput<T5> _input;
+
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5
+    ) : this( channel1, channel2, channel3, channel4, channel5, totalChannels: 5 ) { }
+
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, channel3, channel4, totalChannels: totalChannels ) {
+        _input = new ChannelMuxInput<T5>( channel5, this );
+    }
+
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T5 item ) => _input.TryRead( out item );
+
+    /*
+     * Disposal
+     */
+
+    private bool _isDisposed = false;
+
+    protected override void Dispose( bool disposing ) {
+        if ( !_isDisposed ) {
+            if ( disposing ) {
+                _input.Dispose();
+            }
+            _isDisposed = true;
+        }
+        base.Dispose( disposing );
+    }
+}
+
+public class ChannelMux<T1, T2, T3, T4, T5, T6> : ChannelMux<T1, T2, T3, T4, T5>, IDisposable {
+    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
+    // TODO: should handle responses? (the second type arg of BroadcastChannel)
+    private readonly ChannelMuxInput<T6> _input;
+
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6
+    ) : this( channel1, channel2, channel3, channel4, channel5, channel6, totalChannels: 6 ) { }
+
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, channel3, channel4, channel5, totalChannels: totalChannels ) {
+        _input = new ChannelMuxInput<T6>( channel6, this );
+    }
+
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T6 item ) => _input.TryRead( out item );
+
+    /*
+     * Disposal
+     */
+
+    private bool _isDisposed = false;
+
+    protected override void Dispose( bool disposing ) {
+        if ( !_isDisposed ) {
+            if ( disposing ) {
+                _input.Dispose();
+            }
+            _isDisposed = true;
+        }
+        base.Dispose( disposing );
+    }
+}
+
+public class ChannelMux<T1, T2, T3, T4, T5, T6, T7> : ChannelMux<T1, T2, T3, T4, T5, T6>, IDisposable {
+    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
+    // TODO: should handle responses? (the second type arg of BroadcastChannel)
+    private readonly ChannelMuxInput<T7> _input;
+
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6,
+        BroadcastChannelWriter<T7, IBroadcastChannelResponse> channel7
+    ) : this( channel1, channel2, channel3, channel4, channel5, channel6, channel7, totalChannels: 7 ) { }
+
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6,
+        BroadcastChannelWriter<T7, IBroadcastChannelResponse> channel7,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, channel3, channel4, channel5, channel6, totalChannels: totalChannels ) {
+        _input = new ChannelMuxInput<T7>( channel7, this );
+    }
+
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T7 item ) => _input.TryRead( out item );
+
+    /*
+     * Disposal
+     */
+
+    private bool _isDisposed = false;
+
+    protected override void Dispose( bool disposing ) {
+        if ( !_isDisposed ) {
+            if ( disposing ) {
+                _input.Dispose();
+            }
+            _isDisposed = true;
+        }
+        base.Dispose( disposing );
+    }
+}
+
+
+public class ChannelMux<T1, T2, T3, T4, T5, T6, T7, T8> : ChannelMux<T1, T2, T3, T4, T5, T6, T7>, IDisposable {
+    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
+    // TODO: should handle responses? (the second type arg of BroadcastChannel)
+    private readonly ChannelMuxInput<T8> _input;
+
+    public ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6,
+        BroadcastChannelWriter<T7, IBroadcastChannelResponse> channel7,
+        BroadcastChannelWriter<T8, IBroadcastChannelResponse> channel8
+    ) : this( channel1, channel2, channel3, channel4, channel5, channel6, channel7, channel8, totalChannels: 8 ) { }
+
+    protected ChannelMux(
+        BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1,
+        BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2,
+        BroadcastChannelWriter<T3, IBroadcastChannelResponse> channel3,
+        BroadcastChannelWriter<T4, IBroadcastChannelResponse> channel4,
+        BroadcastChannelWriter<T5, IBroadcastChannelResponse> channel5,
+        BroadcastChannelWriter<T6, IBroadcastChannelResponse> channel6,
+        BroadcastChannelWriter<T7, IBroadcastChannelResponse> channel7,
+        BroadcastChannelWriter<T8, IBroadcastChannelResponse> channel8,
+        int                                                   totalChannels
+    ) : base( channel1, channel2, channel3, channel4, channel5, channel6, channel7, totalChannels: totalChannels ) {
+        _input = new ChannelMuxInput<T8>( channel8, this );
+    }
+
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
+    public bool TryRead( [ MaybeNullWhen( false ) ] out T8 item ) => _input.TryRead( out item );
 
     /*
      * Disposal
