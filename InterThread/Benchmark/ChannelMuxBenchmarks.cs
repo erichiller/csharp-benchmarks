@@ -139,7 +139,7 @@ public class ChannelMuxBenchmarks {
     }
 
     [ Benchmark ]
-    public async Task ChannelMux_AsyncWaitLoopOnly( ) {
+    public async Task ChannelMux_AsyncWaitLoopOnly_2Producer( ) {
         BroadcastChannel<StructA, IBroadcastChannelResponse> channel1 = new ();
         BroadcastChannel<ClassA>                             channel2 = new ();
         ChannelMux<StructA, ClassA>                          mux      = new (channel1.Writer, channel2.Writer);

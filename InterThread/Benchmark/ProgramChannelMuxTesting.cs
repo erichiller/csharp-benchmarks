@@ -73,6 +73,9 @@ public partial class Program {
 
     private readonly record struct TimeInfo( int Seq, long Written, long Delta );
 
+    private static int msBetweenMsgGroups = 85;
+    private static int msgsPerSecond      = 500           / 10 * 20;
+    private static int msgsPerMsgGroup    = msgsPerSecond / (1000 / msBetweenMsgGroups); // 500 per 10 seconds
 
     static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in Stopwatch stopwatch, in int totalMessages, System.Func<int, T> objectFactory ) {
         int i = 0;
@@ -80,8 +83,8 @@ public partial class Program {
         Thread.Sleep( 50 ); // startup
         while ( i++ < totalMessages ) {
             writer.TryWrite( objectFactory( i ) );
-            if ( i % 10_000 == 0 ) {
-                Thread.Sleep( 85 );
+            if ( i % msgsPerMsgGroup == 0 ) {
+                Thread.Sleep( msBetweenMsgGroups );
             }
         }
         Console.WriteLine( $"Producer Task Completing at {stopwatch.ElapsedTicks:N0} on {Thread.CurrentThread.ManagedThreadId}" );
@@ -89,25 +92,29 @@ public partial class Program {
     }
 
     private static async Task LatencyTest( ) {
-        BroadcastChannel<StructB?>     channel1     = new ();
-        BroadcastChannel<StructC?>     channel2     = new ();
-        ChannelMux<StructB?, StructC?> mux          = new (channel1.Writer, channel2.Writer);
-        CancellationToken              ct           = CancellationToken.None;
+        BroadcastChannel<StructB?>     channel1 = new ();
+        BroadcastChannel<StructC?>     channel2 = new ();
+        ChannelMux<StructB?, StructC?> mux      = new (channel1.Writer, channel2.Writer);
+        CancellationToken              ct       = CancellationToken.None;
         // int                            MessageCount = 10_000_000;
-        int                            MessageCount = 1_000_000;
-        Stopwatch                      stopwatch    = Stopwatch.StartNew();
-        Task                           producer1    = Task.Run( ( ) => producerTask( channel1.Writer, stopwatch, MessageCount, i => new StructB( stopwatch.ElapsedTicks ) ), ct );
-        Task                           producer2    = Task.Run( ( ) => producerTask( channel2.Writer, stopwatch, MessageCount, i => new StructC( stopwatch.ElapsedTicks ) ), ct );
-        int                            received2    = 0;
-        int                            received1    = 0;
+        int       MessageCount = 1_000_000;
+        Stopwatch stopwatch    = Stopwatch.StartNew();
+        Task      producer1    = Task.Run( ( ) => producerTask( channel1.Writer, stopwatch, MessageCount, i => new StructB( stopwatch.ElapsedTicks ) ), ct );
+        Task      producer2    = Task.Run( ( ) => producerTask( channel2.Writer, stopwatch, MessageCount, i => new StructC( stopwatch.ElapsedTicks ) ), ct );
+        int       received2    = 0;
+        int       received1    = 0;
 
+        Console.WriteLine( $"{nameof(msBetweenMsgGroups)}: {msBetweenMsgGroups:N0}\n" +
+                           $"{nameof(msgsPerSecond)}: {msgsPerSecond:N0}\n"           +
+                           $"{nameof(msgsPerMsgGroup)}: {msgsPerMsgGroup:N0}\n"       +
+                           $"" );
         Log( $"StopWatch Frequency is: {Stopwatch.Frequency:N0}" );
         // using (StreamWriter outputFile = new StreamWriter(file.FullName)){
         Console.WriteLine( $"Beginning at Stopwatch ticks: {stopwatch.ElapsedTicks:N0} on {Thread.CurrentThread.ManagedThreadId}" );
         TimeInfo[] timeInfo1 = new TimeInfo[ MessageCount ];
         TimeInfo[] timeInfo2 = new TimeInfo[ MessageCount ];
         while ( await mux.WaitToReadAsync( ct ) ) {
-            Console.WriteLine( $"[{((received1 + received2) / 2):N0}] WaitToReadAsync continued, Stopwatch ticks: {stopwatch.ElapsedTicks:N0}" );
+            Console.WriteLine( $"[{( ( received1 + received2 ) / 2 ):N0}] WaitToReadAsync continued, Stopwatch ticks: {stopwatch.ElapsedTicks:N0}" );
             while ( ( mux.TryRead( out StructB? structB ), mux.TryRead( out StructC? structC ) ) != ( false, false ) ) {
                 long elapsed = stopwatch.ElapsedTicks;
                 if ( structB is { TimeSent: var ts1 } ) {
@@ -127,12 +134,16 @@ public partial class Program {
         Console.WriteLine( $"Finished Reading at Stopwatch ticks: {stopwatch.ElapsedTicks:N0} on {Thread.CurrentThread.ManagedThreadId}" );
         // StringBuilder sb = new ();
         Console.WriteLine( $"{timeInfo1[ 0 ].Written:N0} to {timeInfo2[ ^1 ].Written:N0}" );
+        Console.WriteLine( $"{nameof(msBetweenMsgGroups)}: {msBetweenMsgGroups:N0}\n" +
+                           $"{nameof(msgsPerSecond)}: {msgsPerSecond:N0}\n"     +
+                           $"{nameof(msgsPerMsgGroup)}: {msgsPerMsgGroup:N0}\n" +
+                           $"" );
         var file = new System.IO.FileInfo( System.IO.Path.Combine( System.Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), "Downloads", "latency_test_results.csv" ) );
 
         await using ( StreamWriter outputFile = new StreamWriter( file.FullName ) ) {
             for ( int i = 0 ; i < MessageCount ; i++ ) {
                 // if ( i % 100 == 0 ) {
-                    outputFile.WriteLine( $"{timeInfo1[i].Seq},{timeInfo1[i].Written},{timeInfo1[i].Delta},{timeInfo2[i].Written},{timeInfo2[i].Delta}" );
+                outputFile.WriteLine( $"{timeInfo1[ i ].Seq},{timeInfo1[ i ].Written},{timeInfo1[ i ].Delta},{timeInfo2[ i ].Written},{timeInfo2[ i ].Delta}" );
                 // }
             }
         }

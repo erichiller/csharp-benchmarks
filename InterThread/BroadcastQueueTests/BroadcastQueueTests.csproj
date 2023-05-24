@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BroadcastChannelMux\BroadcastChannelMux.csproj" />
     <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
   </ItemGroup>
 
