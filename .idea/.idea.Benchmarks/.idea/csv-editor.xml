@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.ChannelMuxBenchmarks-measurements.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.ChannelMuxBenchmarks-report.csv">
           <value>
             <Attribute>

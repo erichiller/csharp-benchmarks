@@ -8,7 +8,8 @@
     </PropertyGroup>
     <PropertyGroup>
         <PlatformTarget>AnyCPU</PlatformTarget>
-        <DebugType>pdbonly</DebugType>
+<!--        <DebugType>pdbonly</DebugType>-->
+        <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Optimize>true</Optimize>
@@ -45,12 +46,13 @@ ADD:
 
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <!--        <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)"/>-->
+<!--                <Exec Command="echo $(SUDOPASS) | sudo &#45;&#45;stdin setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)"/>-->
         <Exec Command="sudo setcap 'cap_sys_nice=eip' $(TargetDir)$(AssemblyName)" />
     </Target>
     
     <ItemGroup>
         <ProjectReference Include="..\BroadcastChannelMux\BroadcastChannelMux.csproj" />
+        <ProjectReference Include="..\BroadcastQueueTests\BroadcastQueueTests.csproj" />
         <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
         <ProjectReference Include="..\..\Common\Common.csproj" />
     </ItemGroup>

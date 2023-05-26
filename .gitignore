@@ -1,3 +1,4 @@
+# https://git-scm.com/docs/gitignore
 .appsettings.json
 *.zip
 bin/*
@@ -38,8 +39,12 @@ msbuild.wrn
 
 # Benchmark.Net
 #BenchmarkDotNet.Artifacts/
-/**/BenchmarkDotNet.Artifacts/*
-!/**/BenchmarkDotNet.Artifacts/results
+/**/BenchmarkDotNet.Artifacts/*.log
+#/**/BenchmarkDotNet.Artifacts/results/*.csv
+#/**/BenchmarkDotNet.Artifacts/results/*.json
+#/**/BenchmarkDotNet.Artifacts/results/*.html
+/**/BenchmarkDotNet.Artifacts/results/*
+!/**/BenchmarkDotNet.Artifacts/results/*.md
 sampleLogFile.log
 
 # Visual Studio 2015
