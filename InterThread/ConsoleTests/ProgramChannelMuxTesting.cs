@@ -172,8 +172,10 @@ public partial class Program {
             MessageCount          = 10_000,
             WithCancellationToken = true
         };
+        // const int testCount = 10_000;
+        const int testCount = 1;
         Stopwatch stopwatch = Stopwatch.StartNew();
-        for ( int i = 0 ; i < 10_000 ; i++ ) {
+        for ( int i = 0 ; i < testCount ; i++ ) {
             long testStartTicks = stopwatch.ElapsedTicks;
             long testStartMs    = stopwatch.ElapsedMilliseconds;
             await benchmark.AsyncWaitLoopOnly_2Producer();

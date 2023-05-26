@@ -209,6 +209,44 @@ CancellationToken use comparison ( for WaitToReadAsync( CancellationToken ) + YE
 | LoopTryRead2_2Producer |       100000 |                 False |  12.93 ms |   0.283 ms |    0.797 ms |    12.63 ms | 1203.1250 | 968.7500 | 546.8750 |     6421922 B |
 
 
+completeException {}  check removed
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.24 ms |   0.177 ms |    0.157 ms | 1156.2500 | 937.5000 | 562.5000 |     6436744 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  12.97 ms |   0.258 ms |    0.458 ms | 1140.6250 | 578.1250 | 437.5000 |     6396460 B |
+
+ValueTask.FromX
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.41 ms |   0.220 ms |    0.184 ms | 1109.3750 | 875.0000 | 562.5000 |     6271371 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  13.18 ms |   0.262 ms |    0.714 ms | 1093.7500 | 812.5000 | 437.5000 |     6667105 B |
+
+Single copy
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|---------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  14.84 ms |   0.293 ms |    0.643 ms | 703.1250 | 515.6250 | 468.7500 |     3798187 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  15.89 ms |   0.315 ms |    0.824 ms | 906.2500 | 343.7500 | 312.5000 |     5223618 B |
+
+Revert single copy
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.50 ms |   0.244 ms |    0.476 ms | 1171.8750 | 937.5000 | 546.8750 |     6493993 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  12.93 ms |   0.245 ms |    0.449 ms | 1171.8750 | 875.0000 | 500.0000 |     6415734 B |
+
+Revert ValueTask.FromX
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.35 ms |   0.219 ms |    0.171 ms | 1265.6250 | 890.6250 | 531.2500 |     7051939 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  12.96 ms |   0.258 ms |    0.491 ms | 1062.5000 | 796.8750 | 515.6250 |     6275981 B |
+
+With `[MethodImpl(MethodImplOptions.AggressiveInlining)]`
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |     Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.31 ms |   0.190 ms |    0.169 ms | 1171.8750 | 843.7500 | 546.8750 |     6321049 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  12.73 ms |   0.252 ms |    0.520 ms | 1125.0000 | 921.8750 | 500.0000 |     6163336 B |
+
+
+
 
  */
 

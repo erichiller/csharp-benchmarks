@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -75,6 +76,49 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         if ( receivedCountA != msgCountChannel1 || receivedCountB != msgCountChannel2 ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA} ; {nameof(receivedCountB)}: {receivedCountB}" );
         }
+    }
+
+    private readonly record struct MessageWithSendTicks( long Ticks );
+    
+    [ Fact ]
+    public async Task ChannelMuxLatencyTest( ) { // URGENT
+        int                                         msgCountChannel1 = 100;
+        BroadcastChannel<MessageWithSendTicks>      channel1         = new ();
+        BroadcastChannel<DataTypeB>                 channel2         = new ();
+        ChannelMux<MessageWithSendTicks, DataTypeB> mux              = new (channel1.Writer, channel2.Writer);
+        CancellationToken                           ct               = CancellationToken.None;
+        Stopwatch                                   stopwatch        = Stopwatch.StartNew();
+        Task                  producer1 = Task.Run( ( ) => {
+            int i      = 0;
+            var writer = channel1.Writer;
+            while ( i++ < msgCountChannel1 ) {
+                writer.TryWrite( new MessageWithSendTicks(stopwatch.ElapsedTicks)  );
+                Thread.Sleep( 5 );
+            }
+            writer.Complete();  
+        } , ct );
+        Task   producer2        = Task.Run( ( ) => channel2.Writer.Complete(  ), ct );
+        int    receivedCountA   = 0;
+        long[] messageLatencies = new long[ msgCountChannel1 ];
+
+        // ReSharper disable UnusedVariable        
+        MessageWithSendTicks a;
+        DataTypeB b;
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            if ( mux.TryRead( out a ) ) {
+                ( stopwatch.ElapsedTicks                                      - a.Ticks ).Should().BeLessThan( 4 * Stopwatch.Frequency /1_000 ); // ticks as ms
+                messageLatencies[ receivedCountA ] = ( stopwatch.ElapsedTicks - a.Ticks );
+                receivedCountA++;
+            }
+        }
+        // ReSharper restore UnusedVariable
+        await producer1;
+        await producer2;
+        receivedCountA.Should().Be( msgCountChannel1 );
+        if ( receivedCountA != msgCountChannel1  ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA}" );
+        }
+        _logger.LogInformation( "Latencies: {Latencies}", String.Join( ", ", messageLatencies) );
     }
 
     [ InlineData( true ) ]

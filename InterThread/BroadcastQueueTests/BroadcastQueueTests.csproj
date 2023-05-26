@@ -11,6 +11,11 @@
     <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
 
+
+  <PropertyGroup>
+    <ThreadPoolMaxThreads>1</ThreadPoolMaxThreads>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.10.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
