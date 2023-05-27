@@ -93,28 +93,22 @@ public abstract class ChannelMux {
     /// <summary>Task that indicates the channel has completed.</summary>
     private readonly TaskCompletionSource _completion;
 
+    /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.Completion"/>
     public Task Completion => _completion.Task;
 
     /// <summary>
-    /// Return <c>Exception</c> if the entire ChannelMux and all associated ChannelReaders should be ended. 
+    /// Return <c>Exception</c> if the entire ChannelMux and all associated ChannelReaders should be ended. (else return null)
+    /// - Exits `WaitToReadAsync` & return Exception on any new calls
+    /// - Ends `Completion` Task (once all items have been read).
+    /// - `TryWrite` for any other channels is closed (immediately)
     /// </summary>
+    /// <remarks>
+    /// Note that `TryRead` will still be allowed until the queue is empty, but because `TryWrite` is ended, the queue will not continue to be added to.
+    /// </remarks>
     public delegate Exception? HandleException( Exception exception );
 
     /// <inheritdoc cref="HandleException" />
     public HandleException? OnException { get; init; }
-
-    // /// <summary>
-    // /// Changes the behaviour of a Writer reported exception.
-    // /// If <c>false</c> then an Exception will only be reported when all channels have closed.
-    // /// Exception presence can still be determined via a call to <see cref="ChannelMux.Exception"/>.
-    // /// <br/>
-    // /// If <c>true</c>, any Exception will close all channels immediately.
-    // /// <br/>
-    // /// If <c>null</c> (the default), then an Exception reported by a writer via <see cref="ChannelMuxInput{TData}.TryComplete"/>
-    // /// will cause any waiting task from, or the task from the next call to <see cref="WaitToReadAsync"/> to end with an Exception.
-    // /// </summary>
-    // public bool? CloseOnAnyException { get; init; } = null;
-
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
         _runContinuationsAsynchronously = runContinuationsAsynchronously;
@@ -127,10 +121,10 @@ public abstract class ChannelMux {
     public ValueTask<bool> WaitToReadAsync( CancellationToken cancellationToken ) {
         DebugIncrement( ref _WaitToReadAsync__entry ); // KILL
         Log<ChannelMux>( nameof(WaitToReadAsync), $"{nameof(_readableItems)}: {_readableItems}" );
+        _isReaderWaiting = false;
         // Outside of the lock, check if there are any items waiting to be read.  If there are, we're done.
         if ( cancellationToken.IsCancellationRequested ) {
             Log<ChannelMux>( nameof(WaitToReadAsync), "cancellationToken.IsCancellationRequested" );
-            _isReaderWaiting = false;
             DebugIncrement( ref _WaitToReadAsync__cancellationToken ); // KILL
             return new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) );
         }
@@ -138,7 +132,6 @@ public abstract class ChannelMux {
         if ( _hasException && _completeException is { } ) {
             DebugIncrement( ref _WaitToReadAsync__completeException ); // KILL
             Log<ChannelMux>( nameof(WaitToReadAsync), $"_completeException is {_completeException.GetType().Name.Split( '_' )[ ^1 ]}; _readableItems is {_readableItems}" );
-            _isReaderWaiting = false;
             // if an exception is present, return a cancelled ValueTask with the exception.
             return new ValueTask<bool>( Task.FromException<bool>( _completeException ) );
         }
@@ -146,7 +139,6 @@ public abstract class ChannelMux {
         if ( _readableItems > 0 ) {
             DebugIncrement( ref _WaitToReadAsync__readableItems ); // KILL
             Log<ChannelMux>( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
-            _isReaderWaiting = false;
             return new ValueTask<bool>( true );
         }
         AsyncOperation<bool>? oldWaitingReader, newWaitingReader;
@@ -157,14 +149,12 @@ public abstract class ChannelMux {
             if ( _readableItems > 0 ) {
                 DebugIncrement( ref _WaitToReadAsync__inLock_readableItems ); // KILL
                 Log<ChannelMux>( nameof(WaitToReadAsync), "in lock", $"_readableItems > 0 : {_readableItems}" );
-                _isReaderWaiting = false;
                 return new ValueTask<bool>( true );
             }
             // There aren't any items; if we're done writing, there never will be more items.
             if ( _areAllChannelsComplete ) {
                 DebugIncrement( ref _WaitToReadAsync__allChannelsComplete ); // KILL
                 Log<ChannelMux>( nameof(WaitToReadAsync), "_allChannelsDoneWriting", "Exception", _completeException );
-                _isReaderWaiting = false;
                 // if an exception is present, return a cancelled ValueTask with the exception.
                 return _completeException is { } exception ? new ValueTask<bool>( Task.FromException<bool>( exception ) ) : default;
             }
@@ -172,7 +162,6 @@ public abstract class ChannelMux {
             // is being used erroneously, and we cancel the outstanding operation.
             oldWaitingReader = _waitingReader;
             if ( !cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset() ) {
-                // if ( /* !cancellationToken.CanBeCanceled && */ _waiterSingleton.TryOwnAndReset() ) {
                 DebugIncrement( ref _WaitToReadAsync__TryOwnAndReset ); // KILL
                 Log<ChannelMux>( nameof(WaitToReadAsync), "!cancellationToken.CanBeCanceled && _waiterSingleton.TryOwnAndReset()" );
                 newWaitingReader = _waiterSingleton;
@@ -194,10 +183,8 @@ public abstract class ChannelMux {
             _waitingReader   = newWaitingReader;
         }
 
-        // KILL ??
         if ( _readableItems > 0 ) {
             DebugIncrement( ref _WaitToReadAsync__readableItems_end ); // KILL
-            // _isReaderWaiting = false;
             Log<ChannelMux>( nameof(WaitToReadAsync), $"_readableItems > 0 : {_readableItems}" );
             return new ValueTask<bool>( true );
         }
@@ -209,15 +196,17 @@ public abstract class ChannelMux {
     }
 
 
-    //
+    /*
+     * ChannelMuxInput
+     */
 
 
     protected sealed class ChannelMuxInput<TData> : ChannelWriter<TData>, IDisposable {
         private readonly ChannelMux                               _parent;
         private readonly RemoveWriterByHashCode                   _removeWriterCallback;
         private readonly SingleProducerSingleConsumerQueue<TData> _queue            = new SingleProducerSingleConsumerQueue<TData>();
-        private volatile bool                                     _isComplete       = false; // TODO: I don't think I need volatile here // URGENT: just added
-        private volatile bool                                     _emptyAndComplete = false; // TODO: I don't think I need volatile here // URGENT: just added
+        private volatile bool                                     _isComplete       = false;
+        private volatile bool                                     _emptyAndComplete = false;
 
         internal ChannelMuxInput( BroadcastChannelWriter<TData, IBroadcastChannelResponse> channel, ChannelMux parent ) {
             _removeWriterCallback = channel.AddReader( this );
@@ -261,7 +250,7 @@ public abstract class ChannelMux {
             if ( waitingReader != null ) {
                 DebugIncrement( ref _parent._tryWrite_waiting_reader_is_not_null ); // KILL
                 _parent.Log<ChannelMuxInput<TData>>( typeof(TData), nameof(TryWrite), "grabbed a waiting reader, setting result to true" );
-                // If we get here, we grabbed a waiting reader.
+                // Waiting reader is present, set its result so that it ends and the waiting reader continues.
                 waitingReader.TrySetResult( item: true );
             }
             DebugIncrement( ref _parent._tryWrite_final ); // KILL
@@ -362,24 +351,16 @@ public abstract class ChannelMux {
                 _parent.Log<ChannelMuxInput<TData>>( typeof(TData), $"{nameof(_parent._readableItems)}: was {_parent._readableItems}" );
                 Interlocked.Decrement( ref _parent._readableItems );
                 _parent.Log<ChannelMuxInput<TData>>( typeof(TData), $"{nameof(_parent._readableItems)}: now {_parent._readableItems}" );
-                // if ( _isComplete && ( _parent._areAllChannelsComplete || _parent._completeException is { } ) && _queue.IsEmpty ) {
-                //     ChannelUtilities.Complete( _parent._completion, _parent._completeException );
-                // }
                 if ( _isComplete ) {
-                    // _parent.LogWarn<ChannelMuxInput<TData>>( typeof(TData), nameof(TryRead), "TAKING LOCK", "isComplete=true", "_queue is Empty", _queue.IsEmpty.ToString(), $"_parent._closedChannels is {_parent._closedChannels}" );
                     lock ( _parent._closedChannelLockObj ) {
                         if ( !_queue.IsEmpty || _emptyAndComplete ) {
                             return true;
                         }
-                        // KILL ?? is this the breakage?
-                        // URGENT: NEW - ONLY increment _closedChannels when queue is empty
-                        // URGENT: RE-BENCHMARK
                         _parent.LogWarn<ChannelMuxInput<TData>>( typeof(TData), nameof(TryRead), "isComplete=true", "_queue is Empty", _queue.IsEmpty.ToString(), $"_parent._closedChannels is {_parent._closedChannels}" );
                         _emptyAndComplete = true;
                         Interlocked.Increment( ref _parent._closedChannels );
                     }
                     if ( _parent._areAllChannelsComplete || _parent._hasException ) {
-                        // URGENT: REPLACE WITH _hasException ??
                         ChannelUtilities.Complete( _parent._completion, _parent._completeException );
                     }
                 }
@@ -402,7 +383,14 @@ public abstract class ChannelMux {
     }
 }
 
-// TODO: should handle responses? (the second type arg of BroadcastChannel)
+/// <summary>
+/// 
+/// </summary>
+/// <remarks>
+/// Note that more generic parameters can easily be added by inheriting from this class and additional type params.
+/// </remarks>
+/// <typeparam name="T1"></typeparam>
+/// <typeparam name="T2"></typeparam>
 public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
     private readonly ChannelMuxInput<T1> _input1;
     private readonly ChannelMuxInput<T2> _input2;
@@ -443,8 +431,6 @@ public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
 }
 
 public class ChannelMux<T1, T2, T3> : ChannelMux<T1, T2>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T3> _input;
 
     public ChannelMux(
@@ -483,8 +469,6 @@ public class ChannelMux<T1, T2, T3> : ChannelMux<T1, T2>, IDisposable {
 }
 
 public class ChannelMux<T1, T2, T3, T4> : ChannelMux<T1, T2, T3>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T4> _input;
 
     public ChannelMux(
@@ -525,8 +509,6 @@ public class ChannelMux<T1, T2, T3, T4> : ChannelMux<T1, T2, T3>, IDisposable {
 }
 
 public class ChannelMux<T1, T2, T3, T4, T5> : ChannelMux<T1, T2, T3, T4>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T5> _input;
 
     public ChannelMux(
@@ -569,8 +551,6 @@ public class ChannelMux<T1, T2, T3, T4, T5> : ChannelMux<T1, T2, T3, T4>, IDispo
 }
 
 public class ChannelMux<T1, T2, T3, T4, T5, T6> : ChannelMux<T1, T2, T3, T4, T5>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T6> _input;
 
     public ChannelMux(
@@ -615,8 +595,6 @@ public class ChannelMux<T1, T2, T3, T4, T5, T6> : ChannelMux<T1, T2, T3, T4, T5>
 }
 
 public class ChannelMux<T1, T2, T3, T4, T5, T6, T7> : ChannelMux<T1, T2, T3, T4, T5, T6>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T7> _input;
 
     public ChannelMux(
@@ -663,8 +641,6 @@ public class ChannelMux<T1, T2, T3, T4, T5, T6, T7> : ChannelMux<T1, T2, T3, T4,
 }
 
 public class ChannelMux<T1, T2, T3, T4, T5, T6, T7, T8> : ChannelMux<T1, T2, T3, T4, T5, T6, T7>, IDisposable {
-    // NOTE: can easily add more generic params ;; // TODO: BENCHMARK THAT additional parameters don'T HURT PERFORMANCE!
-    // TODO: should handle responses? (the second type arg of BroadcastChannel)
     private readonly ChannelMuxInput<T8> _input;
 
     public ChannelMux(
