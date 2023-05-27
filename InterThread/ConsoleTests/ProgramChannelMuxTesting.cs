@@ -156,14 +156,14 @@ public partial class Program {
             $"{nameof(mux._tryWrite_no_reader_waiting)}: {mux._tryWrite_no_reader_waiting}\n\t"                         +
             $"{nameof(mux._tryWrite_in_monitor)}: {mux._tryWrite_in_monitor}\n\t"                                       +
             $"{nameof(mux._tryWrite_monitor_no_waiting_reader)}: {mux._tryWrite_monitor_no_waiting_reader}\n\t"         +
-            $"{nameof(mux._tryWrite_monitor_set_bools)}: {mux._tryWrite_monitor_set_bools}\n\t"                         +
+            $"{nameof(mux._tryWrite_monitor_set_booleans)}: {mux._tryWrite_monitor_set_booleans}\n\t"                         +
             $"{nameof(mux._tryWrite_waiting_reader_is_not_null)}: {mux._tryWrite_waiting_reader_is_not_null}\n\t"       +
             $"{nameof(mux._tryWrite_final)}: {mux._tryWrite_final}\n\t" );
         if ( writeToFile ) {
             System.IO.File.AppendAllText( _marksOutputCsvPath,
                                           $"{perfTestTicks},"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  +
                                           $"{mux._WaitToReadAsync__entry},{mux._WaitToReadAsync__cancellationToken},{mux._WaitToReadAsync__readableItems},{mux._WaitToReadAsync__inLock},{mux._WaitToReadAsync__inLock_readableItems},{mux._WaitToReadAsync__allChannelsComplete},{mux._WaitToReadAsync__TryOwnAndReset},{mux._WaitToReadAsync__new_eq_old},{mux._WaitToReadAsync__TryOwnAndReset_failed},{mux._WaitToReadAsync__completeException},{mux._WaitToReadAsync__inLock_end},{mux._WaitToReadAsync__readableItems_end},{mux._WaitToReadAsync__end}," +
-                                          $"{mux._tryWrite_enter},{mux._tryWrite_isComplete_or_exception},{mux._tryWrite_no_reader_waiting},{mux._tryWrite_in_monitor},{mux._tryWrite_monitor_no_waiting_reader},{mux._tryWrite_monitor_set_bools},{mux._tryWrite_waiting_reader_is_not_null},{mux._tryWrite_final}\n" );
+                                          $"{mux._tryWrite_enter},{mux._tryWrite_isComplete_or_exception},{mux._tryWrite_no_reader_waiting},{mux._tryWrite_in_monitor},{mux._tryWrite_monitor_no_waiting_reader},{mux._tryWrite_monitor_set_booleans},{mux._tryWrite_waiting_reader_is_not_null},{mux._tryWrite_final}\n" );
         }
     }
 

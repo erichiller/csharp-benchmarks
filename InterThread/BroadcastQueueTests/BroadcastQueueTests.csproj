@@ -12,9 +12,10 @@
   </PropertyGroup>
 
 
-  <PropertyGroup>
-    <ThreadPoolMaxThreads>1</ThreadPoolMaxThreads>
-  </PropertyGroup>
+<!--  KILL ? -->
+<!--  <PropertyGroup>-->
+<!--    <ThreadPoolMaxThreads>1</ThreadPoolMaxThreads>-->
+<!--  </PropertyGroup>-->
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.10.0" />
@@ -38,6 +39,12 @@
   <ItemGroup>
     <ProjectReference Include="..\BroadcastChannelMux\BroadcastChannelMux.csproj" />
     <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>

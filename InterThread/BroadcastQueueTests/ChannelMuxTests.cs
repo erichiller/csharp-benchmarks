@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,11 +19,13 @@ using Xunit.Abstractions;
 
 namespace Benchmarks.InterThread.ChannelMuxTests;
 
+[ SuppressMessage( "ReSharper", "NotAccessedPositionalProperty.Local" ) ]
 file readonly record struct DataTypeA(
     int  Sequence,
     long WrittenTicks
 );
 
+[ SuppressMessage( "ReSharper", "NotAccessedPositionalProperty.Local" ) ]
 file readonly record struct DataTypeB(
     int  Sequence,
     long WrittenTicks
@@ -43,32 +45,31 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         writer.Complete();
     }
 
-    [ Fact ]
-    public async Task ChannelMuxBasicTest( ) {
+    [ InlineData( true ) ]
+    [ InlineData( false ) ]
+    [ Theory ]
+    public async Task ChannelMuxBasicTest( bool withCancellableCancellationToken ) {
         int                              msgCountChannel1 = 100;
         int                              msgCountChannel2 = 50;
         BroadcastChannel<DataTypeA>      channel1         = new ();
         BroadcastChannel<DataTypeB>      channel2         = new ();
         ChannelMux<DataTypeA, DataTypeB> mux              = new (channel1.Writer, channel2.Writer);
-        CancellationToken                ct               = CancellationToken.None;
+        using CancellationTokenSource    cts              = new CancellationTokenSource();
+        CancellationToken                ct               = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
         Stopwatch                        stopwatch        = Stopwatch.StartNew();
         Task                             producer1        = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
         Task                             producer2        = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
         int                              receivedCountA   = 0;
         int                              receivedCountB   = 0;
 
-        // ReSharper disable UnusedVariable        
-        DataTypeA a;
-        DataTypeB b;
         while ( await mux.WaitToReadAsync( ct ) ) {
-            if ( mux.TryRead( out a ) ) {
+            if ( mux.TryRead( out DataTypeA _ ) ) {
                 receivedCountA++;
             }
-            if ( mux.TryRead( out b ) ) {
+            if ( mux.TryRead( out DataTypeB _ ) ) {
                 receivedCountB++;
             }
         }
-        // ReSharper restore UnusedVariable
         await producer1;
         await producer2;
         receivedCountA.Should().Be( msgCountChannel1 );
@@ -79,46 +80,48 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     }
 
     private readonly record struct MessageWithSendTicks( long Ticks );
-    
-    [ Fact ]
-    public async Task ChannelMuxLatencyTest( ) { // URGENT
-        int                                         msgCountChannel1 = 100;
+
+    [ InlineData( true ) ]
+    [ InlineData( false ) ]
+    [ Theory ]
+    public async Task ChannelMuxLatencyTest( bool withCancellableCancellationToken ) {
+        const int                                   msgCountChannel1 = 50;
+        const int                                   sleepMs          = 4;
         BroadcastChannel<MessageWithSendTicks>      channel1         = new ();
         BroadcastChannel<DataTypeB>                 channel2         = new ();
         ChannelMux<MessageWithSendTicks, DataTypeB> mux              = new (channel1.Writer, channel2.Writer);
-        CancellationToken                           ct               = CancellationToken.None;
+        using CancellationTokenSource               cts              = new CancellationTokenSource();
+        CancellationToken                           ct               = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
         Stopwatch                                   stopwatch        = Stopwatch.StartNew();
-        Task                  producer1 = Task.Run( ( ) => {
+        Task producer1 = Task.Run( ( ) => {
             int i      = 0;
             var writer = channel1.Writer;
             while ( i++ < msgCountChannel1 ) {
-                writer.TryWrite( new MessageWithSendTicks(stopwatch.ElapsedTicks)  );
-                Thread.Sleep( 5 );
+                writer.TryWrite( new MessageWithSendTicks( stopwatch.ElapsedTicks ) );
+                Thread.Sleep( sleepMs );
             }
-            writer.Complete();  
-        } , ct );
-        Task   producer2        = Task.Run( ( ) => channel2.Writer.Complete(  ), ct );
+            writer.Complete();
+        }, ct );
+        Task   producer2        = Task.Run( ( ) => channel2.Writer.Complete(), ct );
         int    receivedCountA   = 0;
         long[] messageLatencies = new long[ msgCountChannel1 ];
 
-        // ReSharper disable UnusedVariable        
-        MessageWithSendTicks a;
-        DataTypeB b;
         while ( await mux.WaitToReadAsync( ct ) ) {
-            if ( mux.TryRead( out a ) ) {
-                ( stopwatch.ElapsedTicks                                      - a.Ticks ).Should().BeLessThan( 4 * Stopwatch.Frequency /1_000 ); // ticks as ms
+            if ( mux.TryRead( out MessageWithSendTicks a ) ) {
+                if ( receivedCountA > 0 ) { // The first one, especially on slower systems can be quite a bit slower.
+                    ( stopwatch.ElapsedTicks - a.Ticks ).Should().BeLessThan( ( sleepMs - 1 ) * Stopwatch.Frequency / 1_000 ); // ticks as ms
+                }
                 messageLatencies[ receivedCountA ] = ( stopwatch.ElapsedTicks - a.Ticks );
                 receivedCountA++;
             }
         }
-        // ReSharper restore UnusedVariable
         await producer1;
         await producer2;
         receivedCountA.Should().Be( msgCountChannel1 );
-        if ( receivedCountA != msgCountChannel1  ) {
+        if ( receivedCountA != msgCountChannel1 ) {
             throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA}" );
         }
-        _logger.LogInformation( "Latencies: {Latencies}", String.Join( ", ", messageLatencies) );
+        _logger.LogInformation( "Latencies: {Latencies}", String.Join( ", ", messageLatencies ) );
     }
 
     [ InlineData( true ) ]
@@ -167,7 +170,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     [ InlineData( true ) ]
     [ InlineData( false ) ]
     [ Theory ]
-    public async Task ChannelComplete_WithException_ShouldThrow_UponAwait(  bool withCancellableCancellationToken ) {
+    public async Task ChannelComplete_WithException_ShouldThrow_UponAwait( bool withCancellableCancellationToken ) {
         static void producerTaskCompleteWithErrorAfter<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int completeWithExceptionAfterCount, System.Func<int, T> objectFactory ) {
             TimeSpan sleepTime = TimeSpan.FromTicks( 100_000 );
             Thread.Sleep( sleepTime );
@@ -217,15 +220,15 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     }
 
 
-    public async Task OnException_Test( ) {
-        // URGENT:!!!!
-        const int                        msgCountChannel1 = 50, msgCountChannel2 = 100;
-        int                              receivedCountA   = 0,  receivedCountB   = 0;
-        BroadcastChannel<DataTypeA>      channel1         = new ();
-        BroadcastChannel<DataTypeB>      channel2         = new ();
-        ChannelMux<DataTypeA, DataTypeB> mux              = new (channel1.Writer, channel2.Writer) { OnException = exception => exception };
-        // URGENT:!!!!
-    }
+    // public async Task OnException_Test( ) {
+    //     // URGENT:!!!!
+    //     const int                        msgCountChannel1 = 50, msgCountChannel2 = 100;
+    //     int                              receivedCountA   = 0,  receivedCountB   = 0;
+    //     BroadcastChannel<DataTypeA>      channel1         = new ();
+    //     BroadcastChannel<DataTypeB>      channel2         = new ();
+    //     ChannelMux<DataTypeA, DataTypeB> mux              = new (channel1.Writer, channel2.Writer) { OnException = exception => exception };
+    //     // URGENT:!!!!
+    // }
 
 
     /* **************************************************

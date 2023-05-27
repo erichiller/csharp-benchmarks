@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +8,6 @@ using Benchmarks.InterThread.BroadcastQueue;
 
 using FluentAssertions;
 
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -139,7 +136,7 @@ public class BroadcastQueueTests : TestBase<BroadcastQueueTests> {
             var reader = broadcastQueue.GetReader();
             logger?.LogDebug( "[{MethodName}][{ReaderCount}] Waiting to read", nameof(addReaderTask), readerCount );
             await reader.WaitToReadAsync( ct ); // read at least one message
-            logger?.LogDebug( "[{MethodName}] Waiting to read...found", nameof(addReaderTask), readerCount );
+            logger?.LogDebug( "[{MethodName}][{ReaderCount}] Waiting to read...found", nameof(addReaderTask), readerCount );
             while ( reader.TryRead( out ChannelMessage? message ) ) {
                 if ( !threadIds.Contains( Thread.CurrentThread.ManagedThreadId ) ) {
                     threadIds.Add( Thread.CurrentThread.ManagedThreadId );

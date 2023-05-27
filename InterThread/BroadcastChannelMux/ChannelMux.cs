@@ -25,6 +25,8 @@ using System.Threading.Tasks;
 
 using BroadcastChannel;
 
+// ReSharper disable MemberCanBePrivate.Global
+
 namespace BroadcastChannelMux;
 
 public abstract class ChannelMux {
@@ -43,6 +45,7 @@ public abstract class ChannelMux {
     private          bool                 _areAllChannelsComplete => _closedChannels >= _totalChannels;
 
     /* Testing */ /* KILL START */
+    // ReSharper disable InconsistentNaming
     public int _WaitToReadAsync__entry                 = 0;
     public int _WaitToReadAsync__cancellationToken     = 0;
     public int _WaitToReadAsync__completeException     = 0;
@@ -61,7 +64,7 @@ public abstract class ChannelMux {
     public int _tryWrite_no_reader_waiting             = 0;
     public int _tryWrite_in_monitor                    = 0;
     public int _tryWrite_monitor_no_waiting_reader     = 0;
-    public int _tryWrite_monitor_set_bools             = 0;
+    public int _tryWrite_monitor_set_booleans          = 0;
     public int _tryWrite_waiting_reader_is_not_null    = 0;
     public int _tryWrite_final                         = 0;
 
@@ -84,6 +87,7 @@ public abstract class ChannelMux {
 
     [ Conditional( "DEBUG" ) ]
     private static void DebugIncrement( ref int n ) => Interlocked.Increment( ref n );
+    // ReSharper restore InconsistentNaming
     /* End Testing */ /* KILL END */
 
     /// <summary>Task that indicates the channel has completed.</summary>
@@ -113,7 +117,6 @@ public abstract class ChannelMux {
 
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
-        // TODO: actually do something with this?
         _runContinuationsAsynchronously = runContinuationsAsynchronously;
         _completion                     = new TaskCompletionSource( runContinuationsAsynchronously ? TaskCreationOptions.RunContinuationsAsynchronously : TaskCreationOptions.None );
         _waiterSingleton                = new AsyncOperation<bool>( runContinuationsAsynchronously, pooled: true );
@@ -127,12 +130,12 @@ public abstract class ChannelMux {
         // Outside of the lock, check if there are any items waiting to be read.  If there are, we're done.
         if ( cancellationToken.IsCancellationRequested ) {
             Log<ChannelMux>( nameof(WaitToReadAsync), "cancellationToken.IsCancellationRequested" );
-            _isReaderWaiting = false;                                  // URGENT: try marking as false once, then selectively marking as true.
+            _isReaderWaiting = false;
             DebugIncrement( ref _WaitToReadAsync__cancellationToken ); // KILL
             return new ValueTask<bool>( Task.FromCanceled<bool>( cancellationToken ) );
         }
 
-        if ( _hasException &&  _completeException is { } ) {
+        if ( _hasException && _completeException is { } ) {
             DebugIncrement( ref _WaitToReadAsync__completeException ); // KILL
             Log<ChannelMux>( nameof(WaitToReadAsync), $"_completeException is {_completeException.GetType().Name.Split( '_' )[ ^1 ]}; _readableItems is {_readableItems}" );
             _isReaderWaiting = false;
@@ -247,7 +250,7 @@ public abstract class ChannelMux {
                         _parent.Log<ChannelMuxInput<TData>>( typeof(TData), nameof(TryWrite), "waitingReader is null" );
                         return true;
                     }
-                    DebugIncrement( ref _parent._tryWrite_monitor_set_bools ); // KILL
+                    DebugIncrement( ref _parent._tryWrite_monitor_set_booleans ); // KILL
                     _parent._isReaderWaiting = false;
                     _parent._waitingReader   = null;
                 } finally {
@@ -312,7 +315,6 @@ public abstract class ChannelMux {
                 _emptyAndComplete = true;
                 Interlocked.Increment( ref _parent._closedChannels );
             }
-            // Interlocked.Increment( ref _parent._closedChannels );
             // if all channels are closed, or if this complete was reported with an exception, close everything so long as the _queue IsEmpty
             if ( ( _parent._closedChannels >= _parent._totalChannels || exception is { } ) ) {
                 _parent.Log<ChannelMuxInput<TData>>( typeof(TData), nameof(TryComplete),
