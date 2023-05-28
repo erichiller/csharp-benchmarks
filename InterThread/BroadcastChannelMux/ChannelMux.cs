@@ -376,9 +376,14 @@ public abstract class ChannelMux {
             TryWrite( item )                          ? default :
                                                         new ValueTask( Task.FromException( ChannelUtilities.CreateInvalidCompletionException( _parent._completeException ) ) );
 
+        private bool _isDisposed = false;
+
         /// <inheritdoc />
         public void Dispose( ) {
-            _removeWriterCallback.Invoke( this.GetHashCode() );
+            if ( !_isDisposed ) {
+                _removeWriterCallback.Invoke( this.GetHashCode() );
+                _isDisposed = true;
+            }
         }
     }
 }

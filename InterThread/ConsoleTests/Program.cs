@@ -58,16 +58,20 @@ public partial class Program {
 
         Console.WriteLine( $"args len={args.Length} ; {String.Join( ", ", args )}" );
 
-        if ( args.Length == 1 ) {
+        if ( args.Length >= 1 ) {
             switch ( args[ 0 ] ) {
                 case nameof(CheckForOffsetCompletionErrors):
                     await CheckForOffsetCompletionErrors();
+                    break;
+                case nameof(SimpleTest):
+                    await SimpleTest();
                     break;
                 case nameof(AsyncWaitLoopOnly_2Producer):
                     await AsyncWaitLoopOnly_2Producer();
                     break;
                 case nameof(LoopTryRead2_2Producer):
-                    await LoopTryRead2_2Producer();
+                    Int32.TryParse( args[ 1 ], out int count );
+                    await LoopTryRead2_2Producer( count );
                     break;
                 case nameof(LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes):
                     await LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes();
@@ -94,6 +98,7 @@ public partial class Program {
             }
             return 0;
         }
+        return 1;
 
         // {
         //     static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, Func<int, T> objectFactory ) {

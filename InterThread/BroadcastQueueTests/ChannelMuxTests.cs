@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 using Benchmarks.InterThread.BroadcastQueueTests;
@@ -449,4 +453,87 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     }
 
     #endregion
+    
+    
+    #region Disposal tests
+
+    [Fact]
+    public async Task DisposalOfMuxShouldRemoveFromBroadcastChannel( ) {
+        int                              msgCountChannel1 = 100;
+        int                              msgCountChannel2 = 50;
+        BroadcastChannel<DataTypeA>      channel1         = new ();
+        BroadcastChannel<DataTypeB>      channel2         = new ();
+        using ( ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) ) {
+            CancellationToken ct             = CancellationToken.None;
+            Stopwatch         stopwatch      = Stopwatch.StartNew();
+            Task              producer1      = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+            Task              producer2      = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+            int               receivedCountA = 0;
+            int               receivedCountB = 0;
+
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                if ( mux.TryRead( out DataTypeA _ ) ) {
+                    receivedCountA++;
+                }
+                if ( mux.TryRead( out DataTypeB _ ) ) {
+                    receivedCountB++;
+                }
+            }
+            await producer1;
+            await producer2;
+            receivedCountA.Should().Be( msgCountChannel1 );
+            receivedCountB.Should().Be( msgCountChannel2 );
+            mux.Completion.IsCompleted.Should().BeTrue();
+            mux.Completion.Exception.Should().BeNull();
+            mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+            if ( receivedCountA != msgCountChannel1 || receivedCountB != msgCountChannel2 ) {
+                throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA} ; {nameof(receivedCountB)}: {receivedCountB}" );
+            }
+            mux.Dispose(); // try an explicit Dispose() which will cause exiting the using block to make a second Dispose() call. make sure it doesn't error
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+        }
+        TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+    }
+    #endregion
+}
+
+internal static class TestUtils {
+    //
+    // internal static TReturn invokePrivateMethod<TInstance, TReturn>( object?[] constructorArgs, string methodName, object?[] methodArgs ) {
+    //     Type type     = typeof(TInstance);
+    //     var  instance = Activator.CreateInstance( type, constructorArgs );
+    //     if ( instance is null ) {
+    //         throw new InstanceCreationException<TInstance>();
+    //     }
+    //     return invokePrivateMethod<TReturn>( instance, methodName, methodArgs );
+    // }
+
+    internal static TReturn invokePrivateMethod<TReturn>( object instance, string methodName, params object?[] methodArgs ) {
+        MethodInfo method = instance.GetType()
+                                    .GetMethods( BindingFlags.NonPublic | BindingFlags.Instance )
+                                    // .GetMethods( BindingFlags.NonPublic | BindingFlags.Static )
+                                    .First( x => x.Name == methodName && x.IsPrivate );
+        return ( TReturn )method.Invoke( instance, methodArgs )!;
+    }
+
+    internal static TReturn getPrivateProperty<TReturn>( object instance, string methodName ) {
+        PropertyInfo property = instance.GetType()
+                                        .GetProperty( methodName, BindingFlags.NonPublic | BindingFlags.Instance ) ?? throw new Exception();
+        return ( TReturn )property.GetValue( instance )!;
+    }
+    internal static TReturn getPrivateField<TReturn>( object instance, string methodName ) {
+        FieldInfo field = instance.GetType().GetField("_outputWriters", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new Exception();
+        return ( TReturn )field.GetValue( instance )!;
+    }
+    
+    
+
+    internal static TReturn invokePrivateStaticMethod<TReturn>( Type type, string methodName, params object[] inputParams ) {
+        MethodInfo method = type
+                            .GetMethods( BindingFlags.NonPublic | BindingFlags.Static )
+                            .First( x => x.Name == methodName && x.IsPrivate );
+        return ( TReturn )method.Invoke( null, inputParams )!;
+    }
 }
