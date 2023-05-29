@@ -26,70 +26,82 @@ namespace Benchmarks.InterThread.ConsoleTests;
 public partial class Program {
     private const string _marksOutputCsvPath = @"/home/eric/Downloads/marks.csv";
 
-    internal static async Task SimpleTest( ) {
-        for ( int i = 0 ; i < 100 ; i++ ) {
-            Console.WriteLine( $"In {nameof(SimpleTest)}" );
-            Stopwatch stopwatch    = Stopwatch.StartNew();
-            const int messageCount = 10_000;
+    internal static async Task SimpleTest( int count = 100, int messageCount = 100_000 ) {
+        for ( int i = 0 ; i < count ; i++ ) {
+            Console.WriteLine( $"========================================\n## {nameof(SimpleTest)} #{i}\n========================================\n" );
+            Stopwatch stopwatch = Stopwatch.StartNew();
             System.IO.File.Delete( _marksOutputCsvPath );
-            long                                                  testStartTicks = stopwatch.ElapsedTicks;
-            long                                                  testStartMs    = stopwatch.ElapsedMilliseconds;
-            BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1       = new ();
-            BroadcastChannel<ClassA>                              channel2       = new ();
-            ChannelMux<StructA?, ClassA>                          mux            = new (channel1.Writer, channel2.Writer);
-           using CancellationTokenSource                               cts            = new CancellationTokenSource();
-            cts.CancelAfter( 20_000 );
-            CancellationToken                                     ct             = cts.Token;
-            // using CancellationTokenSource cts = new CancellationTokenSource();
-            // CancellationToken             ct  = cts.Token;
+            long                                                 testStartTicks = stopwatch.ElapsedTicks;
+            long                                                 testStartMs    = stopwatch.ElapsedMilliseconds;
+            BroadcastChannel<StructA, IBroadcastChannelResponse> channel1       = new ();
+            BroadcastChannel<ClassA>                             channel2       = new ();
+            ChannelMux<StructA, ClassA>                          mux            = new (channel1.Writer, channel2.Writer);
+            using CancellationTokenSource                        cts            = new CancellationTokenSource();
+            cts.CancelAfter( 8_000 );
+            CancellationToken ct = cts.Token;
+            // ct = CancellationToken.None;
 
-            Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static i => new StructA {
-                                                                Id   = i,
+            Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static x => new StructA {
+                                                                Id   = x,
                                                                 Name = @"some_text"
                                                             } ), ct );
-            Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static i => new ClassA {
-                                                                Id   = i,
+            Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static x => new ClassA {
+                                                                Id   = x,
                                                                 Name = @"some_text"
                                                             } ), ct );
             int receivedCountStructA = 0;
             int receivedCountClassA  = 0;
             try {
                 while ( await mux.WaitToReadAsync( ct ) ) {
-                    while ( ( mux.TryRead( out ClassA? classA ), mux.TryRead( out StructA? structA ) ) != ( false, false ) ) {
+                    while ( ( mux.TryRead( out ClassA? classA ), mux.TryRead( out StructA structA ) ) != ( false, false ) ) {
                         if ( classA is { } ) {
                             receivedCountClassA++;
                         }
-                        if ( structA is { } ) {
+                        if ( structA != default(StructA) ) {
                             receivedCountStructA++;
                         }
                     }
                 }
                 await producer1;
+                Console.WriteLine( $"{nameof(producer1)} await complete" );
                 await producer2;
+                Console.WriteLine( $"{nameof(producer2)} await complete" );
             } catch ( OperationCanceledException e ) {
                 Console.WriteLine( $"Operation Cancelled {e}" );
-                i = 100;
+                break;
             } catch ( System.InvalidOperationException e ) {
                 Console.WriteLine( $"InvalidOperationException: {e}" );
-                i = 100;
+                break;
+            } catch ( Exception e ) {
+                Console.WriteLine( $"EXCEPTION: {e}" );
+                break;
             }
+            Console.WriteLine( $"[{i:00}] {nameof(CancellationToken)}.{nameof(CancellationToken.IsCancellationRequested)} is {ct.IsCancellationRequested}" );
+            Console.WriteLine( $"[{i:00}] {stopwatch.ElapsedMilliseconds:N0} ms took {stopwatch.ElapsedTicks - testStartTicks:N0} ticks ({stopwatch.ElapsedMilliseconds - testStartMs} ms)\n\t" +
+                               $"{nameof(messageCount)}: {messageCount}\n\t"                                                                                                                    +
+                               $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t"                                                                                                    +
+                               $"{nameof(receivedCountClassA)}: {receivedCountClassA}\n\t"
+            );
+            Console.Write( $"[{i:00}] " );
+            displayMuxDiagnostics( mux, stopwatch.ElapsedTicks - testStartTicks, writeToFile: false );
             if ( receivedCountClassA != messageCount || receivedCountStructA != messageCount ) {
                 throw new System.Exception( $"Not all messages were read. {nameof(receivedCountClassA)}: {receivedCountClassA} ; {nameof(receivedCountStructA)}: {receivedCountStructA}" );
             }
-            Console.WriteLine( $"{stopwatch.ElapsedMilliseconds:N0} ms took {stopwatch.ElapsedTicks - testStartTicks:N0} ticks ({stopwatch.ElapsedMilliseconds - testStartMs} ms)\n\t" +
-                               $"{nameof(messageCount)}: {messageCount}\n\t"                                                                                                           +
-                               $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t"                                                                                           +
-                               $"{nameof(receivedCountStructA)}: {receivedCountStructA}\n\t"
-            );
-            displayMuxDiagnostics( mux, stopwatch.ElapsedTicks - testStartTicks, writeToFile: false );
         }
+
         static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
-            Console.WriteLine(nameof(producerTask));
-            for ( int i = 0; i < totalMessages; i++ ) {
-                writer.TryWrite( objectFactory( i ) );
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is beginning, totalMessages: {totalMessages}" );
+            try {
+                for ( int i = 0 ; i < totalMessages ; i++ ) {
+                    writer.TryWrite( objectFactory( i ) );
+                }
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is {nameof(writer.Complete)}" );
+                writer.Complete();
+            } catch ( Exception e ) {
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} caught exception: {e}" );
+                throw;
             }
-            Console.WriteLine($"producerTask for type {typeof(T).Name} is {nameof(writer.Complete)}");
-            writer.Complete();
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is done" );
         }
     }
 
@@ -157,9 +169,286 @@ public partial class Program {
         }
     }
 
+    private class BaseClass {
+        public          int    PropertyBase { get; set; }
+
+        /// <inheritdoc />
+        public override string ToString( ) {
+            return $"{nameof(PropertyBase)} = {PropertyBase}";
+        }
+    }
+
+    private class SubClassA : BaseClass {
+        public int PropertySubA { get; set; }
+        /// <inheritdoc />
+        public override string ToString( ) {
+            return base.ToString() + $" ; {nameof(PropertySubA)} = {PropertySubA}";
+        }
+    }
+
+
+    private class SubClassB : BaseClass {
+        public          int    PropertySubB { get; set; }
+
+        /// <inheritdoc />
+        public override string ToString( ) {
+            return base.ToString() + $" ; {nameof(PropertySubB)} = {PropertySubB}";
+        }
+    }
+
+
+    internal static async Task TypeInheritanceTestingOneSubOfOther( ) {
+        Console.WriteLine( $"========================================\n## {nameof(TypeInheritanceTestingOneSubOfOther)} \n========================================\n" );
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        System.IO.File.Delete( _marksOutputCsvPath );
+        long                                   testStartTicks = stopwatch.ElapsedTicks;
+        long                                   testStartMs    = stopwatch.ElapsedMilliseconds;
+        BroadcastChannel<BaseClass>            channel1       = new ();
+        BroadcastChannel<SubClassA>            channel2       = new ();
+        using ChannelMux<BaseClass, SubClassA> mux            = new (channel1.Writer, channel2.Writer);
+        using CancellationTokenSource          cts            = new CancellationTokenSource();
+        const int                              messageCount   = 100;
+        cts.CancelAfter( 8_000 );
+        CancellationToken ct = cts.Token;
+        // ct = CancellationToken.None;
+
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static x => new BaseClass { PropertyBase = -x - 1 } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static x => new SubClassA {
+                                                            PropertyBase = x + 1,
+                                                            PropertySubA = x + 2
+                                                        } ), ct );
+        int receivedCount2 = 0;
+        int receivedCount1 = 0;
+        try {
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                while ( ( mux.TryRead( out BaseClass? baseClass ), mux.TryRead( out SubClassA? subClassA ) ) != ( false, false ) ) {
+                    if ( baseClass is { } bc ) {
+                        if ( bc.PropertyBase >= 0 ) {
+                            throw new Exception( bc.ToString() );
+                        }
+                        receivedCount1++;
+                    }
+                    if ( subClassA is { } subA ) {
+                        if ( subA.PropertyBase <= 0 ) {
+                            throw new Exception( subA.ToString() );
+                        }
+                        if ( subA.PropertySubA != subA.PropertyBase + 1 ) {
+                            throw new Exception( subA.ToString() );
+                        }
+                        receivedCount2++;
+                    }
+                }
+            }
+            await producer1;
+            Console.WriteLine( $"{nameof(producer1)} await complete" );
+            await producer2;
+            Console.WriteLine( $"{nameof(producer2)} await complete" );
+        } catch ( OperationCanceledException e ) {
+            Console.WriteLine( $"Operation Cancelled {e}" );
+            throw;
+        } catch ( System.InvalidOperationException e ) {
+            Console.WriteLine( $"InvalidOperationException: {e}" );
+            throw;
+        } catch ( Exception e ) {
+            Console.WriteLine( $"EXCEPTION: {e}" );
+            throw;
+        }
+        Console.WriteLine( $"{nameof(CancellationToken)}.{nameof(CancellationToken.IsCancellationRequested)} is {ct.IsCancellationRequested}" );
+        Console.WriteLine( $"{stopwatch.ElapsedMilliseconds:N0} ms took {stopwatch.ElapsedTicks - testStartTicks:N0} ticks ({stopwatch.ElapsedMilliseconds - testStartMs} ms)\n\t" +
+                           $"{nameof(messageCount)}: {messageCount}\n\t"                                                                                                           +
+                           $"{nameof(receivedCount2)}: {receivedCount2}\n\t"                                                                                                       +
+                           $"{nameof(receivedCount1)}: {receivedCount1}\n\t"
+        );
+        displayMuxDiagnostics( mux, stopwatch.ElapsedTicks - testStartTicks, writeToFile: false );
+        if ( receivedCount1 != messageCount || receivedCount2 != messageCount ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCount1)}: {receivedCount1} ; {nameof(receivedCount2)}: {receivedCount2}" );
+        }
+
+        static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is beginning, totalMessages: {totalMessages}" );
+            try {
+                for ( int i = 0 ; i < totalMessages ; i++ ) {
+                    writer.TryWrite( objectFactory( i ) );
+                }
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is {nameof(writer.Complete)}" );
+                writer.Complete();
+            } catch ( Exception e ) {
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} caught exception: {e}" );
+                throw;
+            }
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is done" );
+        }
+    }
+
+    internal static async Task TypeInheritanceTestingBothSubOfSame( ) {
+        Console.WriteLine( $"========================================\n## {nameof(TypeInheritanceTestingBothSubOfSame)} \n========================================\n" );
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        System.IO.File.Delete( _marksOutputCsvPath );
+        long                                   testStartTicks = stopwatch.ElapsedTicks;
+        long                                   testStartMs    = stopwatch.ElapsedMilliseconds;
+        BroadcastChannel<SubClassB>            channel1       = new ();
+        BroadcastChannel<SubClassA>            channel2       = new ();
+        using ChannelMux<SubClassB, SubClassA> mux            = new (channel1.Writer, channel2.Writer);
+        using CancellationTokenSource          cts            = new CancellationTokenSource();
+        const int                              messageCount   = 100;
+        cts.CancelAfter( 8_000 );
+        CancellationToken ct = cts.Token;
+        // ct = CancellationToken.None;
+
+        Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static x => new SubClassB {
+                                                            PropertyBase = -x - 1,
+                                                            PropertySubB = -x  - 2
+                                                        } ), ct );
+        Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static x => new SubClassA {
+                                                            PropertyBase = x + 1,
+                                                            PropertySubA = x + 2
+                                                        } ), ct );
+        int receivedCount2 = 0;
+        int receivedCount1 = 0;
+        try {
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                while ( ( mux.TryRead( out SubClassB? subClassB ), mux.TryRead( out SubClassA? subClassA ) ) != ( false, false ) ) {
+                    if ( subClassB is { } subB ) {
+                        if ( subB.PropertyBase >= 0 ) {
+                            throw new Exception( subB.ToString() );
+                        }
+                        if ( subB.PropertySubB != subB.PropertyBase - 1 ) {
+                            throw new Exception( subB.ToString() );
+                        }
+                        receivedCount1++;
+                    }
+                    if ( subClassA is { } subA ) {
+                        if ( subA.PropertyBase <= 0 ) {
+                            throw new Exception( subA.ToString() );
+                        }
+                        if ( subA.PropertySubA != subA.PropertyBase + 1 ) {
+                            throw new Exception( subA.ToString() );
+                        }
+                        receivedCount2++;
+                    }
+                }
+            }
+            await producer1;
+            Console.WriteLine( $"{nameof(producer1)} await complete" );
+            await producer2;
+            Console.WriteLine( $"{nameof(producer2)} await complete" );
+        } catch ( OperationCanceledException e ) {
+            Console.WriteLine( $"Operation Cancelled {e}" );
+            throw;
+        } catch ( System.InvalidOperationException e ) {
+            Console.WriteLine( $"InvalidOperationException: {e}" );
+            throw;
+        } catch ( Exception e ) {
+            Console.WriteLine( $"EXCEPTION: {e}" );
+            throw;
+        }
+        Console.WriteLine( $"{nameof(CancellationToken)}.{nameof(CancellationToken.IsCancellationRequested)} is {ct.IsCancellationRequested}" );
+        Console.WriteLine( $"{stopwatch.ElapsedMilliseconds:N0} ms took {stopwatch.ElapsedTicks - testStartTicks:N0} ticks ({stopwatch.ElapsedMilliseconds - testStartMs} ms)\n\t" +
+                           $"{nameof(messageCount)}: {messageCount}\n\t"                                                                                                           +
+                           $"{nameof(receivedCount2)}: {receivedCount2}\n\t"                                                                                                       +
+                           $"{nameof(receivedCount1)}: {receivedCount1}\n\t"
+        );
+        displayMuxDiagnostics( mux, stopwatch.ElapsedTicks - testStartTicks, writeToFile: false );
+        if ( receivedCount1 != messageCount || receivedCount2 != messageCount ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCount1)}: {receivedCount1} ; {nameof(receivedCount2)}: {receivedCount2}" );
+        }
+
+        static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is beginning, totalMessages: {totalMessages}" );
+            try {
+                for ( int i = 0 ; i < totalMessages ; i++ ) {
+                    writer.TryWrite( objectFactory( i ) );
+                }
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is {nameof(writer.Complete)}" );
+                writer.Complete();
+            } catch ( Exception e ) {
+                Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} caught exception: {e}" );
+                throw;
+            }
+            Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is done" );
+        }
+    }
+    //
+    // internal static async Task TypeInheritanceTesting<T1,T2>( ) where T1: new() where T2: new() {
+    //     Console.WriteLine( $"========================================\n## {nameof(TypeInheritanceTesting)} T1: {typeof(T1).Name} T2: {typeof(T2).Name} \n========================================\n" );
+    //     Stopwatch stopwatch = Stopwatch.StartNew();
+    //     System.IO.File.Delete( _marksOutputCsvPath );
+    //     long                          testStartTicks = stopwatch.ElapsedTicks;
+    //     long                          testStartMs    = stopwatch.ElapsedMilliseconds;
+    //     BroadcastChannel<T1>          channel1       = new ();
+    //     BroadcastChannel<T2>          channel2       = new ();
+    //     using ChannelMux<T1, T2>      mux            = new (channel1.Writer, channel2.Writer);
+    //     using CancellationTokenSource cts            = new CancellationTokenSource();
+    //     const int                     messageCount   = 100;
+    //     cts.CancelAfter( 8_000 );
+    //     CancellationToken ct = cts.Token;
+    //     // ct = CancellationToken.None;
+    //
+    //     Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static x => new T1() ), ct );
+    //     Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static x => new T2() ), ct );
+    //     int receivedCount2 = 0;
+    //     int receivedCount1 = 0;
+    //     try {
+    //         while ( await mux.WaitToReadAsync( ct ) ) {
+    //             while ( ( mux.TryRead( out T1? baseClass ), mux.TryRead( out T2? subClassA ) ) != ( false, false ) ) {
+    //                 if ( baseClass is { } ) {
+    //                     receivedCount1++;
+    //                 }
+    //                 if ( subClassA is { } ) {
+    //                     receivedCount2++;
+    //                 }
+    //             }
+    //         }
+    //         await producer1;
+    //         Console.WriteLine( $"{nameof(producer1)} await complete" );
+    //         await producer2;
+    //         Console.WriteLine( $"{nameof(producer2)} await complete" );
+    //     } catch ( OperationCanceledException e ) {
+    //         Console.WriteLine( $"Operation Cancelled {e}" );
+    //         throw;
+    //     } catch ( System.InvalidOperationException e ) {
+    //         Console.WriteLine( $"InvalidOperationException: {e}" );
+    //         throw;
+    //     } catch ( Exception e ) {
+    //         Console.WriteLine( $"EXCEPTION: {e}" );
+    //         throw;
+    //     }
+    //     Console.WriteLine( $"{nameof(CancellationToken)}.{nameof(CancellationToken.IsCancellationRequested)} is {ct.IsCancellationRequested}" );
+    //     Console.WriteLine( $"{stopwatch.ElapsedMilliseconds:N0} ms took {stopwatch.ElapsedTicks - testStartTicks:N0} ticks ({stopwatch.ElapsedMilliseconds - testStartMs} ms)\n\t" +
+    //                        $"{nameof(messageCount)}: {messageCount}\n\t"                                                                                                           +
+    //                        $"{nameof(receivedCount2)}: {receivedCount2}\n\t"                                                                                                       +
+    //                        $"{nameof(receivedCount1)}: {receivedCount1}\n\t"
+    //     );
+    //     displayMuxDiagnostics( mux, stopwatch.ElapsedTicks - testStartTicks, writeToFile: false );
+    //     if ( receivedCount1 != messageCount || receivedCount2 != messageCount ) {
+    //         throw new System.Exception( $"Not all messages were read. {nameof(receivedCount1)}: {receivedCount1} ; {nameof(receivedCount2)}: {receivedCount2}" );
+    //     }
+    //
+    //     static void producerTask<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int totalMessages, System.Func<int, T> objectFactory ) {
+    //         Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is beginning, totalMessages: {totalMessages}" );
+    //         try {
+    //             for ( int i = 0 ; i < totalMessages ; i++ ) {
+    //                 writer.TryWrite( objectFactory( i ) );
+    //             }
+    //             Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is {nameof(writer.Complete)}" );
+    //             writer.Complete();
+    //         } catch ( Exception e ) {
+    //             Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} caught exception: {e}" );
+    //             throw;
+    //         }
+    //         Console.WriteLine( $"{nameof(producerTask)} for type {typeof(T).Name} is done" );
+    //     }
+    // }
+
+
     private static async Task ChannelComplete_WithException_ShouldThrow_UponAwait( ) {
         var tests = new ChannelMuxTests.ChannelMuxTests( new ConsoleTestOutputHelper() );
         await tests.ChannelComplete_WithException_ShouldThrow_UponAwait( true );
+    }
+
+    private static async Task ExceptionShouldRemoveFromBroadcastChannel( ) {
+        var tests = new ChannelMuxTests.ChannelMuxTests( new ConsoleTestOutputHelper() );
+        await tests.ExceptionShouldRemoveFromBroadcastChannel();
     }
 
     private static async Task AsyncWaitLoopOnly_2Producer( ) {
@@ -182,11 +471,11 @@ public partial class Program {
 
     private static async Task LoopTryRead2_2Producer( int? count = 10_000 ) {
         // while ( !System.Diagnostics.Debugger.IsAttached )
-            // Thread.Sleep( TimeSpan.FromMilliseconds( 100 ) );
+        // Thread.Sleep( TimeSpan.FromMilliseconds( 100 ) );
         ChannelMuxBenchmarks benchmark = new ();
         Stopwatch            stopwatch = Stopwatch.StartNew();
         benchmark.MessageCount = 100_000;
-        Console.WriteLine($"will run {count} times");
+        Console.WriteLine( $"will run {count} times" );
         for ( int i = 0 ; i < count ; i++ ) {
             long testStartTicks = stopwatch.ElapsedTicks;
             long testStartMs    = stopwatch.ElapsedMilliseconds;
@@ -322,18 +611,20 @@ public partial class Program {
             $"{nameof(mux._WaitToReadAsync__inLock_end)}: {mux._WaitToReadAsync__inLock_end}\n\t"                       +
             $"{nameof(mux._WaitToReadAsync__readableItems_end)}: {mux._WaitToReadAsync__readableItems_end}\n\t"         +
             $"{nameof(mux._WaitToReadAsync__end)}: {mux._WaitToReadAsync__end}\n\t"                                     +
-            $"{nameof(mux._tryWrite_enter)}: {mux._tryWrite_enter}\n\t"                                                 +
-            $"{nameof(mux._tryWrite_isComplete_or_exception)}: {mux._tryWrite_isComplete_or_exception}\n\t"             +
-            $"{nameof(mux._tryWrite_no_reader_waiting)}: {mux._tryWrite_no_reader_waiting}\n\t"                         +
-            $"{nameof(mux._tryWrite_in_monitor)}: {mux._tryWrite_in_monitor}\n\t"                                       +
-            $"{nameof(mux._tryWrite_monitor_no_waiting_reader)}: {mux._tryWrite_monitor_no_waiting_reader}\n\t"         +
-            $"{nameof(mux._tryWrite_monitor_set_booleans)}: {mux._tryWrite_monitor_set_booleans}\n\t"                   +
-            $"{nameof(mux._tryWrite_waiting_reader_is_not_null)}: {mux._tryWrite_waiting_reader_is_not_null}\n\t"       +
+            // $"{nameof(ChannelMux._vts_RegisterCancellation_NotEqualToPrior)}: {ChannelMux._vts_RegisterCancellation_NotEqualToPrior}\n\t" +
+            $"{nameof(mux._tryWrite_enter)}: {mux._tryWrite_enter}\n\t"                                           +
+            $"{nameof(mux._tryWrite_isComplete_or_exception)}: {mux._tryWrite_isComplete_or_exception}\n\t"       +
+            $"{nameof(mux._tryWrite_no_reader_waiting)}: {mux._tryWrite_no_reader_waiting}\n\t"                   +
+            $"{nameof(mux._tryWrite_in_monitor)}: {mux._tryWrite_in_monitor}\n\t"                                 +
+            $"{nameof(mux._tryWrite_monitor_no_waiting_reader)}: {mux._tryWrite_monitor_no_waiting_reader}\n\t"   +
+            $"{nameof(mux._tryWrite_monitor_set_booleans)}: {mux._tryWrite_monitor_set_booleans}\n\t"             +
+            $"{nameof(mux._tryWrite_waiting_reader_is_not_null)}: {mux._tryWrite_waiting_reader_is_not_null}\n\t" +
             $"{nameof(mux._tryWrite_final)}: {mux._tryWrite_final}\n\t" );
         if ( writeToFile ) {
             System.IO.File.AppendAllText( _marksOutputCsvPath,
                                           $"{perfTestTicks},"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  +
                                           $"{mux._WaitToReadAsync__entry},{mux._WaitToReadAsync__cancellationToken},{mux._WaitToReadAsync__readableItems},{mux._WaitToReadAsync__inLock},{mux._WaitToReadAsync__inLock_readableItems},{mux._WaitToReadAsync__allChannelsComplete},{mux._WaitToReadAsync__TryOwnAndReset},{mux._WaitToReadAsync__new_eq_old},{mux._WaitToReadAsync__TryOwnAndReset_failed},{mux._WaitToReadAsync__completeException},{mux._WaitToReadAsync__inLock_end},{mux._WaitToReadAsync__readableItems_end},{mux._WaitToReadAsync__end}," +
+                                          // $"{ChannelMux._vts_RegisterCancellation_NotEqualToPrior},"                                                                                                                                                                                                                                                                                                                                                                                                                                                           +
                                           $"{mux._tryWrite_enter},{mux._tryWrite_isComplete_or_exception},{mux._tryWrite_no_reader_waiting},{mux._tryWrite_in_monitor},{mux._tryWrite_monitor_no_waiting_reader},{mux._tryWrite_monitor_set_booleans},{mux._tryWrite_waiting_reader_is_not_null},{mux._tryWrite_final}\n" );
         }
     }

@@ -248,6 +248,29 @@ With `[MethodImpl(MethodImplOptions.AggressiveInlining)]`
 
 
 
+
+
+
+
+With Manual Value Task reset token.
+
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |     Gen0 |     Gen1 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|---------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  23.76 ms |   0.395 ms |    0.369 ms | 875.0000 | 156.2500 |     4205528 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  23.77 ms |   0.291 ms |    0.272 ms | 875.0000 |  31.2500 |     4131396 B |
+
+
+
+Reverted
+
+|                 Method | MessageCount | WithCancellationToken | Mean [ms] | Error [ms] | StdDev [ms] |      Gen0 |      Gen1 |     Gen2 | Allocated [B] |
+|----------------------- |------------- |---------------------- |----------:|-----------:|------------:|----------:|----------:|---------:|--------------:|
+| LoopTryRead2_2Producer |       100000 |                 False |  12.28 ms |   0.198 ms |    0.220 ms | 1265.6250 | 1000.0000 | 546.8750 |     6518853 B |
+| LoopTryRead2_2Producer |       100000 |                  True |  12.94 ms |   0.255 ms |    0.602 ms | 1125.0000 |  843.7500 | 546.8750 |     6250709 B |
+
+
+
+
  */
 
 // [ Config( typeof(BenchmarkConfig) ) ]
@@ -886,10 +909,7 @@ public class ChannelMuxBenchmarks {
     }
 }
 
-public struct StructA {
-    public          int    Id;
-    public          string Name;
-    public          string Description;
+public readonly record struct StructA( int Id, string Name, string? Description = null ) {
     public override string ToString( ) => $"{nameof(StructA)} {{ Id = {Id}, Name = {Name}, Description = {Description} }}";
 }
 

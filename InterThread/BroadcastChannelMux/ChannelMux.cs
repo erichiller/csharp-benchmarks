@@ -14,6 +14,7 @@
 #undef DEBUG_MUX
 #undef LOG
 // #define LOG
+// #define DEBUG
 
 
 using System;
@@ -320,8 +321,9 @@ public abstract class ChannelMux {
                 // TODO: what to do here. If one channel closes should the whole mux stop working? seems like no.
                 lock ( _parent._waiterLockObj ) {
                     if ( _parent._waitingReader != null ) {
-                        waitingReader          = _parent._waitingReader;
-                        _parent._waitingReader = null;
+                        waitingReader            = _parent._waitingReader;
+                        _parent._waitingReader   = null;
+                        _parent._isReaderWaiting = false;
                     }
                 }
                 _parent.Log<ChannelMuxInput<TData>>( typeof(TData), nameof(ChannelMuxInput<TData>), nameof(TryComplete), "will complete task" );

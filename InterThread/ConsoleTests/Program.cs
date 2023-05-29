@@ -63,16 +63,46 @@ public partial class Program {
                 case nameof(CheckForOffsetCompletionErrors):
                     await CheckForOffsetCompletionErrors();
                     break;
-                case nameof(SimpleTest):
-                    await SimpleTest();
+                case nameof(SimpleTest): {
+                    switch ( args.Length ) {
+                        case 3 when Int32.TryParse( args[ 1 ], out int c ) && Int32.TryParse( args[ 2 ], out int messageCount ):
+                            Console.WriteLine($"Running {nameof(SimpleTest)} with count={c}");
+                            await SimpleTest( c, messageCount );
+                            break;
+                        case 2 when Int32.TryParse( args[ 1 ], out int c ):
+                            Console.WriteLine($"Running {nameof(SimpleTest)} with count={c}");
+                            await SimpleTest( c );
+                            break;
+                        case 1:
+                            await SimpleTest();
+                            break;
+                        default:
+                            throw new Exception( args.ToCommaSeparatedString() );
+                            break;
+                            
+                    }
+                    break;
+                }
+                case nameof(ExceptionShouldRemoveFromBroadcastChannel):
+                    await ExceptionShouldRemoveFromBroadcastChannel();
+                    break;
+                case nameof(TypeInheritanceTestingOneSubOfOther):
+                    await TypeInheritanceTestingOneSubOfOther();
+                    break;
+                case nameof(TypeInheritanceTestingBothSubOfSame):
+                    await TypeInheritanceTestingBothSubOfSame();
                     break;
                 case nameof(AsyncWaitLoopOnly_2Producer):
                     await AsyncWaitLoopOnly_2Producer();
                     break;
-                case nameof(LoopTryRead2_2Producer):
-                    Int32.TryParse( args[ 1 ], out int count );
+                case nameof(LoopTryRead2_2Producer): {
+                    int? count = null;
+                    if ( args.Length >= 1 && Int32.TryParse( args[ 1 ], out int c ) ) {
+                        count = c;
+                    }
                     await LoopTryRead2_2Producer( count );
                     break;
+                }
                 case nameof(LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes):
                     await LoopTryRead2_4Producer_1Task_1ValueType_3ReferenceTypes();
                     break;

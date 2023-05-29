@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Benchmarks.InterThread.ChannelMuxTests;
 
@@ -115,7 +116,8 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
 
         while ( await mux.WaitToReadAsync( ct ) ) {
             if ( mux.TryRead( out MessageWithSendTicks a ) ) {
-                if ( receivedCountA > 0 ) { // The first one, especially on slower systems can be quite a bit slower.
+                if ( receivedCountA > 0 ) {
+                    // The first one, especially on slower systems can be quite a bit slower.
                     ( stopwatch.ElapsedTicks - a.Ticks ).Should().BeLessThan( ( sleepMs - 1 ) * Stopwatch.Frequency / 1_000 ); // ticks as ms
                 }
                 messageLatencies[ receivedCountA ] = ( stopwatch.ElapsedTicks - a.Ticks );
@@ -180,7 +182,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
     }
 
-    [Fact]
+    [ Fact ]
     public async Task AlternateChannelWriterMethods( ) {
         static async Task producerTaskUsingAsync<T>( BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, int totalMessages, System.Func<int, T> objectFactory ) {
             for ( int i = 0 ; i < totalMessages ; i++ ) {
@@ -188,6 +190,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
             }
             writer.Complete();
         }
+
         int                              msgCountChannel1 = 100;
         int                              msgCountChannel2 = 50;
         BroadcastChannel<DataTypeA>      channel1         = new ();
@@ -249,7 +252,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         using CancellationTokenSource cts                             = new CancellationTokenSource();
         CancellationToken             ct                              = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
         ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) {
-            StopWatch   = stopwatch,
+            StopWatch = stopwatch,
             OnException = ( exception => {
                 _logger.LogDebug( $"OnException: {{Exception}}\n\t"                             +
                                   $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
@@ -275,13 +278,13 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         await readerTask.Should().ThrowAsync<SomeException>();
         await producer1;
         await producer2;
-        await readerTask.Should().ThrowAsync<SomeException>(because: $"A second call to {nameof(mux.WaitToReadAsync)} should immediately throw.");
+        await readerTask.Should().ThrowAsync<SomeException>( because: $"A second call to {nameof(mux.WaitToReadAsync)} should immediately throw." );
         _logger.LogDebug( $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
                           $"receivedCountA: {{receivedCountA}}\n\t"                     +
                           $"receivedCountB: {{receivedCountB}}", waitToReadLoopCount, receivedCountA, receivedCountB );
         // read remaining messages ( if any )
-        while ( ( mux.TryRead( out DataTypeA _), mux.TryRead( out DataTypeB _ ) ) != ( false, false ) ) { }
-        
+        while ( ( mux.TryRead( out DataTypeA _ ), mux.TryRead( out DataTypeB _ ) ) != ( false, false ) ) { }
+
         mux.Completion.IsCompleted.Should().BeTrue();
         var aggregateException = mux.Completion.Exception.Should().BeOfType<AggregateException>().Subject;
         aggregateException.InnerException.Should().BeOfType<SomeException>();
@@ -298,7 +301,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     //     ChannelMux<DataTypeA, DataTypeB> mux              = new (channel1.Writer, channel2.Writer) { OnException = exception => exception };
     //     // URGENT:!!!!
     // }
-    
+
     #endregion
 
 
@@ -453,16 +456,20 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     }
 
     #endregion
-    
-    
+
+
+    /* **************************************************
+     * Disposal Tests
+     * **************************************************/
+
     #region Disposal tests
 
-    [Fact]
+    [ Fact ]
     public async Task DisposalOfMuxShouldRemoveFromBroadcastChannel( ) {
-        int                              msgCountChannel1 = 100;
-        int                              msgCountChannel2 = 50;
-        BroadcastChannel<DataTypeA>      channel1         = new ();
-        BroadcastChannel<DataTypeB>      channel2         = new ();
+        int                         msgCountChannel1 = 100;
+        int                         msgCountChannel2 = 50;
+        BroadcastChannel<DataTypeA> channel1         = new ();
+        BroadcastChannel<DataTypeB> channel2         = new ();
         using ( ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) ) {
             CancellationToken ct             = CancellationToken.None;
             Stopwatch         stopwatch      = Stopwatch.StartNew();
@@ -496,6 +503,149 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         }
         TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
     }
+
+    [ Fact ]
+    public async Task ExceptionShouldRemoveFromBroadcastChannel( ) {
+        int                         msgCountChannel1 = 100;
+        int                         msgCountChannel2 = 50;
+        BroadcastChannel<DataTypeA> channel1         = new ();
+        BroadcastChannel<DataTypeB> channel2         = new ();
+        try {
+            using ( ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) ) {
+                CancellationToken ct        = CancellationToken.None;
+                Stopwatch         stopwatch = Stopwatch.StartNew();
+                Task producer1 = Task.Run( ( ) => {
+                    try {
+                        throw new SomeException();
+                    } catch ( Exception e ) {
+                        channel1.Writer.Complete( e );
+                        throw;
+                    }
+                    channel1.Writer.Complete();
+                }, ct );
+                Task producer2      = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+                int  receivedCountA = 0;
+                int  receivedCountB = 0;
+
+                TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+
+                while ( await mux.WaitToReadAsync( ct ) ) {
+                    if ( mux.TryRead( out DataTypeA _ ) ) {
+                        receivedCountA++;
+                    }
+                    if ( mux.TryRead( out DataTypeB _ ) ) {
+                        receivedCountB++;
+                    }
+                }
+                await producer1;
+                await producer2;
+                receivedCountA.Should().Be( msgCountChannel1 );
+                receivedCountB.Should().Be( msgCountChannel2 );
+                mux.Completion.IsCompleted.Should().BeTrue();
+                mux.Completion.Exception.Should().BeNull();
+                mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+                if ( receivedCountA != msgCountChannel1 || receivedCountB != msgCountChannel2 ) {
+                    throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA} ; {nameof(receivedCountB)}: {receivedCountB}" );
+                }
+                TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+            }
+        } catch ( Exception e ) {
+            // _logger.LogError( e, "Exception!" );
+            // throw;
+        } finally {
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+            _logger.LogDebug( "count of writers: {X}", TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Length );
+        }
+    }
+
+    #endregion
+
+
+    #region Inheritance Testing
+
+    private record BaseClass( int PropertyBase );
+
+    private record SubClassA( int PropertyBase, int PropertySubA ) : BaseClass( PropertyBase );
+
+
+    private record SubClassB( int PropertyBase, int PropertySubB ) : BaseClass( PropertyBase );
+
+
+    internal static async Task TypeInheritanceTestingOneSubOfOther( ) {
+        BroadcastChannel<BaseClass>            channel1         = new ();
+        BroadcastChannel<SubClassA>            channel2         = new ();
+        using ChannelMux<BaseClass, SubClassA> mux              = new (channel1.Writer, channel2.Writer);
+        int                                    msgCountChannel1 = 100;
+        int                                    msgCountChannel2 = 50;
+        CancellationToken                      ct               = CancellationToken.None;
+        Task                                   producer1        = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, static x => new BaseClass( PropertyBase: -x - 1 ) ), ct );
+        Task                                   producer2        = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, static x => new SubClassA( PropertyBase: x  + 1, PropertySubA: x + 2 ) ), ct );
+        int                                    receivedCountA   = 0;
+        int                                    receivedCountB   = 0;
+
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( ( mux.TryRead( out BaseClass? baseClass ), mux.TryRead( out SubClassA? subClassA ) ) != ( false, false ) ) {
+                if ( baseClass is { } bc ) {
+                    bc.PropertyBase.Should().BeLessThan( 0 );
+                    receivedCountA++;
+                }
+                if ( subClassA is { } subA ) {
+                    subA.PropertyBase.Should().BeGreaterThan( 0 );
+                    subA.PropertySubA.Should().Be( subA.PropertyBase + 1 );
+                    receivedCountB++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        receivedCountA.Should().Be( msgCountChannel1 );
+        receivedCountB.Should().Be( msgCountChannel2 );
+        mux.Completion.IsCompleted.Should().BeTrue();
+        mux.Completion.Exception.Should().BeNull();
+        mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+        if ( receivedCountA != msgCountChannel1 || receivedCountB != msgCountChannel2 ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA} ; {nameof(receivedCountB)}: {receivedCountB}" );
+        }
+    }
+
+    internal static async Task TypeInheritanceTestingBothSubOfSame( ) {
+        BroadcastChannel<SubClassB>            channel1         = new ();
+        BroadcastChannel<SubClassA>            channel2         = new ();
+        using ChannelMux<SubClassB, SubClassA> mux              = new (channel1.Writer, channel2.Writer);
+        int                                    msgCountChannel1 = 100;
+        int                                    msgCountChannel2 = 50;
+        CancellationToken                      ct               = CancellationToken.None;
+        Task                                   producer1        = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, static x => new SubClassB( PropertyBase: -x - 1, PropertySubB: -x - 2 ) ), ct );
+        Task                                   producer2        = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, static x => new SubClassA( PropertyBase: x  + 1, PropertySubA: x  + 2 ) ), ct );
+        int                                    receivedCountA   = 0;
+        int                                    receivedCountB   = 0;
+
+        while ( await mux.WaitToReadAsync( ct ) ) {
+            while ( ( mux.TryRead( out SubClassB? baseClass ), mux.TryRead( out SubClassA? subClassA ) ) != ( false, false ) ) {
+                if ( baseClass is { } subB ) {
+                    subB.PropertyBase.Should().BeLessThan( 0 );
+                    subB.PropertySubB.Should().Be( subB.PropertyBase - 1 );
+                    receivedCountA++;
+                }
+                if ( subClassA is { } subA ) {
+                    subA.PropertyBase.Should().BeGreaterThan( 0 );
+                    subA.PropertySubA.Should().Be( subA.PropertyBase + 1 );
+                    receivedCountB++;
+                }
+            }
+        }
+        await producer1;
+        await producer2;
+        receivedCountA.Should().Be( msgCountChannel1 );
+        receivedCountB.Should().Be( msgCountChannel2 );
+        mux.Completion.IsCompleted.Should().BeTrue();
+        mux.Completion.Exception.Should().BeNull();
+        mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+        if ( receivedCountA != msgCountChannel1 || receivedCountB != msgCountChannel2 ) {
+            throw new System.Exception( $"Not all messages were read. {nameof(receivedCountA)}: {receivedCountA} ; {nameof(receivedCountB)}: {receivedCountB}" );
+        }
+    }
+
     #endregion
 }
 
@@ -523,12 +673,12 @@ internal static class TestUtils {
                                         .GetProperty( methodName, BindingFlags.NonPublic | BindingFlags.Instance ) ?? throw new Exception();
         return ( TReturn )property.GetValue( instance )!;
     }
+
     internal static TReturn getPrivateField<TReturn>( object instance, string methodName ) {
-        FieldInfo field = instance.GetType().GetField("_outputWriters", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new Exception();
+        FieldInfo field = instance.GetType().GetField( "_outputWriters", BindingFlags.NonPublic | BindingFlags.Instance ) ?? throw new Exception();
         return ( TReturn )field.GetValue( instance )!;
     }
-    
-    
+
 
     internal static TReturn invokePrivateStaticMethod<TReturn>( Type type, string methodName, params object[] inputParams ) {
         MethodInfo method = type
