@@ -20,7 +20,6 @@ using Microsoft.Extensions.Logging;
 
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Benchmarks.InterThread.ChannelMuxTests;
 
@@ -32,6 +31,12 @@ file readonly record struct DataTypeA(
 
 [ SuppressMessage( "ReSharper", "NotAccessedPositionalProperty.Local" ) ]
 file readonly record struct DataTypeB(
+    int  Sequence,
+    long WrittenTicks
+);
+
+[ SuppressMessage( "ReSharper", "NotAccessedPositionalProperty.Local" ) ]
+file readonly record struct DataTypeC(
     int  Sequence,
     long WrittenTicks
 );
@@ -223,6 +228,81 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
     }
 
+
+    [ Fact ]
+    public async Task ReplaceChannel_WhenMuxIsCompleted( ) {
+        int                         msgCountChannel1    = 100;
+        int                         msgCountChannel2    = 50;
+        int                         msgCountChannel3    = 75;
+        BroadcastChannel<DataTypeA> channel1            = new ();
+        BroadcastChannel<DataTypeB> channel2            = new ();
+        BroadcastChannel<DataTypeA> channelReplacement1 = new ();
+        using ( ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) ) {
+            CancellationToken ct             = CancellationToken.None;
+            Stopwatch         stopwatch      = Stopwatch.StartNew();
+            Task              producer1      = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+            Task              producer2      = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+            int               receivedCountA = 0;
+            int               receivedCountB = 0;
+            int               receivedCountC = 0;
+
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeB>>>( channel2.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channelReplacement1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+            TestUtils.getPrivateField<ChannelMux,int>( mux, "_closedChannels" ).Should().Be( 0 );
+
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                if ( mux.TryRead( out DataTypeA _ ) ) {
+                    receivedCountA++;
+                }
+                if ( mux.TryRead( out DataTypeB _ ) ) {
+                    receivedCountB++;
+                }
+            }
+            await producer1;
+            await producer2;
+            receivedCountA.Should().Be( msgCountChannel1 );
+            receivedCountB.Should().Be( msgCountChannel2 );
+            mux.Completion.IsCompleted.Should().BeTrue();
+            mux.Completion.Exception.Should().BeNull();
+            mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+            TestUtils.getPrivateField<ChannelMux,int>( mux, "_closedChannels" ).Should().Be( 2 );
+
+            // Replace
+            mux.ReplaceChannel( channelReplacement1.Writer );
+            mux.Completion.IsCompleted.Should().BeFalse();
+            TestUtils.getPrivateField<ChannelMux,int>( mux, "_closedChannels" ).Should().Be( 1 );
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeB>>>( channel2.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+            TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channelReplacement1.Writer, "_outputWriters" ).Should().HaveCount( 1 );
+
+            Task producer3 = Task.Run( ( ) => producerTaskSimple( channelReplacement1.Writer, msgCountChannel3, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
+            while ( await mux.WaitToReadAsync( ct ) ) {
+                if ( mux.TryRead( out DataTypeA _ ) ) {
+                    receivedCountC++;
+                }
+                if ( mux.TryRead( out DataTypeB _ ) ) {
+                    receivedCountB++;
+                }
+            }
+            await producer3;
+            receivedCountC.Should().Be( msgCountChannel3 );
+            mux.Completion.IsCompleted.Should().BeTrue();
+            mux.Completion.Exception.Should().BeNull();
+            mux.Completion.IsCompletedSuccessfully.Should().BeTrue();
+        }
+        TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+        TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeB>>>( channel2.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+        TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channelReplacement1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
+    }
+
+
+    [ Fact ]
+    public async Task ReplaceChannel_WhenMuxIsOpen( ) {
+        // URGENT: EXACT SAME , BUT HAVE THE CHANNEL BEING REPLACED STILL BE OPEN.
+    }
+
+
     /* **************************************************
      * Exception Tests
      * **************************************************/
@@ -256,9 +336,9 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
             StopWatch = stopwatch,
             OnChannelComplete = ( ( dType, exception ) => {
                 onChannelCompleteCounter++;
-                _logger.LogDebug( $"OnException: {{Exception}} for channel of type {{DType}}\n\t"                             +
-                                  $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
-                                  $"receivedCountA: {{receivedCountA}}\n\t"                     +
+                _logger.LogDebug( $"OnException: {{Exception}} for channel of type {{DType}}\n\t" +
+                                  $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t"   +
+                                  $"receivedCountA: {{receivedCountA}}\n\t"                       +
                                   $"receivedCountB: {{receivedCountB}}", exception, dType.Name, waitToReadLoopCount, receivedCountA, receivedCountB );
                 if ( exception is { } ) {
                     dType.Should().Be( typeof(DataTypeB) );
@@ -306,71 +386,6 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         aggregateException.InnerException.Should().BeOfType<SomeException>();
         mux.Completion.IsCompletedSuccessfully.Should().BeFalse();
     }
-
-
-    // public async Task ChannelComplete_WithException_ShouldThrow_UponAwait( bool withCancellableCancellationToken ) {
-    //     static void producerTaskCompleteWithErrorAfter<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int completeWithExceptionAfterCount, System.Func<int, T> objectFactory ) {
-    //         TimeSpan sleepTime = TimeSpan.FromTicks( 10_000 );
-    //         for ( int i = 0 ; i < completeWithExceptionAfterCount ; i++ ) {
-    //             writer.TryWrite( objectFactory( i ) );
-    //         }
-    //         Thread.Sleep( sleepTime );
-    //         writer.Complete( new SomeException() );
-    //     }
-    //
-    //     const int                     completeWithExceptionAfterCount = 500;
-    //     const int                     msgCountChannel1                = 50_000;
-    //     int                           receivedCountA                  = 0, receivedCountB = 0;
-    //     int                           waitToReadLoopCount             = 0;
-    //     Stopwatch                     stopwatch                       = Stopwatch.StartNew();
-    //     BroadcastChannel<DataTypeA>   channel1                        = new ();
-    //     BroadcastChannel<DataTypeB>   channel2                        = new ();
-    //     using CancellationTokenSource cts                             = new CancellationTokenSource();
-    //     CancellationToken             ct                              = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
-    //     ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) {
-    //         StopWatch = stopwatch,
-    //         OnException = ( exception => {
-    //             _logger.LogDebug( $"OnException: {{Exception}}\n\t"                             +
-    //                               $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
-    //                               $"receivedCountA: {{receivedCountA}}\n\t"                     +
-    //                               $"receivedCountB: {{receivedCountB}}", exception, waitToReadLoopCount, receivedCountA, receivedCountB );
-    //             return exception;
-    //         } )
-    //     };
-    //     Task producer1 = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), CancellationToken.None );
-    //     Task producer2 = Task.Run( ( ) => producerTaskCompleteWithErrorAfter( channel2.Writer, completeWithExceptionAfterCount, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), CancellationToken.None );
-    //
-    //     Func<Task> readerTask = async ( ) => {
-    //         while ( await mux.WaitToReadAsync( ct ) ) {
-    //             waitToReadLoopCount++;
-    //             if ( mux.TryRead( out DataTypeA _ ) ) {
-    //                 receivedCountA++;
-    //             }
-    //             if ( mux.TryRead( out DataTypeB _ ) ) {
-    //                 receivedCountB++;
-    //             }
-    //         }
-    //     };
-    //     await readerTask.Should().ThrowAsync<SomeException>();
-    //     await producer1;
-    //     await producer2;
-    //     await readerTask.Should().ThrowAsync<SomeException>( because: $"A second call to {nameof(mux.WaitToReadAsync)} should immediately throw." );
-    //
-    //     await channel1.Writer.WriteAsync( new DataTypeA {
-    //                                   Sequence     = 10,
-    //                                   WrittenTicks = -1
-    //                               } );
-    //     _logger.LogDebug( $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
-    //                       $"receivedCountA: {{receivedCountA}}\n\t"                     +
-    //                       $"receivedCountB: {{receivedCountB}}", waitToReadLoopCount, receivedCountA, receivedCountB );
-    //     // read remaining messages ( if any )
-    //     while ( ( mux.TryRead( out DataTypeA _ ), mux.TryRead( out DataTypeB _ ) ) != ( false, false ) ) { }
-    //
-    //     mux.Completion.IsCompleted.Should().BeTrue();
-    //     var aggregateException = mux.Completion.Exception.Should().BeOfType<AggregateException>().Subject;
-    //     aggregateException.InnerException.Should().BeOfType<SomeException>();
-    //     mux.Completion.IsCompletedSuccessfully.Should().BeFalse();
-    // }
 
     #endregion
 
@@ -591,7 +606,6 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
                         channel1.Writer.Complete( e );
                         throw;
                     }
-                    channel1.Writer.Complete();
                 }, ct );
                 Task producer2      = Task.Run( ( ) => producerTaskSimple( channel2.Writer, msgCountChannel2, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), ct );
                 int  receivedCountA = 0;
@@ -619,9 +633,8 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
                 }
                 TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
             }
-        } catch ( Exception e ) {
-            // _logger.LogError( e, "Exception!" );
-            // throw;
+        } catch ( Exception ) {
+            // nothing
         } finally {
             TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Should().HaveCount( 0 );
             _logger.LogDebug( "count of writers: {X}", TestUtils.getPrivateField<ImmutableArray<ChannelWriter<DataTypeA>>>( channel1.Writer, "_outputWriters" ).Length );
@@ -744,8 +757,12 @@ internal static class TestUtils {
         return ( TReturn )property.GetValue( instance )!;
     }
 
-    internal static TReturn getPrivateField<TReturn>( object instance, string methodName ) {
-        FieldInfo field = instance.GetType().GetField( "_outputWriters", BindingFlags.NonPublic | BindingFlags.Instance ) ?? throw new Exception();
+    internal static TReturn getPrivateField<TReturn>( object instance, string fieldName ) {
+        FieldInfo field = instance.GetType().GetField( fieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default ) ?? throw new Exception($"Could not get field '{fieldName}'");
+        return ( TReturn )field.GetValue( instance )!;
+    }
+    internal static TReturn getPrivateField<TFieldOwner,TReturn>( object instance, string fieldName ) {
+        FieldInfo field = typeof(TFieldOwner).GetField( fieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default ) ?? throw new Exception($"Could not get field '{fieldName}'");
         return ( TReturn )field.GetValue( instance )!;
     }
 

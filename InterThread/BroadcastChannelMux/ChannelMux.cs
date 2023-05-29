@@ -92,10 +92,21 @@ public abstract class ChannelMux {
     /* End Testing */ /* KILL END */
 
     /// <summary>Task that indicates the channel has completed.</summary>
-    private readonly TaskCompletionSource _completion;
+    private TaskCompletionSource _completion;
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.Completion"/>
     public Task Completion => _completion.Task;
+
+    private TaskCompletionSource createCompletionTask( ) => new TaskCompletionSource( _runContinuationsAsynchronously ? TaskCreationOptions.RunContinuationsAsynchronously : TaskCreationOptions.None );
+
+    protected void resetOneChannel( ) {
+        if ( _completion.Task.IsCompleted ) {
+            _completion = createCompletionTask();
+        }
+        _completeException = null;
+        _hasException      = false;
+        Interlocked.Decrement( ref _closedChannels );
+    }
 
     /// <summary>
     /// Return <c>Exception</c> if the entire ChannelMux and all associated ChannelReaders should be ended. (else return null)
@@ -113,7 +124,7 @@ public abstract class ChannelMux {
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
         _runContinuationsAsynchronously = runContinuationsAsynchronously;
-        _completion                     = new TaskCompletionSource( runContinuationsAsynchronously ? TaskCreationOptions.RunContinuationsAsynchronously : TaskCreationOptions.None );
+        _completion                     = createCompletionTask();
         _waiterSingleton                = new AsyncOperation<bool>( runContinuationsAsynchronously, pooled: true );
         _totalChannels                  = totalChannels;
     }
@@ -397,8 +408,8 @@ public abstract class ChannelMux {
 /// <typeparam name="T1"></typeparam>
 /// <typeparam name="T2"></typeparam>
 public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
-    private readonly ChannelMuxInput<T1> _input1;
-    private readonly ChannelMuxInput<T2> _input2;
+    private ChannelMuxInput<T1> _input1;
+    private ChannelMuxInput<T2> _input2;
 
     public ChannelMux( BroadcastChannelWriter<T1, IBroadcastChannelResponse> channel1, BroadcastChannelWriter<T2, IBroadcastChannelResponse> channel2 ) : this( channel1, channel2, totalChannels: 2 ) { }
 
@@ -406,6 +417,31 @@ public class ChannelMux<T1, T2> : ChannelMux, IDisposable {
         _input1 = new ChannelMuxInput<T1>( channel1, this );
         _input2 = new ChannelMuxInput<T2>( channel2, this );
     }
+
+    /// <summary>
+    /// The channel will be replaced regardless of whether <c>Complete()</c> has been called.
+    ///
+    /// <list type="bullet">
+    ///     <item>
+    ///         <description><see cref="ChannelMux._completeException"/> will be set to <c>null</c></description>
+    ///     </item>
+    ///     <item>
+    ///         <description><see cref="ChannelMux._hasException"/> will be set to <c>false</c></description>
+    ///     </item>
+    ///     <item>
+    ///         <description><see cref="ChannelMux._closedChannels"/> will be decremented by 1.</description>
+    ///     </item>
+    /// </list>
+    /// The <see cref="ChannelMux.Completion"/> task will be created new if it had been completed. 
+    /// </summary>
+    /// <param name="newChannel">Channel that will replace the channel of the matching type.</param>
+    /// <returns>
+    /// </returns>
+    public void ReplaceChannel( BroadcastChannelWriter<T1, IBroadcastChannelResponse> newChannel ) {
+        this.resetOneChannel();
+        Interlocked.Exchange( ref _input1, new ChannelMuxInput<T1>( newChannel, this ) ).Dispose();
+    }
+
 
     /// <inheritdoc cref="System.Threading.Channels.ChannelReader{T}.TryRead"/>
     [ SuppressMessage( "ReSharper", "RedundantNullableFlowAttribute" ) ]
