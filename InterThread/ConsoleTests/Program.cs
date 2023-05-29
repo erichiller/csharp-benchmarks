@@ -20,26 +20,6 @@ namespace Benchmarks.InterThread.ConsoleTests;
 public partial class Program {
     [ Conditional( "LOG" ) ]
     private static void Log( string? msg ) => Console.WriteLine( msg );
-    // public class ResponseChecker {
-    //     private ChannelReader<ChannelResponse> _reader;
-    //
-    //     public ResponseChecker( Channel<ChannelResponse> responseChannel ) {
-    //         _reader = responseChannel.Reader;
-    //     }
-    //
-    //     public async Task<bool> WaitForId( int id ) {
-    //         int lastId = 0;
-    //         while ( _reader.TryRead(  ) ) {
-    //             
-    //             var message = await this._reader.ReadAsync();
-    //             lastId = message.ReadId;
-    //             System.Console.WriteLine( $"Last ID Read: {lastId}" );
-    //         }
-    //
-    //         return false;
-    //     }
-    // }
-
 
     static async Task<int> Main( string[] args ) {
         IHost                   host;
@@ -62,6 +42,9 @@ public partial class Program {
             switch ( args[ 0 ] ) {
                 case nameof(CheckForOffsetCompletionErrors):
                     await CheckForOffsetCompletionErrors();
+                    break;
+                case nameof(StressTest):
+                    await StressTest();
                     break;
                 case nameof(SimpleTest): {
                     switch ( args.Length ) {

@@ -106,10 +106,10 @@ public abstract class ChannelMux {
     /// <remarks>
     /// Note that `TryRead` will still be allowed until the queue is empty, but because `TryWrite` is ended, the queue will not continue to be added to.
     /// </remarks>
-    public delegate Exception? HandleException( Exception exception );
+    public delegate Exception? ChannelCompleteHandler( Type reportingChannelType, Exception? exception );
 
-    /// <inheritdoc cref="HandleException" />
-    public HandleException? OnException { get; init; }
+    /// <inheritdoc cref="ChannelCompleteHandler" />
+    public ChannelCompleteHandler? OnChannelComplete { get; init; }
 
     protected ChannelMux( int totalChannels, bool runContinuationsAsynchronously = default ) {
         _runContinuationsAsynchronously = runContinuationsAsynchronously;
@@ -286,13 +286,11 @@ public abstract class ChannelMux {
             }
 
             // allow the user to ignore or modify the Exception
+            exception = _parent.OnChannelComplete?.Invoke( typeof(TData), exception );
+            exception?.Data.Add( nameof(ChannelMux) + " Type", typeof(TData) );
             if ( exception is { } ) {
-                exception.Data.Add( nameof(ChannelMux) + " Type", typeof(TData) );
-                exception = _parent.OnException?.Invoke( exception );
-                if ( exception is { } ) {
-                    _parent._hasException = true;
-                    Interlocked.Exchange( ref _parent._completeException, exception );
-                }
+                _parent._hasException = true;
+                Interlocked.Exchange( ref _parent._completeException, exception );
             }
 
             lock ( _parent._closedChannelLockObj ) {

@@ -116,7 +116,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
 
         while ( await mux.WaitToReadAsync( ct ) ) {
             if ( mux.TryRead( out MessageWithSendTicks a ) ) {
-                if ( receivedCountA > 0 ) {
+                if ( receivedCountA > 2 ) {
                     // The first one, especially on slower systems can be quite a bit slower.
                     ( stopwatch.ElapsedTicks - a.Ticks ).Should().BeLessThan( ( sleepMs - 1 ) * Stopwatch.Frequency / 1_000 ); // ticks as ms
                 }
@@ -251,13 +251,20 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         BroadcastChannel<DataTypeB>   channel2                        = new ();
         using CancellationTokenSource cts                             = new CancellationTokenSource();
         CancellationToken             ct                              = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
+        int                           onChannelCompleteCounter        = 0;
         ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) {
             StopWatch = stopwatch,
-            OnException = ( exception => {
-                _logger.LogDebug( $"OnException: {{Exception}}\n\t"                             +
+            OnChannelComplete = ( ( dType, exception ) => {
+                onChannelCompleteCounter++;
+                _logger.LogDebug( $"OnException: {{Exception}} for channel of type {{DType}}\n\t"                             +
                                   $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
                                   $"receivedCountA: {{receivedCountA}}\n\t"                     +
-                                  $"receivedCountB: {{receivedCountB}}", exception, waitToReadLoopCount, receivedCountA, receivedCountB );
+                                  $"receivedCountB: {{receivedCountB}}", exception, dType.Name, waitToReadLoopCount, receivedCountA, receivedCountB );
+                if ( exception is { } ) {
+                    dType.Should().Be( typeof(DataTypeB) );
+                } else {
+                    dType.Should().Be( typeof(DataTypeA) );
+                }
                 return exception;
             } )
         };
@@ -279,12 +286,21 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         await producer1;
         await producer2;
         await readerTask.Should().ThrowAsync<SomeException>( because: $"A second call to {nameof(mux.WaitToReadAsync)} should immediately throw." );
+        Func<Task> asyncWriterShouldThrow = async ( ) => {
+            await channel1.Writer.WriteAsync( new DataTypeA {
+                                                  Sequence     = 10,
+                                                  WrittenTicks = -1
+                                              } );
+        };
+        await asyncWriterShouldThrow.Should().ThrowAsync<ChannelClosedException>()
+                                    .WithInnerException( typeof(SomeException) );
         _logger.LogDebug( $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
                           $"receivedCountA: {{receivedCountA}}\n\t"                     +
                           $"receivedCountB: {{receivedCountB}}", waitToReadLoopCount, receivedCountA, receivedCountB );
         // read remaining messages ( if any )
         while ( ( mux.TryRead( out DataTypeA _ ), mux.TryRead( out DataTypeB _ ) ) != ( false, false ) ) { }
 
+        onChannelCompleteCounter.Should().Be( 2 );
         mux.Completion.IsCompleted.Should().BeTrue();
         var aggregateException = mux.Completion.Exception.Should().BeOfType<AggregateException>().Subject;
         aggregateException.InnerException.Should().BeOfType<SomeException>();
@@ -292,14 +308,68 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
     }
 
 
-    // public async Task OnException_Test( ) {
-    //     // URGENT:!!!!
-    //     const int                        msgCountChannel1 = 50, msgCountChannel2 = 100;
-    //     int                              receivedCountA   = 0,  receivedCountB   = 0;
-    //     BroadcastChannel<DataTypeA>      channel1         = new ();
-    //     BroadcastChannel<DataTypeB>      channel2         = new ();
-    //     ChannelMux<DataTypeA, DataTypeB> mux              = new (channel1.Writer, channel2.Writer) { OnException = exception => exception };
-    //     // URGENT:!!!!
+    // public async Task ChannelComplete_WithException_ShouldThrow_UponAwait( bool withCancellableCancellationToken ) {
+    //     static void producerTaskCompleteWithErrorAfter<T>( in BroadcastChannelWriter<T, IBroadcastChannelResponse> writer, in int completeWithExceptionAfterCount, System.Func<int, T> objectFactory ) {
+    //         TimeSpan sleepTime = TimeSpan.FromTicks( 10_000 );
+    //         for ( int i = 0 ; i < completeWithExceptionAfterCount ; i++ ) {
+    //             writer.TryWrite( objectFactory( i ) );
+    //         }
+    //         Thread.Sleep( sleepTime );
+    //         writer.Complete( new SomeException() );
+    //     }
+    //
+    //     const int                     completeWithExceptionAfterCount = 500;
+    //     const int                     msgCountChannel1                = 50_000;
+    //     int                           receivedCountA                  = 0, receivedCountB = 0;
+    //     int                           waitToReadLoopCount             = 0;
+    //     Stopwatch                     stopwatch                       = Stopwatch.StartNew();
+    //     BroadcastChannel<DataTypeA>   channel1                        = new ();
+    //     BroadcastChannel<DataTypeB>   channel2                        = new ();
+    //     using CancellationTokenSource cts                             = new CancellationTokenSource();
+    //     CancellationToken             ct                              = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
+    //     ChannelMux<DataTypeA, DataTypeB> mux = new (channel1.Writer, channel2.Writer) {
+    //         StopWatch = stopwatch,
+    //         OnException = ( exception => {
+    //             _logger.LogDebug( $"OnException: {{Exception}}\n\t"                             +
+    //                               $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
+    //                               $"receivedCountA: {{receivedCountA}}\n\t"                     +
+    //                               $"receivedCountB: {{receivedCountB}}", exception, waitToReadLoopCount, receivedCountA, receivedCountB );
+    //             return exception;
+    //         } )
+    //     };
+    //     Task producer1 = Task.Run( ( ) => producerTaskSimple( channel1.Writer, msgCountChannel1, i => new DataTypeA( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), CancellationToken.None );
+    //     Task producer2 = Task.Run( ( ) => producerTaskCompleteWithErrorAfter( channel2.Writer, completeWithExceptionAfterCount, i => new DataTypeB( Sequence: i, WrittenTicks: stopwatch.ElapsedTicks ) ), CancellationToken.None );
+    //
+    //     Func<Task> readerTask = async ( ) => {
+    //         while ( await mux.WaitToReadAsync( ct ) ) {
+    //             waitToReadLoopCount++;
+    //             if ( mux.TryRead( out DataTypeA _ ) ) {
+    //                 receivedCountA++;
+    //             }
+    //             if ( mux.TryRead( out DataTypeB _ ) ) {
+    //                 receivedCountB++;
+    //             }
+    //         }
+    //     };
+    //     await readerTask.Should().ThrowAsync<SomeException>();
+    //     await producer1;
+    //     await producer2;
+    //     await readerTask.Should().ThrowAsync<SomeException>( because: $"A second call to {nameof(mux.WaitToReadAsync)} should immediately throw." );
+    //
+    //     await channel1.Writer.WriteAsync( new DataTypeA {
+    //                                   Sequence     = 10,
+    //                                   WrittenTicks = -1
+    //                               } );
+    //     _logger.LogDebug( $"{nameof(waitToReadLoopCount)}: {{WaitToReadLoopCount}}\n\t" +
+    //                       $"receivedCountA: {{receivedCountA}}\n\t"                     +
+    //                       $"receivedCountB: {{receivedCountB}}", waitToReadLoopCount, receivedCountA, receivedCountB );
+    //     // read remaining messages ( if any )
+    //     while ( ( mux.TryRead( out DataTypeA _ ), mux.TryRead( out DataTypeB _ ) ) != ( false, false ) ) { }
+    //
+    //     mux.Completion.IsCompleted.Should().BeTrue();
+    //     var aggregateException = mux.Completion.Exception.Should().BeOfType<AggregateException>().Subject;
+    //     aggregateException.InnerException.Should().BeOfType<SomeException>();
+    //     mux.Completion.IsCompletedSuccessfully.Should().BeFalse();
     // }
 
     #endregion

@@ -35,7 +35,7 @@ public partial class Program {
             long                                                 testStartMs    = stopwatch.ElapsedMilliseconds;
             BroadcastChannel<StructA, IBroadcastChannelResponse> channel1       = new ();
             BroadcastChannel<ClassA>                             channel2       = new ();
-            ChannelMux<StructA, ClassA>                          mux            = new (channel1.Writer, channel2.Writer);
+            using ChannelMux<StructA, ClassA>                    mux            = new (channel1.Writer, channel2.Writer);
             using CancellationTokenSource                        cts            = new CancellationTokenSource();
             cts.CancelAfter( 8_000 );
             CancellationToken ct = cts.Token;
@@ -105,7 +105,18 @@ public partial class Program {
         }
     }
 
-    internal static async Task CheckForOffsetCompletionErrors( ) {
+    internal static async Task StressTest( ) {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        int       i         = 0;
+        while ( stopwatch.Elapsed < TimeSpan.FromHours( 6 ) ) {
+            i++;
+            await SimpleTest( count: 10, messageCount: 100_000 );
+            await CheckForOffsetCompletionErrors( false );
+        }
+        Console.WriteLine( $"Ran for {stopwatch.Elapsed}. {i} loops." );
+    }
+
+    internal static async Task CheckForOffsetCompletionErrors( bool writeToFile = true ) {
         Stopwatch stopwatch    = Stopwatch.StartNew();
         const int messageCount = 10_000;
         System.IO.File.Delete( _marksOutputCsvPath );
@@ -114,7 +125,7 @@ public partial class Program {
             long                                                  testStartMs    = stopwatch.ElapsedMilliseconds;
             BroadcastChannel<StructA?, IBroadcastChannelResponse> channel1       = new ();
             BroadcastChannel<ClassA>                              channel2       = new ();
-            ChannelMux<StructA?, ClassA>                          mux            = new (channel1.Writer, channel2.Writer);
+            using ChannelMux<StructA?, ClassA>                    mux            = new (channel1.Writer, channel2.Writer);
             CancellationToken                                     ct             = CancellationToken.None;
             // using CancellationTokenSource cts = new CancellationTokenSource();
             // CancellationToken             ct  = cts.Token;
@@ -170,7 +181,7 @@ public partial class Program {
     }
 
     private class BaseClass {
-        public          int    PropertyBase { get; set; }
+        public int PropertyBase { get; set; }
 
         /// <inheritdoc />
         public override string ToString( ) {
@@ -180,6 +191,7 @@ public partial class Program {
 
     private class SubClassA : BaseClass {
         public int PropertySubA { get; set; }
+
         /// <inheritdoc />
         public override string ToString( ) {
             return base.ToString() + $" ; {nameof(PropertySubA)} = {PropertySubA}";
@@ -188,7 +200,7 @@ public partial class Program {
 
 
     private class SubClassB : BaseClass {
-        public          int    PropertySubB { get; set; }
+        public int PropertySubB { get; set; }
 
         /// <inheritdoc />
         public override string ToString( ) {
@@ -297,7 +309,7 @@ public partial class Program {
 
         Task producer1 = Task.Run( ( ) => producerTask( channel1.Writer, messageCount, static x => new SubClassB {
                                                             PropertyBase = -x - 1,
-                                                            PropertySubB = -x  - 2
+                                                            PropertySubB = -x - 2
                                                         } ), ct );
         Task producer2 = Task.Run( ( ) => producerTask( channel2.Writer, messageCount, static x => new SubClassA {
                                                             PropertyBase = x + 1,
