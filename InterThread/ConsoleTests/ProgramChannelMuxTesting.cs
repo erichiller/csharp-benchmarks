@@ -108,9 +108,9 @@ public partial class Program {
     internal static async Task StressTest( ) {
         Stopwatch stopwatch = Stopwatch.StartNew();
         int       i         = 0;
-        while ( stopwatch.Elapsed < TimeSpan.FromHours( 6 ) ) {
+        while ( stopwatch.Elapsed < TimeSpan.FromHours( 8 ) ) {
             i++;
-            await SimpleTest( count: 10, messageCount: 100_000 );
+            await SimpleTest( count: 1, messageCount: 10_000_000 );
             await CheckForOffsetCompletionErrors( false );
         }
         Console.WriteLine( $"Ran for {stopwatch.Elapsed}. {i} loops." );

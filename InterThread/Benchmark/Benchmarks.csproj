@@ -52,7 +52,6 @@ ADD:
     
     <ItemGroup>
         <ProjectReference Include="..\BroadcastChannelMux\BroadcastChannelMux.csproj" />
-        <ProjectReference Include="..\BroadcastQueueTests\BroadcastQueueTests.csproj" />
         <ProjectReference Include="..\BroadcastQueue\BroadcastQueue.csproj" />
         <ProjectReference Include="..\..\Common\Common.csproj" />
     </ItemGroup>
