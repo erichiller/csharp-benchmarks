@@ -463,6 +463,11 @@ public partial class Program {
         await tests.ExceptionShouldRemoveFromBroadcastChannel();
     }
 
+    internal static async Task ChannelMuxLatencyTest( ) {
+        var tests = new ChannelMuxTests.ChannelMuxTests( new ConsoleTestOutputHelper() );
+        await tests.ChannelMuxLatencyTest(false);
+    }
+
     private static async Task AsyncWaitLoopOnly_2Producer( ) {
         ChannelMuxBenchmarks benchmark = new () {
             MessageCount          = 10_000,

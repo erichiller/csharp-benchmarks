@@ -75,6 +75,9 @@ public partial class Program {
                 case nameof(TypeInheritanceTestingBothSubOfSame):
                     await TypeInheritanceTestingBothSubOfSame();
                     break;
+                case nameof(ChannelMuxLatencyTest):
+                    await ChannelMuxLatencyTest();
+                    break;
                 case nameof(AsyncWaitLoopOnly_2Producer):
                     await AsyncWaitLoopOnly_2Producer();
                     break;

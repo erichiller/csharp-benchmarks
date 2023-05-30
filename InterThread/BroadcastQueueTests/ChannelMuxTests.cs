@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -85,46 +86,87 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
         }
     }
 
-    private readonly record struct MessageWithSendTicks( long Ticks );
+    private readonly record struct MessageWithSendTicksA( long Ticks, int Id, int Group );
+
+    // ReSharper disable once NotAccessedPositionalProperty.Local
+    private readonly record struct MessageWithSendTicksB( long Ticks );
+
+
+    private record ProducerParams( ILogger Logger, BroadcastChannel<MessageWithSendTicksA> Channel, Stopwatch Stopwatch );
 
     [ InlineData( true ) ]
     [ InlineData( false ) ]
     [ Theory ]
     public async Task ChannelMuxLatencyTest( bool withCancellableCancellationToken ) {
-        const int                                   msgCountChannel1 = 50;
-        const int                                   sleepMs          = 4;
-        BroadcastChannel<MessageWithSendTicks>      channel1         = new ();
-        BroadcastChannel<DataTypeB>                 channel2         = new ();
-        ChannelMux<MessageWithSendTicks, DataTypeB> mux              = new (channel1.Writer, channel2.Writer);
-        using CancellationTokenSource               cts              = new CancellationTokenSource();
-        CancellationToken                           ct               = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
-        Stopwatch                                   stopwatch        = new Stopwatch();
-        Task producer1 = Task.Run( ( ) => {
+        const int                                                msgCountChannel1 = 50;
+        const int                                                groups           = 10;
+        const int                                                groupSize        = msgCountChannel1 / groups;
+        const int                                                sleepMs          = 4;
+        BroadcastChannel<MessageWithSendTicksA>                  channel1         = new ();
+        BroadcastChannel<MessageWithSendTicksB>                  channel2         = new ();
+        ChannelMux<MessageWithSendTicksA, MessageWithSendTicksB> mux              = new (channel1.Writer, channel2.Writer);
+        using CancellationTokenSource                            cts              = new CancellationTokenSource();
+        CancellationToken                                        ct               = withCancellableCancellationToken ? cts.Token : CancellationToken.None;
+        Stopwatch                                                stopwatch        = new Stopwatch();
+        
+        channel2.Writer.Complete();
+        
+        Task producer1 = Task.Factory.StartNew( static async ( object? x ) => {
+            var p = ( x as ProducerParams )!;
+            // ReSharper disable once UnusedVariable
+            ( ILogger logger, BroadcastChannel<MessageWithSendTicksA> channel, Stopwatch stopwatch ) = p;
             int i      = 0;
-            var writer = channel1.Writer;
-            stopwatch.Start();
-            while ( i++ < msgCountChannel1 ) {
-                writer.TryWrite( new MessageWithSendTicks( stopwatch.ElapsedTicks ) );
-                Thread.Sleep( sleepMs );
+            int g      = 0;
+            var writer = channel.Writer;
+            for ( ; i < msgCountChannel1 ; g++, i++ ) {
+                if ( i == 0 ) {
+                    stopwatch.Start(); // don't start counting until sending begins
+                }
+                // logger.LogDebug( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> [{Id}:{G}] Sending message at {Ticks:N0}", i, g, stopwatch.ElapsedTicks );
+                writer.TryWrite( new MessageWithSendTicksA( stopwatch.ElapsedTicks, i, g ) );
+
+                if ( g % groupSize == 0 ) {
+                    // logger.LogDebug( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> [{Id}:_] New group Sleeping at {Ticks:N0}", i, stopwatch.ElapsedTicks );
+                    // ReSharper disable once MethodSupportsCancellation
+                    await Task.Delay( sleepMs );
+                } else {
+                    // ReSharper disable once MethodSupportsCancellation
+                    await Task.Delay( TimeSpan.FromTicks( 10_000 ) );
+                }
             }
+            // logger.LogDebug( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> [{Id}:_] Sleeping {Ticks:N0}", i, stopwatch.ElapsedTicks );
+            // logger.LogDebug( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Writer completing at {Ticks:N0}", stopwatch.ElapsedTicks );
             writer.Complete();
-        }, ct );
-        Task   producer2        = Task.Run( ( ) => channel2.Writer.Complete(), ct );
+            // logger.LogDebug( ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Writer is Complete at {Ticks:N0}", stopwatch.ElapsedTicks );
+            return Task.CompletedTask;
+        }, new ProducerParams( _logger, channel1, stopwatch ), cancellationToken: ct );
+        
         int    receivedCountA   = 0;
         long[] messageLatencies = new long[ msgCountChannel1 ];
-
+        int    loops            = 0;
+        List<MessageWithSendTicksA> errorIds = new ();
+        
         while ( await mux.WaitToReadAsync( ct ) ) {
-            if ( mux.TryRead( out MessageWithSendTicks a ) ) {
-                if ( receivedCountA > 2 ) {
-                    // The first one, especially on slower systems can be quite a bit slower.
-                    ( stopwatch.ElapsedTicks - a.Ticks ).Should().BeLessThan( ( sleepMs - 1 ) * Stopwatch.Frequency / 1_000 ); // ticks as ms
+            var       loopStartTicks = stopwatch.ElapsedTicks;
+            _logger.LogDebug( "[Loop: {Loop}] Exiting wait to begin loop at {Ticks:N0}", loops, loopStartTicks );
+            if ( mux.TryRead( out MessageWithSendTicksA a ) ) {
+                long ticksNow   = stopwatch.ElapsedTicks;
+                long deltaTicks = ticksNow - a.Ticks;
+                long _1ms       = Stopwatch.Frequency / 1_000;
+
+                _logger.LogDebug( "[Loop: {Loop}] Received {Id}:{Group} at {Ticks:N0}, message Ticks is {MsgTicks:N0}, delta is {Delta:N0} ( {DeltaMs:N3}ms ). SinceLoopStartTicks: {SinceLoopStartTicks:N0} ( {SinceLoopStartMs:N3}ms )",
+                                  loops, a.Id, a.Group, ticksNow, a.Ticks, deltaTicks, ( ( double )ticksNow - ( double )a.Ticks ) / _1ms, ticksNow - loopStartTicks, ( ticksNow - loopStartTicks ) / _1ms );
+                if ( deltaTicks > _1ms && receivedCountA > 5 ) {
+                    _logger.LogError( "[Loop: {Loop}, {Id}:{Group}] TOO LATENT: {DeltaTicks:N0} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", loops, a.Id, a.Group, deltaTicks );
+                    errorIds.Add( a );
                 }
-                messageLatencies[ receivedCountA ] = ( stopwatch.ElapsedTicks - a.Ticks );
+                messageLatencies[ receivedCountA ] = deltaTicks;
                 receivedCountA++;
             }
+            loops++;
         }
+        errorIds.Should().BeEmpty();
         await producer1;
-        await producer2;
         receivedCountA.Should().Be( msgCountChannel1 );
         mux.Completion.IsCompleted.Should().BeTrue();
         mux.Completion.Exception.Should().BeNull();
@@ -441,8 +483,7 @@ public class ChannelMuxTests : TestBase<ChannelMuxTests> {
      * **************************************************/
 
     #region Exception Tests
-    
-    
+
     [ Fact ]
     public async Task ExceptionBeingIgnoredShouldStillCloseChannel( ) {
         int                                    msgCountChannel2 = 150;
