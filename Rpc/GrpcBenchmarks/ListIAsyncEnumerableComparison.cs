@@ -103,7 +103,7 @@ public class ListIAsyncEnumerableComparison : IDisposable {
     [ BenchmarkCategory( "Async", "Reply", "ReturnsMany", "Array", "ValueTask" ) ]
     public async Task<int> ArrayReplyValueTaskAsync( ) {
         var client = _channel.CreateGrpcService<ICounterService>();
-        return ( await client.ServerToClientArrayAsync( new CounterRequest() { Count = Count } ) ).Length;
+        return ( await client.ServerToClientArrayValueTaskAsync( new CounterRequest() { Count = Count } ) ).Length;
     }
 
     [ Benchmark ]
@@ -115,7 +115,7 @@ public class ListIAsyncEnumerableComparison : IDisposable {
 
     [ Benchmark ]
     [ BenchmarkCategory( "Async", "Reply", "ReturnsMany", "List", "ValueTask" ) ]
-    public async Task<int> ListReplyValueTaskAsync( ) {
+    public async ValueTask<int> ListReplyValueTaskAsync( ) {
         var client = _channel.CreateGrpcService<ICounterService>();
         return ( await client.ServerToClientListValueTaskAsync( new CounterRequest() { Count = Count } ) ).Count;
     }

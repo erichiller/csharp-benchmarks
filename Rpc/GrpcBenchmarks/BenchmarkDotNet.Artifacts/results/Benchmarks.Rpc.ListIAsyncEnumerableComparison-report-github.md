@@ -1,21 +1,32 @@
-``` ini
+```
 
-BenchmarkDotNet=v0.13.1, OS=ubuntu 21.10
+BenchmarkDotNet v0.13.6, Ubuntu 22.04.2 LTS (Jammy Jellyfish)
 Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
-.NET SDK=6.0.301
-  [Host]     : .NET 6.0.6 (6.0.622.26707), X64 RyuJIT
-  DefaultJob : .NET 6.0.6 (6.0.622.26707), X64 RyuJIT
+.NET SDK 7.0.306
+  [Host]     : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
 
 
 ```
-|                  Method |  Count |   Mean [μs] |  Error [μs] | StdDev [μs] | Median [μs] |   Gen 0 |   Gen 1 |   Gen 2 | Allocated [B] |
-|------------------------ |------- |------------:|------------:|------------:|------------:|--------:|--------:|--------:|--------------:|
-|           ListReplySync |      1 |    238.8 μs |    11.65 μs |    32.09 μs |    228.4 μs |  2.4414 |       - |       - |      12,355 B |
-| ListReplyValueTaskAsync |      1 |    255.9 μs |    14.32 μs |    39.68 μs |    242.8 μs |  2.4414 |       - |       - |      12,684 B |
-|          ListReplyAsync |      1 |    815.2 μs |    48.81 μs |   138.46 μs |    791.0 μs |       - |       - |       - |      36,744 B |
-| ListReplyValueTaskAsync |  10000 |  6,875.2 μs |   130.87 μs |   270.28 μs |  6,813.7 μs | 78.1250 | 39.0625 | 39.0625 |     515,915 B |
-|           ListReplySync |  10000 |  7,001.3 μs |   138.89 μs |   310.64 μs |  7,002.3 μs | 78.1250 | 39.0625 | 39.0625 |     515,417 B |
-|          ListReplyAsync |  10000 |  7,063.6 μs |   140.29 μs |   393.38 μs |  7,006.6 μs | 78.1250 | 31.2500 | 31.2500 |     515,894 B |
-|           ListReplySync | 100000 | 58,343.6 μs | 1,137.81 μs | 1,837.35 μs | 57,819.6 μs |       - |       - |       - |   4,542,352 B |
-| ListReplyValueTaskAsync | 100000 | 58,541.6 μs | 1,152.35 μs |   899.68 μs | 58,302.1 μs |       - |       - |       - |   4,541,352 B |
-|          ListReplyAsync | 100000 | 59,455.6 μs | 1,168.08 μs | 1,518.84 μs | 58,964.2 μs |       - |       - |       - |   4,539,800 B |
+|                   Method | Count |  Mean [μs] | Error [μs] | StdDev [μs] | Median [μs] |    Gen0 | Allocated [B] |
+|------------------------- |------ |-----------:|-----------:|------------:|------------:|--------:|--------------:|
+|                   Single |     1 |   192.1 μs |    3.78 μs |     7.01 μs |    191.0 μs |  1.4648 |        6878 B |
+|     SingleAsyncValueTask |     1 |   196.5 μs |    3.89 μs |     5.81 μs |    196.1 μs |  1.4648 |        7205 B |
+|          EnumerableReply |     1 |   208.7 μs |    4.15 μs |     6.70 μs |    210.0 μs |  1.4648 |        8234 B |
+|          EnumerableReply |    10 |   212.7 μs |    4.01 μs |     6.24 μs |    211.9 μs |  1.4648 |        8693 B |
+|            ListReplySync |     1 |   212.7 μs |    4.20 μs |     5.60 μs |    211.8 μs |  1.9531 |       10997 B |
+|            ListReplySync |    10 |   214.3 μs |    4.28 μs |     5.26 μs |    214.5 μs |  2.4414 |       11442 B |
+| ArrayReplyValueTaskAsync |    10 |   226.2 μs |    4.40 μs |     6.31 μs |    227.4 μs |  1.9531 |       10383 B |
+|          ArrayReplyAsync |     1 |   227.3 μs |    4.51 μs |    12.03 μs |    225.4 μs |  1.9531 |        9761 B |
+|     AsyncEnumerableReply |     1 |   227.3 μs |    4.53 μs |    12.48 μs |    226.9 μs |  1.4648 |        8465 B |
+|           ListReplyAsync |    10 |   228.2 μs |    4.49 μs |     7.26 μs |    227.1 μs |  1.9531 |       11778 B |
+|          ArrayReplyAsync |    10 |   229.0 μs |    5.15 μs |    14.62 μs |    226.7 μs |  1.9531 |       10369 B |
+|  ListReplyValueTaskAsync |     1 |   229.5 μs |    5.10 μs |    13.35 μs |    226.6 μs |  2.4414 |       11349 B |
+|           ListReplyAsync |     1 |   241.4 μs |   10.13 μs |    29.40 μs |    229.1 μs |  1.9531 |       11269 B |
+| ArrayReplyValueTaskAsync |     1 |   241.9 μs |    7.42 μs |    20.81 μs |    237.1 μs |  1.9531 |        9774 B |
+|          SingleAsyncTask |     1 |   242.3 μs |   11.81 μs |    33.11 μs |    232.2 μs |  0.9766 |        7175 B |
+|     AsyncEnumerableReply |    10 |   290.3 μs |   23.20 μs |    65.07 μs |    260.4 μs |  1.9531 |        9781 B |
+|  ListReplyValueTaskAsync |    10 |   390.3 μs |   36.30 μs |   107.02 μs |    406.1 μs |  2.4414 |       11797 B |
+|     SingleAsyncValueTask |    10 | 1,785.9 μs |   35.41 μs |    60.13 μs |  1,770.8 μs | 11.7188 |       68212 B |
+|          SingleAsyncTask |    10 | 1,802.7 μs |   34.73 μs |    76.95 μs |  1,785.9 μs | 11.7188 |       68144 B |
+|                   Single |    10 | 1,924.0 μs |   35.59 μs |    58.48 μs |  1,916.7 μs | 11.7188 |       66939 B |
