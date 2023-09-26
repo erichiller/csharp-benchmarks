@@ -15,6 +15,7 @@ public class TestBase<T> {
     protected delegate void TestOutputHelperWriteLine( string msg );
 
     protected TestOutputHelperWriteLine _writeLine;
+    protected ITestOutputHelper _output;
 
     protected readonly Microsoft.Extensions.Logging.ILogger _logger;
 
@@ -44,5 +45,6 @@ public class TestBase<T> {
     protected TestBase( ITestOutputHelper? output, Microsoft.Extensions.Logging.ILogger? logger = null ) {
         _logger         = logger ?? ( output is not null ? configureLogging<T>( output ) : throw new ArgumentNullException( nameof(output) ) );
         this._writeLine = output is not null ? output.WriteLine : Console.Out.WriteLine;
+        this._output = output!;
     }
 }
