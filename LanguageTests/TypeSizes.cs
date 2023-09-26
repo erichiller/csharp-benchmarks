@@ -27,6 +27,7 @@ public class TypeSizes : TestBase<CompilerConditionalTests> {
         writeTestResults<float>( sizeOf<float?>() );
         writeTestResults<double>( sizeOf<double?>() );
         writeTestResults<decimal>( sizeOf<decimal?>() );
+		writeTestResults<Interval>( sizeOf<Interval?>() );
 
         writeTestFromArrayResults<int?>();
         writeTestFromArrayResults<double?>();
