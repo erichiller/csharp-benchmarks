@@ -3,6 +3,62 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.CompressionBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.ConditionalBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.DateTimeBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.FunctionCallBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.ImmutableCollectionsBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.InheritanceCallsBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.ReferenceParameterBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/GeneralBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.General.StringByteArrayParsingBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/InterThread/Benchmark/BenchmarkDotNet.Artifacts/results/Benchmarks.InterThread.Benchmark.Benchmarks-report.csv">
           <value>
             <Attribute>
@@ -31,6 +87,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Json/BenchmarkDotNet.Artifacts/results/Benchmarks.Json.SystemTextJsonDeserializationBasic-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Json/BenchmarkDotNet.Artifacts/results/Benchmarks.Json.SystemTextJson_BasicBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Json/BenchmarkDotNet.Artifacts/results/Benchmarks.Json.TestingBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Results/SQL Insert Methods/General/Benchmarks.Sql.SqlInsertBenchmarks-report.csv">
           <value>
             <Attribute>
@@ -45,7 +122,91 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Rpc/GrpcBenchmarks/BenchmarkDotNet.Artifacts/results/Benchmarks.Rpc.ListIAsyncEnumerableComparison-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/BenchmarkRun-joined-2022-04-12-12-04-35-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/BenchmarkRun-joined-2022-04-12-14-26-56-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/BenchmarkRun-joined-2022-04-12-15-32-09-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/BenchmarkRun-joined-2022-04-12-16-04-44-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlConnectBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertComplexObjectBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertSimpleObjectBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertSimpleObjectLargePartitionTableBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlInsertSimpleObjectLargeTableBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlSelectBenchmarks-report.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Sql/BenchmarkDotNet.Artifacts/results/Benchmarks.Sql.SqlSelectReaderBenchmarks-report.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
