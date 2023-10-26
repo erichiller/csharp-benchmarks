@@ -10,12 +10,12 @@
 
     <ItemGroup>
       <PackageReference Include="protobuf-net" Version="3.2.26" />
-      <PackageReference Include="protobuf-net.BuildTools" Version="3.2.27">
+      <PackageReference Include="protobuf-net.BuildTools" Version="3.2.30">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
       <PackageReference Include="protobuf-net.Grpc.Reflection" Version="1.1.1" />
-      <PackageReference Include="System.ServiceModel.Primitives" Version="6.0.0" />
+      <PackageReference Include="System.ServiceModel.Primitives" Version="6.1.0" />
     </ItemGroup>
 
 </Project>

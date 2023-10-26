@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="protobuf-net.BuildTools" Version="3.2.27">
+        <PackageReference Include="protobuf-net.BuildTools" Version="3.2.30">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
