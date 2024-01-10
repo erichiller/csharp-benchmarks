@@ -29,7 +29,7 @@
 
 
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
         <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(OS)' == 'Windows_NT'" />
         <PackageReference Include="EFCore.NamingConventions" Version="7.0.2" />
         <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />

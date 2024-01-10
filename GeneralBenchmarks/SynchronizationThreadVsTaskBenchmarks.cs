@@ -14,7 +14,7 @@ namespace Benchmarks.General;
    | Method                | TaskCount | Mean      | Error     | StdDev    | Median    | Ratio |
    |---------------------- |---------- |----------:|----------:|----------:|----------:|------:|-
    | LockTasks             | 1         | 163.92 ms |  0.112 ms |  0.094 ms | 163.89 ms |  1.00 |
-   | CodeOnly              | 1         |  12.43 ms |  0.012 ms |  0.011 ms |           |  0.08 | 
+   | CodeOnly              | 1         |  12.43 ms |  0.012 ms |  0.011 ms |           |  0.08 |
    | CodeOnlyInTask        | 1         |  12.56 ms |  0.070 ms |  0.055 ms |           |  0.08 |
    | SemaphoreSlimTasks    | 1         | 430.73 ms |  2.492 ms |  2.331 ms | 428.77 ms |  2.63 |
    | InterlockedTasks      | 1         |  75.87 ms |  0.038 ms |  0.035 ms |  75.87 ms |  0.46 |
@@ -56,26 +56,17 @@ namespace Benchmarks.General;
 // [ GroupBenchmarksBy( BenchmarkLogicalGroupRule.ByCategory ) ]
 [ SuppressMessage( "Design", "CA1001:Types that own disposable fields should be disposable", Justification = "Cleanup is performed in the GlobalCleanupAttribute marked method" ) ]
 [ HideColumns( "RatioSD" ) ]
-public class SynchronizationInt32Benchmarks {
+public class SynchronizationThreadVsTaskBenchmarks {
     [ Params(
-        1
-        // 2, 3,
-        // 4, 5 
-    )]
-    // [ SuppressMessage( "ReSharper", "UnassignedGetOnlyAutoProperty" ) ]
-    // lower number = more async work
+        1, 2, 3, 4, 5
+    ) ]
     public int TaskCount { get; set; }
 
     // [ Params( 1_000_000 ) ]
     [ SuppressMessage( "ReSharper", "MemberCanBePrivate.Global" ) ]
     public int RunLimit { get; set; } = 10_000_000;
-
-    // private readonly TaskCreationOptions _taskCreationOptions = TaskCreationOptions.LongRunning;
-
-    // private volatile int   _counterVolatileInt32;
     private int   _counterInt32;
     private int[] _taskRunCounts = Array.Empty<int>();
-    private int[] _threadIds     = Array.Empty<int>();
 
     private readonly object        _lockObject    = new ();
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim( 1, 1 );
@@ -83,11 +74,8 @@ public class SynchronizationInt32Benchmarks {
     [ IterationSetup ]
     public void Setup( ) {
         _counterInt32 = 0;
-        // _counterVolatileInt32 = 0;
         _taskRunCounts = new int[ TaskCount ];
-        _threadIds     = new int[ TaskCount ];
         Array.Fill( _taskRunCounts, 0 );
-        // nothing for now
     }
 
     // [ IterationCleanup ]
@@ -100,16 +88,14 @@ public class SynchronizationInt32Benchmarks {
     private int doWorkAsTasks( Func<int> function ) {
         List<Task<int>> tasks = new ();
         for ( int i = 0 ; i < TaskCount ; i++ ) {
-            tasks.Add( new Task<int>( function ) );
-            // tasks.Add( Task.Factory.StartNew( function: function, creationOptions: _taskCreationOptions ) );
+            tasks.Add( new Task<int>( function
+                                      // , creationOptions: TaskCreationOptions.LongRunning
+                                      ) );
         }
         for ( int i = 0 ; i < TaskCount ; i++ ) {
             tasks[ i ].Start();
         }
         Task.WhenAll( tasks ).Wait();
-        // int sumAllReturned = tasks.Sum( t => t.Result );
-        // int sumAllArray    = _taskRunCounts.Sum();
-        // System.Console.WriteLine( $"{nameof(sumAllReturned)}={sumAllReturned} ; {nameof(sumAllArray)}={sumAllArray} ; {nameof(_totalRuns)}={_totalRuns}" );
 
         int sumTaskResults = 0;
         for ( int i = 0 ; i < tasks.Count ; i++ ) {
@@ -139,10 +125,8 @@ public class SynchronizationInt32Benchmarks {
         TaskCompletionSource tcs     = new TaskCompletionSource(); //  creationOptions: TaskCreationOptions.RunContinuationsAsynchronously
         Thread[]             threads = new Thread[ this.TaskCount ];
         for ( int i = 0 ; i < TaskCount ; i++ ) {
-            // ThreadPool.QueueUserWorkItem( function );
             int threadId = i;
             threads[ i ] = new Thread( ( ) => function( new (threadId, tcs) ) );
-            // threads[ i ] = new Thread(  );
         }
         for ( int i = 0 ; i < threads.Length ; i++ ) {
             threads[ i ].Start();
@@ -154,14 +138,11 @@ public class SynchronizationInt32Benchmarks {
         while ( true ) {
             bool isComplete = true;
             for ( int i = 0 ; i < threads.Length ; i++ ) {
-                // isComplete &= threads[ i ].IsAlive;
                 isComplete &= threads[ i ].ThreadState == ThreadState.Stopped;
-                // Console.WriteLine($"ThreadState[{i}] = {threads[i].ThreadState}");
             }
             if ( isComplete ) {
                 break;
             }
-            // Thread.SpinWait( 100 );
             waiter.SpinOnce();
         }
 
@@ -187,10 +168,8 @@ public class SynchronizationInt32Benchmarks {
     private int doWorkOnThreads2( Action<int> function ) {
         Thread[] threads = new Thread[ this.TaskCount ];
         for ( int i = 0 ; i < TaskCount ; i++ ) {
-            // ThreadPool.QueueUserWorkItem( function );
             int threadId = i;
             threads[ i ] = new Thread( ( ) => function( threadId ) );
-            // threads[ i ] = new Thread(  );
         }
         for ( int i = 0 ; i < threads.Length ; i++ ) {
             threads[ i ].Start();
@@ -200,9 +179,7 @@ public class SynchronizationInt32Benchmarks {
         while ( true ) {
             bool isComplete = true;
             for ( int i = 0 ; i < threads.Length ; i++ ) {
-                // isComplete &= threads[ i ].IsAlive;
                 isComplete &= threads[ i ].ThreadState == ThreadState.Stopped;
-                // Console.WriteLine($"ThreadState[{i}] = {threads[i].ThreadState}");
             }
             if ( isComplete ) {
                 break;
@@ -246,7 +223,8 @@ public class SynchronizationInt32Benchmarks {
             return localRunCount;
         }
     }
-
+    /*
+    // Only for use in a single Task; not compatible with multi-task
     [ Benchmark ]
     public int CodeOnly( ) {
         int localRunCount = 0;
@@ -254,10 +232,10 @@ public class SynchronizationInt32Benchmarks {
             _counterInt32++;
             localRunCount++;
         }
-        // Console.WriteLine($"localRunCount={localRunCount}; _counterInt32={_counterInt32}; RunLimit={RunLimit}");
         return localRunCount;
     }
 
+    // Only for use in a single Task; not compatible with multi-task
     [ Benchmark ]
     public int CodeOnlyInTask( ) {
         return doWorkAsTasks( loop );
@@ -268,10 +246,10 @@ public class SynchronizationInt32Benchmarks {
                 _counterInt32++;
                 localRunCount++;
             }
-            // Console.WriteLine($"localRunCount={localRunCount}; _counterInt32={_counterInt32}; RunLimit={RunLimit}");
             return localRunCount;
         }
     }
+    */
 
     [ Benchmark ]
     public int SemaphoreSlimTasks( ) {
@@ -317,14 +295,12 @@ public class SynchronizationInt32Benchmarks {
                     _counterInt32++;
                     this._taskRunCounts[ threadId ]++;
                     if ( _counterInt32 >= RunLimit ) {
-                        // Console.WriteLine("Setting Result");
                         if ( !tcs.Task.IsCompleted ) {
                             tcs.SetResult();
                         }
                         return;
                     }
                 }
-                // Console.WriteLine($"localRunCount={localRunCount}; _counterInt32={_counterInt32}; RunLimit={RunLimit}");
             }
         }
     }
@@ -342,7 +318,6 @@ public class SynchronizationInt32Benchmarks {
                         return;
                     }
                 }
-                // Console.WriteLine($"localRunCount={localRunCount}; _counterInt32={_counterInt32}; RunLimit={RunLimit}");
             }
         }
     }
@@ -358,29 +333,9 @@ public class SynchronizationInt32Benchmarks {
                 if ( _counterInt32 >= RunLimit ) {
                     return;
                 }
-                // Console.WriteLine($"localRunCount={localRunCount}; _counterInt32={_counterInt32}; RunLimit={RunLimit}");
             }
         }
     }
-    //
-    // [ Benchmark ]
-    // public int VolatileTasks( ) {
-    //     return doWorkAsTasks( semaphoreSlimSyncWaitUpdateLoop );
-    //
-    //     int semaphoreSlimSyncWaitUpdateLoop( ) {
-    //         int localRunCount = 0;
-    //         while ( _counterInt32 < RunLimit ) {
-    //             _semaphoreSlim.Wait();
-    //             try {
-    //                 _counterInt32++;
-    //             } finally {
-    //                 _semaphoreSlim.Release();
-    //             }
-    //             localRunCount++;
-    //         }
-    //         return localRunCount;
-    //     }
-    // }
 
     private record UpdateLoopArgs( int ThreadId, TaskCompletionSource TaskCompletionSource );
 }
