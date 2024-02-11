@@ -78,6 +78,76 @@ namespace Benchmarks.General;
 
 
 
+
+
+.NET 7.0.15
+
+| Method                                       | Iterations | CollectionSize | Mean [us]    | Error [us] | StdDev [us] | Median [us]  | Ratio  | RatioSD | Gen0       | Gen1     | Allocated [B] | Alloc Ratio |
+   |--------------------------------------------- |----------- |--------------- |-------------:|-----------:|------------:|-------------:|-------:|--------:|-----------:|---------:|--------------:|------------:|
+   | Array_Add                                    | 10000      | 10             |     123.3 us |    2.44 us |     5.85 us |     121.3 us |   1.00 |    0.00 |   135.9863 |        - |      640000 B |        1.00 |
+   | ImmutableArray_CreateFrom_Span               | 10000      | 10             |     216.6 us |    1.79 us |     1.49 us |     216.0 us |   1.65 |    0.06 |   271.9727 |        - |     1280000 B |        2.00 |
+   | ImmutableArray_Array_AsSpan_ToImmutableArray | 10000      | 10             |     220.5 us |    2.43 us |     2.27 us |     219.9 us |   1.69 |    0.08 |   271.9727 |        - |     1280000 B |        2.00 |
+   | ImmutableArray_CreateFrom_Array              | 10000      | 10             |     266.0 us |    3.84 us |     3.21 us |     266.3 us |   2.02 |    0.08 |   271.9727 |        - |     1280000 B |        2.00 |
+   | List_Add                                     | 10000      | 10             |     286.4 us |    2.48 us |     2.32 us |     286.9 us |   2.20 |    0.10 |   203.6133 |        - |      960032 B |        1.50 |
+   | ImmutableArray_Array_ToImmutableArray        | 10000      | 10             |     569.4 us |    1.71 us |     1.52 us |     568.9 us |   4.35 |    0.16 |   271.4844 |        - |     1280001 B |        2.00 |
+   | ImmutableArray_CreateWithBuilder             | 10000      | 10             |     641.4 us |    6.67 us |     5.20 us |     638.6 us |   4.87 |    0.17 |   509.7656 |        - |     2400001 B |        3.75 |
+   | ImmutableArray_DirectAdd                     | 10000      | 10             |   1,619.1 us |   14.57 us |    13.63 us |   1,615.7 us |  12.45 |    0.58 |  1019.5313 |        - |     4800002 B |        7.50 |
+   | ImmutableList_Array_ToImmutableList          | 10000      | 10             |   2,336.4 us |    7.63 us |     6.37 us |   2,337.8 us |  17.78 |    0.67 |  1257.8125 |        - |     5920004 B |        9.25 |
+   | ImmutableList_CreateFrom_Array               | 10000      | 10             |   2,377.1 us |   15.36 us |    12.83 us |   2,378.0 us |  18.09 |    0.63 |  1257.8125 |        - |     5920004 B |        9.25 |
+   | ImmutableList_CreateWithBuilder              | 10000      | 10             |   3,629.2 us |   11.78 us |    10.45 us |   3,630.2 us |  27.74 |    1.10 |  1171.8750 |        - |     5520004 B |        8.63 |
+   | ImmutableList_DirectAdd                      | 10000      | 10             |   6,765.1 us |   48.67 us |    45.52 us |   6,775.3 us |  52.01 |    2.36 |  4078.1250 |        - |    19200007 B |       30.00 |
+   |                                              |            |                |              |            |             |              |        |         |            |          |               |             |
+   | Array_Add                                    | 10000      | 100            |     678.9 us |   13.04 us |    13.95 us |     677.5 us |   1.00 |    0.00 |   900.3906 |        - |     4240001 B |        1.00 |
+   | ImmutableArray_CreateFrom_Span               | 10000      | 100            |     949.4 us |    9.92 us |     9.28 us |     945.6 us |   1.39 |    0.03 |  1800.7813 |   1.9531 |     8480002 B |        2.00 |
+   | ImmutableArray_Array_AsSpan_ToImmutableArray | 10000      | 100            |     954.7 us |   13.32 us |    12.46 us |     953.6 us |   1.40 |    0.03 |  1800.7813 |   1.9531 |     8480002 B |        2.00 |
+   | ImmutableArray_CreateFrom_Array              | 10000      | 100            |   1,005.7 us |   17.70 us |    16.55 us |   1,000.5 us |   1.48 |    0.03 |  1800.7813 |   1.9531 |     8480002 B |        2.00 |
+   | ImmutableArray_Array_ToImmutableArray        | 10000      | 100            |   1,360.0 us |   18.45 us |    17.26 us |   1,356.8 us |   2.00 |    0.05 |  1800.7813 |   1.9531 |     8480002 B |        2.00 |
+   | List_Add                                     | 10000      | 100            |   1,914.8 us |    5.02 us |     4.45 us |   1,914.2 us |   2.81 |    0.06 |   968.7500 |        - |     4560034 B |        1.08 |
+   | ImmutableArray_CreateWithBuilder             | 10000      | 100            |   3,098.2 us |   23.79 us |    21.09 us |   3,100.5 us |   4.55 |    0.08 |  3332.0313 |   7.8125 |    15680004 B |        3.70 |
+   | ImmutableList_Array_ToImmutableList          | 10000      | 100            |  19,702.1 us |  167.49 us |   156.67 us |  19,720.1 us |  28.95 |    0.71 | 11187.5000 | 125.0000 |    52720029 B |       12.43 |
+   | ImmutableList_CreateFrom_Array               | 10000      | 100            |  19,746.3 us |  181.44 us |   169.72 us |  19,768.1 us |  29.01 |    0.52 | 11187.5000 | 125.0000 |    52720029 B |       12.43 |
+   | ImmutableArray_DirectAdd                     | 10000      | 100            |  28,468.1 us |  247.91 us |   231.90 us |  28,466.9 us |  41.82 |    0.75 | 48437.5000 |  31.2500 |   228000029 B |       53.77 |
+   | ImmutableList_CreateWithBuilder              | 10000      | 100            |  62,834.2 us |  172.73 us |   153.12 us |  62,816.2 us |  92.27 |    2.01 | 10250.0000 | 125.0000 |    48720117 B |       11.49 |
+   | ImmutableList_DirectAdd                      | 10000      | 100            | 146,752.2 us |  594.97 us |   527.42 us | 146,761.4 us | 215.50 |    4.72 | 73750.0000 | 750.0000 |   347040234 B |       81.85 |
+   
+   BenchmarkDotNet v0.13.12, Ubuntu 22.04.3 LTS (Jammy Jellyfish)
+   Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
+   .NET SDK 8.0.101
+     [Host]     : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+     DefaultJob : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+   
+   
+   | Method                                       | Iterations | CollectionSize | Mean [us]    | Error [us] | StdDev [us] | Ratio  | RatioSD | Gen0       | Gen1     | Allocated [B] | Alloc Ratio |
+   |--------------------------------------------- |----------- |--------------- |-------------:|-----------:|------------:|-------:|--------:|-----------:|---------:|--------------:|------------:|
+   | Array_Add                                    | 10000      | 10             |     110.0 us |    1.30 us |     1.21 us |   1.00 |    0.00 |   135.9863 |        - |      640000 B |        1.00 |
+   | ImmutableArray_Array_AsSpan_ToImmutableArray | 10000      | 10             |     228.6 us |    0.93 us |     0.77 us |   2.08 |    0.03 |   271.9727 |        - |     1280000 B |        2.00 |
+   | ImmutableArray_CreateFrom_Array              | 10000      | 10             |     249.5 us |    2.85 us |     2.67 us |   2.27 |    0.02 |   271.9727 |        - |     1280000 B |        2.00 |
+   | ImmutableArray_CreateFrom_Span               | 10000      | 10             |     255.2 us |    7.50 us |    22.10 us |   2.44 |    0.22 |   271.9727 |        - |     1280000 B |        2.00 |
+   | List_Add                                     | 10000      | 10             |     296.9 us |    1.00 us |     0.88 us |   2.70 |    0.03 |   203.6133 |        - |      960032 B |        1.50 |
+   | ImmutableArray_Array_ToImmutableArray        | 10000      | 10             |     352.8 us |    1.61 us |     1.51 us |   3.21 |    0.03 |   271.9727 |        - |     1280000 B |        2.00 |
+   | ImmutableArray_CreateWithBuilder             | 10000      | 10             |     579.3 us |    4.04 us |     3.78 us |   5.27 |    0.07 |   509.7656 |        - |     2400001 B |        3.75 |
+   | ImmutableArray_DirectAdd                     | 10000      | 10             |   1,409.8 us |    9.31 us |     7.77 us |  12.81 |    0.16 |  1019.5313 |        - |     4800001 B |        7.50 |
+   | ImmutableList_CreateFrom_Array               | 10000      | 10             |   1,556.4 us |    8.87 us |     8.30 us |  14.15 |    0.14 |  1207.0313 |        - |     5680001 B |        8.88 |
+   | ImmutableList_Array_ToImmutableList          | 10000      | 10             |   1,853.9 us |    4.61 us |     4.09 us |  16.86 |    0.20 |  1257.8125 |        - |     5920001 B |        9.25 |
+   | ImmutableList_CreateWithBuilder              | 10000      | 10             |   2,933.2 us |   10.61 us |     9.92 us |  26.68 |    0.25 |  1171.8750 |        - |     5520003 B |        8.63 |
+   | ImmutableList_DirectAdd                      | 10000      | 10             |   5,961.3 us |   22.03 us |    19.53 us |  54.21 |    0.61 |  4078.1250 |        - |    19200006 B |       30.00 |
+   |                                              |            |                |              |            |             |        |         |            |          |               |             |
+   | Array_Add                                    | 10000      | 100            |     639.8 us |    6.49 us |     6.07 us |   1.00 |    0.00 |   900.3906 |        - |     4240001 B |        1.00 |
+   | ImmutableArray_Array_AsSpan_ToImmutableArray | 10000      | 100            |     939.7 us |    3.91 us |     3.47 us |   1.47 |    0.01 |  1801.7578 |   0.9766 |     8480001 B |        2.00 |
+   | ImmutableArray_CreateFrom_Span               | 10000      | 100            |     948.9 us |    5.97 us |     5.29 us |   1.48 |    0.01 |  1801.7578 |   0.9766 |     8480001 B |        2.00 |
+   | ImmutableArray_CreateFrom_Array              | 10000      | 100            |     955.5 us |    4.99 us |     4.17 us |   1.49 |    0.02 |  1801.7578 |   0.9766 |     8480001 B |        2.00 |
+   | ImmutableArray_Array_ToImmutableArray        | 10000      | 100            |   1,077.5 us |    9.09 us |     8.06 us |   1.68 |    0.02 |  1800.7813 |        - |     8480001 B |        2.00 |
+   | List_Add                                     | 10000      | 100            |   1,641.3 us |    5.08 us |     4.50 us |   2.56 |    0.02 |   968.7500 |        - |     4560033 B |        1.08 |
+   | ImmutableArray_CreateWithBuilder             | 10000      | 100            |   3,190.4 us |   19.63 us |    16.39 us |   4.99 |    0.06 |  3332.0313 |   7.8125 |    15680003 B |        3.70 |
+   | ImmutableList_CreateFrom_Array               | 10000      | 100            |  13,751.0 us |   55.31 us |    49.03 us |  21.48 |    0.21 | 11140.6250 | 140.6250 |    52480012 B |       12.38 |
+   | ImmutableList_Array_ToImmutableList          | 10000      | 100            |  16,793.1 us |  129.14 us |   120.80 us |  26.25 |    0.29 | 11187.5000 |  93.7500 |    52720023 B |       12.43 |
+   | ImmutableArray_DirectAdd                     | 10000      | 100            |  24,731.4 us |  239.75 us |   200.21 us |  38.65 |    0.48 | 48437.5000 |  31.2500 |   228000023 B |       53.77 |
+   | ImmutableList_CreateWithBuilder              | 10000      | 100            |  46,540.2 us |   94.42 us |    78.85 us |  72.73 |    0.59 | 10272.7273 | 181.8182 |    48720067 B |       11.49 |
+   | ImmutableList_DirectAdd                      | 10000      | 100            | 117,835.3 us |  566.68 us |   502.35 us | 184.03 |    1.88 | 73600.0000 | 600.0000 |   347040147 B |       81.85 |
+   
+   
+   
+
  */
 
 [ Config( typeof(BenchmarkConfig) ) ]

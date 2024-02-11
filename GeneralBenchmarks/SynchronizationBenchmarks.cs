@@ -49,8 +49,9 @@ public class SynchronizationBenchmarks {
     private int   _totalRuns     = 0;
     private int[] _taskRunCounts = System.Array.Empty<int>();
 
-    private readonly object        _lockObject    = new ();
-    private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim( 1, 1 );
+    private readonly object         _lockObject     = new ();
+    private readonly SemaphoreSlim  _semaphoreSlim  = new SemaphoreSlim( 1, 1 );
+    // private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent( false );
 
     [ IterationSetup ]
     public void Setup( ) {
@@ -65,33 +66,6 @@ public class SynchronizationBenchmarks {
         _semaphoreSlim.Dispose();
     }
 
-
-    private int lockUpdateLoop( int taskId ) {
-        int localRunCount = 0;
-        while ( _totalRuns < RunLimit ) {
-            lock ( _lockObject ) {
-                _totalRuns++;
-                _taskRunCounts[ taskId ]++;
-            }
-            localRunCount++;
-        }
-        return localRunCount;
-    }
-
-    private int semaphoreSlimUpdateLoop( int taskId ) {
-        int localRunCount = 0;
-        while ( _totalRuns < RunLimit ) {
-            _semaphoreSlim.Wait();
-            try {
-                _totalRuns++;
-                _taskRunCounts[ taskId ]++;
-            } finally {
-                _semaphoreSlim.Release();
-            }
-            localRunCount++;
-        }
-        return localRunCount;
-    }
 
     [ Benchmark( Baseline = true ) ]
     public int Lock( ) {
@@ -126,6 +100,22 @@ public class SynchronizationBenchmarks {
         }
         
         return _totalRuns;
+        
+        /*
+         * Local Function
+         */
+        
+        int lockUpdateLoop( int taskId ) {
+            int localRunCount = 0;
+            while ( _totalRuns < RunLimit ) {
+                lock ( _lockObject ) {
+                    _totalRuns++;
+                    _taskRunCounts[ taskId ]++;
+                }
+                localRunCount++;
+            }
+            return localRunCount;
+        }
     }
 
     [ Benchmark ]
@@ -159,5 +149,76 @@ public class SynchronizationBenchmarks {
             throw new Exception("_totalRuns < RunLimit");
         }
         return _totalRuns;
+        
+        /*
+         * Local Function
+         */
+
+        int semaphoreSlimUpdateLoop( int taskId ) {
+            int localRunCount = 0;
+            while ( _totalRuns < RunLimit ) {
+                _semaphoreSlim.Wait();
+                try {
+                    _totalRuns++;
+                    _taskRunCounts[ taskId ]++;
+                } finally {
+                    _semaphoreSlim.Release();
+                }
+                localRunCount++;
+            }
+            return localRunCount;
+        }
     }
+    //
+    // [ Benchmark ]
+    // public int AutoResetEvent( ) {
+    //     List<Task<int>> tasks = new ();
+    //     for ( int i = 0 ; i < TaskCount ; i++ ) {
+    //         tasks.Add( Task.Factory.StartNew( taskId => autoResetEventUpdateLoop( ( int )taskId! ), state: i, _taskCreationOptions ) );
+    //     }
+    //     Task.WhenAll( tasks ).Wait();
+    //     // int sumAllReturned = tasks.Sum( t => t.Result );
+    //     // int sumAllArray    = _taskRunCounts.Sum();
+    //     // System.Console.WriteLine( $"{nameof(sumAllReturned)}={sumAllReturned} ; {nameof(sumAllArray)}={sumAllArray} ; {nameof(_totalRuns)}={_totalRuns}" );
+    //     
+    //     int sumTaskRunCounts = 0;
+    //     for ( int i = 0 ; i < this._taskRunCounts.Length ; i++ ) {
+    //         sumTaskRunCounts += _taskRunCounts[ i ];
+    //     }
+    //     if ( sumTaskRunCounts < RunLimit ) {
+    //         throw new Exception("sumTaskRunCounts < RunLimit");
+    //     }
+    //
+    //     int sumTaskResults = 0;
+    //     for ( int i = 0 ; i < tasks.Count ; i++ ) {
+    //         sumTaskResults += tasks[ i ].Result;
+    //     }
+    //     if ( sumTaskResults < RunLimit ) {
+    //         throw new Exception("sumTaskResults < RunLimit");
+    //     }
+    //     
+    //     if ( _totalRuns < RunLimit ) {
+    //         throw new Exception("_totalRuns < RunLimit");
+    //     }
+    //     return _totalRuns;
+    //     
+    //     /*
+    //      * Local Function 
+    //      */
+    //     
+    //     int autoResetEventUpdateLoop( int taskId ) {
+    //         int localRunCount = 0;
+    //         while ( _totalRuns < RunLimit ) {
+    //             _autoResetEvent.Wait();
+    //             try {
+    //                 _totalRuns++;
+    //                 _taskRunCounts[ taskId ]++;
+    //             } finally {
+    //                 _semaphoreSlim.Release();
+    //             }
+    //             localRunCount++;
+    //         }
+    //         return localRunCount;
+    //     }
+    // }
 }
