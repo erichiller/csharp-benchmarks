@@ -1,24 +1,148 @@
-``` ini
+```
 
-BenchmarkDotNet=v0.13.5, OS=ubuntu 22.04
+BenchmarkDotNet v0.13.12, Ubuntu 22.04.4 LTS (Jammy Jellyfish)
 Intel Core i5-8600K CPU 3.60GHz (Coffee Lake), 1 CPU, 6 logical and 6 physical cores
-.NET SDK=7.0.202
-  [Host]     : .NET 7.0.4 (7.0.423.11508), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.4 (7.0.423.11508), X64 RyuJIT AVX2
+.NET SDK 8.0.200
+  [Host]     : .NET 8.0.2 (8.0.224.6711), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.2 (8.0.224.6711), X64 RyuJIT AVX2
 
+Job=DefaultJob  InvocationCount=Default  UnrollFactor=16  
 
 ```
-|                Method | CompressionLevel | CompressionMethod |    Mean [ms] | Error [ms] | StdDev [ms] |  Median [ms] | Allocated [B] |
-|---------------------- |----------------- |------------------ |-------------:|-----------:|------------:|-------------:|--------------:|
-| CompressFileToArchive |          Fastest |            Brotli |     11.03 ms |   0.216 ms |    0.289 ms |     10.93 ms |        5893 B |
-| CompressFileToArchive |          Fastest |           Deflate |     29.97 ms |   0.318 ms |    0.557 ms |     29.83 ms |        6010 B |
-| CompressFileToArchive |          Optimal |            Brotli |     31.77 ms |   0.301 ms |    0.281 ms |     31.73 ms |        5980 B |
-| CompressFileToArchive |          Fastest |               Zip |     36.21 ms |   0.261 ms |    0.232 ms |     36.18 ms |        7093 B |
-| CompressFileToArchive |          Fastest |              Gzip |     36.28 ms |   0.241 ms |    0.225 ms |     36.21 ms |        6093 B |
-| CompressFileToArchive |          Optimal |           Deflate |     65.10 ms |   1.298 ms |    2.470 ms |     63.73 ms |        6101 B |
-| CompressFileToArchive |          Optimal |              Gzip |     70.37 ms |   0.361 ms |    0.320 ms |     70.22 ms |        6193 B |
-| CompressFileToArchive |          Optimal |               Zip |     70.58 ms |   0.342 ms |    0.303 ms |     70.60 ms |        7193 B |
-| CompressFileToArchive |     SmallestSize |           Deflate |    124.04 ms |   1.517 ms |    1.267 ms |    124.48 ms |        6381 B |
-| CompressFileToArchive |     SmallestSize |              Gzip |    130.18 ms |   1.742 ms |    1.629 ms |    129.70 ms |        6474 B |
-| CompressFileToArchive |     SmallestSize |               Zip |    130.79 ms |   0.773 ms |    0.723 ms |    130.77 ms |        7482 B |
-| CompressFileToArchive |     SmallestSize |            Brotli | 17,552.17 ms |  25.259 ms |   23.628 ms | 17,547.91 ms |        7760 B |
+| Method           | CompressionLevel | CompressionMethod | FileCount | Mean [ms]    | Error [ms] | StdDev [ms] | Median [ms]  | Gen0      | Output Size [KB] | Gen1      | Gen2      | Allocated [KB] |
+|----------------- |----------------- |------------------ |---------- |-------------:|-----------:|------------:|-------------:|----------:|-----------------:|----------:|----------:|---------------:|
+| CompressOnly     | Fastest          | Brotli            | ?         |     13.62 ms |   0.081 ms |    0.068 ms |     13.62 ms |         - |        700.85 KB |         - |         - |        5.14 KB |
+| UpdateTar        | Fastest          | Brotli            | 1         |     13.70 ms |   0.076 ms |    0.068 ms |     13.69 ms |  656.2500 |        703.50 KB |  656.2500 |  656.2500 |     2365.71 KB |
+| CreateNewArchive | Fastest          | Brotli            | 1         |     14.45 ms |   0.160 ms |    0.134 ms |     14.43 ms |         - |        700.99 KB |         - |         - |        6.38 KB |
+| UpdateZip        | Fastest          | Brotli            | 1         |     17.31 ms |   0.841 ms |    2.479 ms |     17.39 ms |  656.2500 |        700.99 KB |  656.2500 |  656.2500 |     2365.31 KB |
+| CompressTar      | Fastest          | Brotli            | 1         |     25.89 ms |   0.516 ms |    1.360 ms |     25.80 ms | 1968.7500 |        658.49 KB | 1968.7500 | 1968.7500 |    33036.32 KB |
+| UpdateTar        | Fastest          | Brotli            | 2         |     27.28 ms |   0.030 ms |    0.026 ms |     27.27 ms | 1312.5000 |       1414.50 KB | 1312.5000 | 1312.5000 |     4858.51 KB |
+| CreateNewArchive | Fastest          | Brotli            | 2         |     28.69 ms |   0.083 ms |    0.207 ms |     28.65 ms |         - |       1410.27 KB |         - |         - |        7.38 KB |
+| UpdateZip        | Fastest          | Brotli            | 2         |     29.74 ms |   0.198 ms |    0.166 ms |     29.69 ms | 1312.5000 |       1410.27 KB | 1312.5000 | 1312.5000 |      5559.6 KB |
+| UpdateTar        | Fastest          | Deflate           | 1         |     35.90 ms |   0.062 ms |    0.058 ms |     35.88 ms |  428.5714 |        791.00 KB |  428.5714 |  428.5714 |     2048.13 KB |
+| CompressOnly     | Fastest          | Deflate           | ?         |     36.28 ms |   0.721 ms |    1.849 ms |     35.36 ms |         - |        788.33 KB |         - |         - |        5.33 KB |
+| UpdateZip        | Fastest          | Deflate           | 1         |     36.86 ms |   0.045 ms |    0.040 ms |     36.86 ms |  428.5714 |        788.47 KB |  428.5714 |  428.5714 |     2047.72 KB |
+| CreateNewArchive | Fastest          | Deflate           | 1         |     36.94 ms |   0.620 ms |    1.387 ms |     36.46 ms |         - |        788.47 KB |         - |         - |        6.59 KB |
+| UpdateTar        | Fastest          | Brotli            | 3         |     41.16 ms |   0.036 ms |    0.034 ms |     41.17 ms | 1916.6667 |       2134.50 KB | 1916.6667 | 1916.6667 |      7441.4 KB |
+| CompressOnly     | Fastest          | Gzip              | ?         |     41.71 ms |   0.096 ms |    0.089 ms |     41.71 ms |         - |        788.34 KB |         - |         - |        5.37 KB |
+| CreateNewArchive | Fastest          | Zip               | 1         |     42.21 ms |   0.040 ms |    0.037 ms |     42.21 ms |         - |        788.46 KB |         - |         - |        6.49 KB |
+| UpdateTar        | Fastest          | Gzip              | 1         |     42.44 ms |   0.058 ms |    0.055 ms |     42.41 ms |  416.6667 |        791.00 KB |  416.6667 |  416.6667 |     2050.91 KB |
+| CompressTar      | Fastest          | Brotli            | 2         |     42.62 ms |   0.132 ms |    0.201 ms |     42.61 ms | 2916.6667 |       1315.04 KB | 2916.6667 | 2916.6667 |    66191.01 KB |
+| CreateNewArchive | Fastest          | Brotli            | 3         |     43.39 ms |   0.721 ms |    1.225 ms |     43.08 ms |         - |       2128.86 KB |         - |         - |        8.44 KB |
+| UpdateZip        | Fastest          | Gzip              | 1         |     43.44 ms |   0.090 ms |    0.080 ms |     43.41 ms |  416.6667 |        788.48 KB |  416.6667 |  416.6667 |      2050.5 KB |
+| CompressOnly     | Optimal          | Brotli            | ?         |     43.97 ms |   0.184 ms |    0.153 ms |     44.03 ms |         - |        579.17 KB |         - |         - |        1.25 KB |
+| CreateNewArchive | Optimal          | Brotli            | 1         |     44.81 ms |   0.319 ms |    0.283 ms |     44.82 ms |         - |        579.31 KB |         - |         - |        6.54 KB |
+| UpdateTar        | Optimal          | Brotli            | 1         |     44.86 ms |   0.273 ms |    0.255 ms |     44.82 ms |  416.6667 |        582.00 KB |  416.6667 |  416.6667 |     1992.06 KB |
+| CreateNewArchive | Fastest          | Gzip              | 1         |     45.13 ms |   1.262 ms |    3.642 ms |     42.82 ms |         - |        788.48 KB |         - |         - |        6.63 KB |
+| UpdateZip        | Optimal          | Brotli            | 1         |     45.65 ms |   0.307 ms |    0.287 ms |     45.58 ms |  454.5455 |        579.31 KB |  454.5455 |  454.5455 |     1991.63 KB |
+| UpdateZip        | Fastest          | Brotli            | 3         |     46.89 ms |   0.932 ms |    0.997 ms |     46.51 ms | 2100.0000 |       2128.86 KB | 2100.0000 | 2100.0000 |     9554.31 KB |
+| CompressTar      | Fastest          | Deflate           | 1         |     46.96 ms |   0.078 ms |    0.073 ms |     46.95 ms | 1909.0909 |        788.55 KB | 1909.0909 | 1909.0909 |    33036.21 KB |
+| CompressTar      | Fastest          | Gzip              | 1         |     53.55 ms |   0.103 ms |    0.092 ms |     53.58 ms | 1900.0000 |        788.56 KB | 1900.0000 | 1900.0000 |    33036.22 KB |
+| UpdateZip        | Fastest          | Zip               | 1         |     53.74 ms |   0.165 ms |    0.146 ms |     53.77 ms | 1900.0000 |        788.46 KB | 1900.0000 | 1900.0000 |    32649.14 KB |
+| CompressTar      | Fastest          | Brotli            | 3         |     57.19 ms |   0.373 ms |    0.349 ms |     57.09 ms | 2888.8889 |       1977.38 KB | 2888.8889 | 2888.8889 |    66192.82 KB |
+| CompressTar      | Optimal          | Brotli            | 1         |     68.12 ms |   0.419 ms |    0.392 ms |     68.04 ms | 1875.0000 |        563.71 KB | 1875.0000 | 1875.0000 |    33032.32 KB |
+| UpdateTar        | Fastest          | Deflate           | 2         |     72.76 ms |   0.301 ms |    0.282 ms |     72.87 ms |  857.1429 |       1599.00 KB |  857.1429 |  857.1429 |     4095.48 KB |
+| CreateNewArchive | Fastest          | Deflate           | 2         |     73.28 ms |   0.226 ms |    0.201 ms |     73.21 ms |         - |       1594.91 KB |         - |         - |        7.73 KB |
+| UpdateZip        | Fastest          | Deflate           | 2         |     74.24 ms |   0.116 ms |    0.097 ms |     74.24 ms | 1142.8571 |       1594.91 KB | 1142.8571 | 1142.8571 |     4884.38 KB |
+| CompressOnly     | Optimal          | Deflate           | ?         |     78.84 ms |   0.069 ms |    0.058 ms |     78.83 ms |         - |        588.58 KB |         - |         - |        5.45 KB |
+| UpdateTar        | Optimal          | Deflate           | 1         |     79.00 ms |   0.157 ms |    0.140 ms |     78.97 ms |  428.5714 |        591.50 KB |  428.5714 |  428.5714 |      2048.1 KB |
+| CreateNewArchive | Optimal          | Deflate           | 1         |     79.22 ms |   0.387 ms |    0.362 ms |     78.98 ms |         - |        588.72 KB |         - |         - |        6.69 KB |
+| UpdateZip        | Optimal          | Deflate           | 1         |     80.20 ms |   0.151 ms |    0.134 ms |     80.20 ms |  428.5714 |        588.72 KB |  428.5714 |  428.5714 |      2047.7 KB |
+| CompressOnly     | Optimal          | Gzip              | ?         |     84.07 ms |   0.089 ms |    0.074 ms |     84.06 ms |         - |        588.60 KB |         - |         - |        5.52 KB |
+| CreateNewArchive | Fastest          | Zip               | 2         |     84.97 ms |   0.112 ms |    0.094 ms |     84.98 ms |         - |       1594.90 KB |         - |         - |        7.61 KB |
+| CreateNewArchive | Optimal          | Gzip              | 1         |     85.25 ms |   0.199 ms |    0.176 ms |     85.25 ms |         - |        588.74 KB |         - |         - |        6.76 KB |
+| UpdateTar        | Fastest          | Gzip              | 2         |     85.46 ms |   0.071 ms |    0.063 ms |     85.46 ms |  833.3333 |       1599.00 KB |  833.3333 |  833.3333 |     4101.05 KB |
+| UpdateZip        | Optimal          | Gzip              | 1         |     85.78 ms |   0.076 ms |    0.064 ms |     85.78 ms |  333.3333 |        588.74 KB |  333.3333 |  333.3333 |     2050.51 KB |
+| CreateNewArchive | Fastest          | Gzip              | 2         |     86.15 ms |   0.120 ms |    0.100 ms |     86.13 ms |         - |       1594.94 KB |         - |         - |        7.83 KB |
+| UpdateTar        | Optimal          | Gzip              | 1         |     86.30 ms |   0.947 ms |    0.886 ms |     85.60 ms |  333.3333 |        591.50 KB |  333.3333 |  333.3333 |     2050.92 KB |
+| UpdateZip        | Fastest          | Gzip              | 2         |     87.51 ms |   0.167 ms |    0.148 ms |     87.49 ms | 1166.6667 |       1594.94 KB | 1166.6667 | 1166.6667 |     4890.02 KB |
+| CreateNewArchive | Optimal          | Zip               | 1         |     88.65 ms |   0.185 ms |    0.173 ms |     88.65 ms |         - |        588.71 KB |         - |         - |        6.64 KB |
+| CompressTar      | Fastest          | Deflate           | 2         |     88.88 ms |   0.225 ms |    0.211 ms |     88.89 ms | 2833.3333 |       1594.88 KB | 2833.3333 | 2833.3333 |    66190.91 KB |
+| CompressTar      | Optimal          | Deflate           | 1         |     89.96 ms |   0.260 ms |    0.217 ms |     89.96 ms | 1833.3333 |        588.80 KB | 1833.3333 | 1833.3333 |    33032.21 KB |
+| CompressTar      | Optimal          | Gzip              | 1         |     97.12 ms |   0.241 ms |    0.213 ms |     97.16 ms | 1833.3333 |        588.82 KB | 1833.3333 | 1833.3333 |    33032.21 KB |
+| CreateNewArchive | Optimal          | Brotli            | 2         |     97.47 ms |   0.415 ms |    0.368 ms |     97.45 ms |         - |       1162.98 KB |         - |         - |        7.65 KB |
+| UpdateTar        | Optimal          | Brotli            | 2         |     98.48 ms |   0.909 ms |    0.806 ms |     98.22 ms |  833.3333 |       1167.50 KB |  833.3333 |  833.3333 |     3983.35 KB |
+| UpdateZip        | Optimal          | Brotli            | 2         |     98.91 ms |   0.599 ms |    0.561 ms |     98.91 ms | 1000.0000 |       1162.98 KB | 1000.0000 | 1000.0000 |     4563.01 KB |
+| UpdateZip        | Optimal          | Zip               | 1         |    100.59 ms |   2.000 ms |    4.596 ms |     97.16 ms | 1833.3333 |        588.71 KB | 1833.3333 | 1833.3333 |    32649.14 KB |
+| CompressTar      | Fastest          | Gzip              | 2         |    103.18 ms |   0.218 ms |    0.193 ms |    103.17 ms | 2800.0000 |       1594.88 KB | 2800.0000 | 2800.0000 |    66190.92 KB |
+| UpdateTar        | Fastest          | Deflate           | 3         |    109.41 ms |   0.774 ms |    0.724 ms |    109.77 ms | 1400.0000 |       2426.50 KB | 1400.0000 | 1400.0000 |      6142.7 KB |
+| CreateNewArchive | Fastest          | Deflate           | 3         |    110.48 ms |   0.380 ms |    0.337 ms |    110.35 ms |         - |       2420.76 KB |         - |         - |        8.87 KB |
+| UpdateZip        | Fastest          | Zip               | 2         |    113.75 ms |   1.427 ms |    2.092 ms |    113.77 ms | 3200.0000 |       1594.90 KB | 3200.0000 | 3200.0000 |    66085.65 KB |
+| UpdateZip        | Fastest          | Deflate           | 3         |    113.94 ms |   0.324 ms |    0.303 ms |    113.83 ms | 2000.0000 |       2420.76 KB | 2000.0000 | 2000.0000 |     8528.04 KB |
+| CompressTar      | Optimal          | Brotli            | 2         |    113.96 ms |   0.756 ms |    0.670 ms |    113.96 ms | 2800.0000 |       1130.19 KB | 2800.0000 | 2800.0000 |    66187.02 KB |
+| CompressTar      | Fastest          | Deflate           | 3         |    127.57 ms |   0.221 ms |    0.195 ms |    127.53 ms | 2750.0000 |       2420.72 KB | 2750.0000 | 2750.0000 |    66188.71 KB |
+| CreateNewArchive | Fastest          | Zip               | 3         |    128.13 ms |   0.553 ms |    0.462 ms |    128.00 ms |         - |       2420.73 KB |         - |         - |        8.73 KB |
+| UpdateTar        | Fastest          | Gzip              | 3         |    128.41 ms |   0.959 ms |    0.897 ms |    128.79 ms | 1250.0000 |       2426.50 KB | 1250.0000 | 1250.0000 |     6151.05 KB |
+| CreateNewArchive | Fastest          | Gzip              | 3         |    129.89 ms |   0.528 ms |    0.468 ms |    129.64 ms |         - |       2420.80 KB |         - |         - |        9.05 KB |
+| UpdateTar        | SmallestSize     | Deflate           | 1         |    130.94 ms |   1.356 ms |    1.268 ms |    130.62 ms |  250.0000 |        570.00 KB |  250.0000 |  250.0000 |     2048.16 KB |
+| CompressOnly     | SmallestSize     | Deflate           | ?         |    131.57 ms |   1.197 ms |    1.120 ms |    130.76 ms |         - |        567.04 KB |         - |         - |        5.67 KB |
+| UpdateZip        | Fastest          | Gzip              | 3         |    132.71 ms |   0.152 ms |    0.127 ms |    132.72 ms | 1750.0000 |       2420.80 KB | 1750.0000 | 1750.0000 |     8536.36 KB |
+| UpdateZip        | SmallestSize     | Deflate           | 1         |    133.08 ms |   0.787 ms |    0.736 ms |    133.41 ms |  250.0000 |        567.19 KB |  250.0000 |  250.0000 |     2047.76 KB |
+| CreateNewArchive | SmallestSize     | Deflate           | 1         |    134.52 ms |   0.908 ms |    0.849 ms |    134.52 ms |         - |        567.19 KB |         - |         - |        6.93 KB |
+| CreateNewArchive | SmallestSize     | Zip               | 1         |    136.38 ms |   1.404 ms |    1.313 ms |    135.55 ms |         - |        567.18 KB |         - |         - |        6.84 KB |
+| UpdateZip        | SmallestSize     | Gzip              | 1         |    138.34 ms |   2.759 ms |    2.710 ms |    136.61 ms |  250.0000 |        567.20 KB |  250.0000 |  250.0000 |     2050.54 KB |
+| UpdateTar        | SmallestSize     | Gzip              | 1         |    140.37 ms |   2.268 ms |    2.122 ms |    139.25 ms |  250.0000 |        570.00 KB |  250.0000 |  250.0000 |     2050.95 KB |
+| CompressOnly     | SmallestSize     | Gzip              | ?         |    141.51 ms |   2.797 ms |    3.221 ms |    139.60 ms |         - |        567.06 KB |         - |         - |        5.69 KB |
+| CreateNewArchive | SmallestSize     | Gzip              | 1         |    141.62 ms |   0.810 ms |    0.718 ms |    141.62 ms |         - |        567.20 KB |         - |         - |        6.94 KB |
+| CompressTar      | SmallestSize     | Deflate           | 1         |    142.12 ms |   1.118 ms |    0.991 ms |    142.31 ms | 1750.0000 |        567.23 KB | 1750.0000 | 1750.0000 |    33032.25 KB |
+| CreateNewArchive | Optimal          | Brotli            | 3         |    142.47 ms |   0.668 ms |    0.592 ms |    142.56 ms |         - |       1754.26 KB |         - |         - |        8.78 KB |
+| UpdateTar        | Optimal          | Brotli            | 3         |    142.67 ms |   0.655 ms |    0.580 ms |    142.82 ms | 1250.0000 |       1760.50 KB | 1250.0000 | 1250.0000 |      5974.5 KB |
+| UpdateZip        | Optimal          | Brotli            | 3         |    146.45 ms |   0.747 ms |    0.699 ms |    146.64 ms | 2000.0000 |       1754.26 KB | 2000.0000 | 2000.0000 |     7718.94 KB |
+| CompressTar      | Fastest          | Gzip              | 3         |    147.79 ms |   0.399 ms |    0.373 ms |    147.68 ms | 2750.0000 |       2420.74 KB | 2750.0000 | 2750.0000 |    66188.71 KB |
+| CompressTar      | SmallestSize     | Gzip              | 1         |    150.06 ms |   1.881 ms |    1.668 ms |    150.11 ms | 1750.0000 |        567.25 KB | 1750.0000 | 1750.0000 |    33032.27 KB |
+| UpdateZip        | SmallestSize     | Zip               | 1         |    150.45 ms |   2.545 ms |    2.381 ms |    151.19 ms | 1750.0000 |        567.18 KB | 1750.0000 | 1750.0000 |    32649.17 KB |
+| UpdateTar        | Optimal          | Deflate           | 2         |    159.27 ms |   0.939 ms |    0.879 ms |    159.59 ms |  750.0000 |       1201.50 KB |  750.0000 |  750.0000 |      4095.4 KB |
+| CreateNewArchive | Optimal          | Deflate           | 2         |    161.77 ms |   1.266 ms |    1.184 ms |    161.97 ms |         - |       1197.32 KB |         - |         - |        7.92 KB |
+| CompressTar      | Optimal          | Brotli            | 3         |    163.87 ms |   0.878 ms |    0.821 ms |    163.85 ms | 2666.6667 |       1703.62 KB | 2666.6667 | 2666.6667 |    66188.85 KB |
+| UpdateZip        | Optimal          | Deflate           | 2         |    165.55 ms |   2.744 ms |    2.567 ms |    167.04 ms | 1000.0000 |       1197.32 KB | 1000.0000 | 1000.0000 |     4684.59 KB |
+| UpdateZip        | Fastest          | Zip               | 3         |    169.93 ms |   3.258 ms |    3.621 ms |    168.81 ms | 5333.3333 |       2420.73 KB | 5333.3333 | 5333.3333 |   100333.37 KB |
+| CreateNewArchive | Optimal          | Zip               | 2         |    174.50 ms |   0.206 ms |    0.182 ms |    174.48 ms |         - |       1197.31 KB |         - |         - |        7.91 KB |
+| UpdateTar        | Optimal          | Gzip              | 2         |    174.75 ms |   0.990 ms |    0.926 ms |    175.22 ms |  666.6667 |       1201.50 KB |  666.6667 |  666.6667 |     4100.92 KB |
+| UpdateZip        | Optimal          | Gzip              | 2         |    175.57 ms |   2.480 ms |    2.320 ms |    174.07 ms | 1000.0000 |       1197.35 KB | 1000.0000 | 1000.0000 |     4690.25 KB |
+| CreateNewArchive | Optimal          | Gzip              | 2         |    176.10 ms |   0.780 ms |    0.730 ms |    175.74 ms |         - |       1197.35 KB |         - |         - |        8.14 KB |
+| CompressTar      | Optimal          | Deflate           | 2         |    183.15 ms |   3.160 ms |    2.956 ms |    182.33 ms | 2666.6667 |       1197.14 KB | 2666.6667 | 2666.6667 |    66190.96 KB |
+| CompressTar      | Optimal          | Gzip              | 2         |    194.55 ms |   0.804 ms |    0.713 ms |    194.31 ms | 2666.6667 |       1197.16 KB | 2666.6667 | 2666.6667 |    66190.96 KB |
+| UpdateZip        | Optimal          | Zip               | 2         |    219.53 ms |   4.277 ms |    6.659 ms |    219.58 ms | 3333.3333 |       1197.31 KB | 3333.3333 | 3333.3333 |     65886.1 KB |
+| UpdateTar        | Optimal          | Deflate           | 3         |    241.89 ms |   2.259 ms |    2.002 ms |    241.90 ms | 1333.3333 |       1829.50 KB | 1333.3333 | 1333.3333 |     6142.74 KB |
+| UpdateZip        | Optimal          | Deflate           | 3         |    242.37 ms |   0.345 ms |    0.270 ms |    242.37 ms | 2000.0000 |       1823.77 KB | 2000.0000 | 2000.0000 |     7930.81 KB |
+| CreateNewArchive | Optimal          | Deflate           | 3         |    243.46 ms |   1.080 ms |    1.010 ms |    243.71 ms |         - |       1823.77 KB |         - |         - |        9.11 KB |
+| CreateNewArchive | Optimal          | Gzip              | 3         |    263.42 ms |   2.597 ms |    2.430 ms |    264.96 ms |         - |       1823.81 KB |         - |         - |        9.53 KB |
+| CreateNewArchive | Optimal          | Zip               | 3         |    263.56 ms |   5.185 ms |    5.093 ms |    264.77 ms |         - |       1823.74 KB |         - |         - |         9.2 KB |
+| UpdateTar        | Optimal          | Gzip              | 3         |    264.13 ms |   4.443 ms |    4.156 ms |    261.12 ms | 1000.0000 |       1829.50 KB | 1000.0000 | 1000.0000 |     6151.06 KB |
+| CompressTar      | Optimal          | Deflate           | 3         |    265.92 ms |   2.659 ms |    2.357 ms |    264.74 ms | 2500.0000 |       1823.21 KB | 2500.0000 | 2500.0000 |     66192.8 KB |
+| UpdateTar        | SmallestSize     | Deflate           | 2         |    267.34 ms |   1.268 ms |    1.124 ms |    266.90 ms |  500.0000 |       1159.00 KB |  500.0000 |  500.0000 |     4095.22 KB |
+| UpdateZip        | Optimal          | Gzip              | 3         |    273.16 ms |   4.980 ms |    4.658 ms |    273.05 ms | 1500.0000 |       1823.81 KB | 1500.0000 | 1500.0000 |     7939.07 KB |
+| UpdateZip        | SmallestSize     | Deflate           | 2         |    274.39 ms |   4.654 ms |    4.354 ms |    276.20 ms | 1000.0000 |       1154.66 KB | 1000.0000 | 1000.0000 |     4663.29 KB |
+| CreateNewArchive | SmallestSize     | Deflate           | 2         |    276.54 ms |   5.328 ms |    5.922 ms |    278.90 ms |         - |       1154.66 KB |         - |         - |        8.42 KB |
+| UpdateTar        | SmallestSize     | Gzip              | 2         |    277.71 ms |   0.423 ms |    0.375 ms |    277.73 ms |  500.0000 |       1159.00 KB |  500.0000 |  500.0000 |      4100.8 KB |
+| CreateNewArchive | SmallestSize     | Gzip              | 2         |    278.52 ms |   1.231 ms |    1.091 ms |    277.96 ms |         - |       1154.69 KB |         - |         - |        8.48 KB |
+| CreateNewArchive | SmallestSize     | Zip               | 2         |    284.95 ms |   3.415 ms |    3.194 ms |    286.50 ms |         - |       1154.64 KB |         - |         - |        8.28 KB |
+| CompressTar      | Optimal          | Gzip              | 3         |    291.93 ms |   4.874 ms |    4.559 ms |    294.26 ms | 2500.0000 |       1823.23 KB | 2500.0000 | 2500.0000 |     66192.8 KB |
+| CompressTar      | SmallestSize     | Deflate           | 2         |    292.15 ms |   1.132 ms |    1.059 ms |    292.16 ms | 2500.0000 |       1154.45 KB | 2500.0000 | 2500.0000 |    66191.02 KB |
+| UpdateZip        | SmallestSize     | Gzip              | 2         |    292.94 ms |   0.260 ms |    0.203 ms |    292.86 ms | 1000.0000 |       1154.69 KB | 1000.0000 | 1000.0000 |     4668.89 KB |
+| UpdateZip        | Optimal          | Zip               | 3         |    302.23 ms |   2.716 ms |    3.532 ms |    301.56 ms | 5500.0000 |       1823.74 KB | 5500.0000 | 5500.0000 |    99737.46 KB |
+| CompressTar      | SmallestSize     | Gzip              | 2         |    303.23 ms |   0.561 ms |    0.525 ms |    303.15 ms | 2500.0000 |       1154.47 KB | 2500.0000 | 2500.0000 |    66191.04 KB |
+| UpdateZip        | SmallestSize     | Zip               | 2         |    306.82 ms |   4.422 ms |    4.137 ms |    305.48 ms | 1500.0000 |       1154.64 KB | 1500.0000 | 1500.0000 |    65863.53 KB |
+| UpdateTar        | SmallestSize     | Deflate           | 3         |    404.10 ms |   0.545 ms |    0.425 ms |    404.11 ms | 1000.0000 |       1765.00 KB | 1000.0000 | 1000.0000 |     6142.96 KB |
+| CreateNewArchive | SmallestSize     | Deflate           | 3         |    405.44 ms |   0.506 ms |    0.423 ms |    405.46 ms |         - |       1758.85 KB |         - |         - |       10.37 KB |
+| UpdateZip        | SmallestSize     | Deflate           | 3         |    411.74 ms |   3.572 ms |    3.341 ms |    412.93 ms | 1000.0000 |       1758.85 KB | 1000.0000 | 1000.0000 |     7866.48 KB |
+| CreateNewArchive | SmallestSize     | Gzip              | 3         |    421.32 ms |   0.540 ms |    0.451 ms |    421.22 ms |         - |       1758.89 KB |         - |         - |       10.44 KB |
+| UpdateTar        | SmallestSize     | Gzip              | 3         |    427.07 ms |   7.542 ms |    7.055 ms |    432.51 ms | 1000.0000 |       1765.00 KB | 1000.0000 | 1000.0000 |     6151.35 KB |
+| UpdateZip        | SmallestSize     | Gzip              | 3         |    429.88 ms |   4.026 ms |    3.765 ms |    427.68 ms | 1000.0000 |       1758.89 KB | 1000.0000 | 1000.0000 |     7874.92 KB |
+| CreateNewArchive | SmallestSize     | Zip               | 3         |    432.27 ms |   1.496 ms |    1.326 ms |    432.72 ms |         - |       1758.82 KB |         - |         - |       10.13 KB |
+| CompressTar      | SmallestSize     | Deflate           | 3         |    437.41 ms |   1.357 ms |    1.203 ms |    437.48 ms | 2000.0000 |       1758.23 KB | 2000.0000 | 2000.0000 |    66192.95 KB |
+| CompressTar      | SmallestSize     | Gzip              | 3         |    460.44 ms |   6.231 ms |    8.102 ms |    457.27 ms | 2000.0000 |       1758.25 KB | 2000.0000 | 2000.0000 |    66192.97 KB |
+| UpdateZip        | SmallestSize     | Zip               | 3         |    471.51 ms |   9.154 ms |   10.175 ms |    465.02 ms | 3000.0000 |       1758.82 KB | 3000.0000 | 3000.0000 |    99667.72 KB |
+| CreateNewArchive | SmallestSize     | Brotli            | 1         | 24,518.18 ms |  29.907 ms |   27.975 ms | 24,515.79 ms |         - |        340.00 KB |         - |         - |        8.48 KB |
+| UpdateZip        | SmallestSize     | Brotli            | 1         | 24,538.70 ms |  31.191 ms |   29.176 ms | 24,542.48 ms |         - |        340.00 KB |         - |         - |       968.8 KB |
+| UpdateTar        | SmallestSize     | Brotli            | 1         | 24,542.63 ms |  29.349 ms |   27.453 ms | 24,537.75 ms |         - |        342.50 KB |         - |         - |      969.16 KB |
+| CompressTar      | SmallestSize     | Brotli            | 1         | 24,602.72 ms |  34.184 ms |   31.976 ms | 24,603.08 ms | 1000.0000 |        340.31 KB | 1000.0000 | 1000.0000 |    33032.63 KB |
+| CompressOnly     | SmallestSize     | Brotli            | ?         | 24,958.77 ms |  10.716 ms |   10.024 ms | 24,957.14 ms |         - |        339.86 KB |         - |         - |        3.12 KB |
+| CreateNewArchive | SmallestSize     | Brotli            | 2         | 49,403.15 ms | 429.908 ms |  381.102 ms | 49,227.49 ms |         - |        682.14 KB |         - |         - |        9.88 KB |
+| UpdateZip        | SmallestSize     | Brotli            | 2         | 50,002.55 ms |  19.989 ms |   18.698 ms | 50,008.43 ms |         - |        682.14 KB |         - |         - |     2275.65 KB |
+| UpdateTar        | SmallestSize     | Brotli            | 2         | 50,049.16 ms |  39.466 ms |   36.917 ms | 50,060.25 ms |         - |        686.50 KB |         - |         - |     1936.08 KB |
+| CompressTar      | SmallestSize     | Brotli            | 2         | 50,339.77 ms |  53.313 ms |   49.869 ms | 50,330.42 ms | 2000.0000 |        681.84 KB | 2000.0000 | 2000.0000 |     66188.3 KB |
+| CreateNewArchive | SmallestSize     | Brotli            | 3         | 74,737.95 ms |  28.526 ms |   26.683 ms | 74,735.42 ms |         - |       1031.65 KB |         - |         - |       11.36 KB |
+| UpdateZip        | SmallestSize     | Brotli            | 3         | 74,750.21 ms |  28.021 ms |   23.399 ms | 74,744.37 ms | 1000.0000 |       1031.65 KB | 1000.0000 | 1000.0000 |      3927.3 KB |
+| UpdateTar        | SmallestSize     | Brotli            | 3         | 74,810.11 ms |  36.889 ms |   34.506 ms | 74,812.32 ms |         - |       1037.50 KB |         - |         - |     2901.99 KB |
+| CompressTar      | SmallestSize     | Brotli            | 3         | 75,207.96 ms |  66.305 ms |   62.021 ms | 75,222.41 ms | 2000.0000 |       1029.27 KB | 2000.0000 | 2000.0000 |    66189.58 KB |

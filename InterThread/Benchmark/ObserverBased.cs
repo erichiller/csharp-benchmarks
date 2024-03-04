@@ -9,7 +9,7 @@ namespace Benchmarks.InterThread.Benchmark;
 
 public record DataGeneratorMessage {
     public int    Id         { get; set; }
-    public string Property_1 { get; set; }
+    public required string Property1 { get; set; }
 }
 
 public class DataGenerator : IObservable<DataGeneratorMessage> {
@@ -27,7 +27,7 @@ public class DataGenerator : IObservable<DataGeneratorMessage> {
     }
 
     public void AddMessage( int id ) {
-        var message = new DataGeneratorMessage() { Property_1 = "some name", Id = id };
+        var message = new DataGeneratorMessage() { Property1 = "some name", Id = id };
         foreach ( var observer in observers ) {
             observer.OnNext( message );
         }
@@ -36,15 +36,15 @@ public class DataGenerator : IObservable<DataGeneratorMessage> {
 
 public class Subscriber : IObserver<DataGeneratorMessage> {
     // private List<string> flightInfos = new List<message>();
-    private IDisposable cancellation;
+    private IDisposable? _cancellation;
 
 
     public virtual void Subscribe( DataGenerator provider ) {
-        cancellation = provider.Subscribe( this );
+        _cancellation = provider.Subscribe( this );
     }
 
     public virtual void Unsubscribe( ) {
-        cancellation.Dispose();
+        _cancellation?.Dispose();
         // flightInfos.Clear();
     }
 
@@ -102,11 +102,11 @@ public class Subscriber : IObserver<DataGeneratorMessage> {
     }
 }
 
-internal class Unsubscriber<DataGeneratorMessage> : IDisposable {
-    private List<IObserver<DataGeneratorMessage>> _observers;
-    private IObserver<DataGeneratorMessage>       _observer;
+internal class Unsubscriber<TDataGeneratorMessage> : IDisposable {
+    private List<IObserver<TDataGeneratorMessage>> _observers;
+    private IObserver<TDataGeneratorMessage>       _observer;
 
-    internal Unsubscriber( List<IObserver<DataGeneratorMessage>> observers, IObserver<DataGeneratorMessage> observer ) {
+    internal Unsubscriber( List<IObserver<TDataGeneratorMessage>> observers, IObserver<TDataGeneratorMessage> observer ) {
         this._observers = observers;
         this._observer  = observer;
     }

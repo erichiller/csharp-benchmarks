@@ -32,7 +32,7 @@
 
     <ItemGroup>
         <!-- https://docs.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2019 -->
-        <None Update="*.log" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="**/*.log" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
 </Project>

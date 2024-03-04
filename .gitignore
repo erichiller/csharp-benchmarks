@@ -45,7 +45,8 @@ msbuild.wrn
 #/**/BenchmarkDotNet.Artifacts/results/*.html
 /**/BenchmarkDotNet.Artifacts/results/*
 !/**/BenchmarkDotNet.Artifacts/results/*.md
-sampleLogFile.log
+#sampleLogFile.log
+/**/data/*
 
 # Visual Studio 2015
 .vs/
