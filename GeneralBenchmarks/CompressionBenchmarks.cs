@@ -22,6 +22,8 @@ using BenchmarkDotNet.Running;
 
 using Benchmarks.Common;
 
+using Perfolizer.Metrology;
+
 namespace Benchmarks.General;
 
 /* RESULTS :
@@ -59,7 +61,7 @@ namespace Benchmarks.General;
 public class CompressionBenchmarks {
     public const string LOG_FILE_DIRECTORY = "/home/eric/Downloads/compression_benchmarks";
     // public const string LOG_FILE_DIRECTORY = "data";
-    public static readonly FileInfo[] LogFileInfo = [
+    private static readonly FileInfo[] _logFileInfo = [
         new FileInfo( $"{LOG_FILE_DIRECTORY}{Path.DirectorySeparatorChar}sampleLogFile_1.log" ), // 10MB log file input
         new FileInfo( $"{LOG_FILE_DIRECTORY}{Path.DirectorySeparatorChar}sampleLogFile_2.log" ), // 10MB log file input
         new FileInfo( $"{LOG_FILE_DIRECTORY}{Path.DirectorySeparatorChar}sampleLogFile_3.log" ), // 10MB log file input
@@ -177,7 +179,7 @@ public class CompressionBenchmarks {
             archiveType: ArchiveType.None,
             compressionLevel: this.CompressionLevel );
         int              i                    = 0;
-        FileInfo         logFileInfo          = LogFileInfo[ i ];
+        FileInfo         logFileInfo          = _logFileInfo[ i ];
         using FileStream inputFileStream      = File.Open( logFileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read );
         using FileStream outputCompressedFile = File.Open( outputCompressedFilePath.FullName, FileMode.Create, FileAccess.Write );
         using Stream compressor = CompressionMethod switch {
@@ -206,7 +208,7 @@ public class CompressionBenchmarks {
         using FileStream compressedFileStream = File.Open( outputCompressedFilePath.FullName, FileMode.Create, FileAccess.Write );
         using ZipArchive archive              = new ZipArchive( compressedFileStream, ZipArchiveMode.Create );
         for ( int i = 0 ; i < FileCount ; i++ ) {
-            FileInfo         logFileInfo     = LogFileInfo[ i ];
+            FileInfo         logFileInfo     = _logFileInfo[ i ];
             Stream           entry           = archive.CreateEntry( logFileInfo.Name + CompressionMethod.GetFileExtension(), CompressionMethod == CompressionMethod.Zip ? this.CompressionLevel : CompressionLevel.NoCompression ).Open();
             using FileStream inputFileStream = File.Open( logFileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read );
             using Stream compressor = CompressionMethod switch {
@@ -243,7 +245,7 @@ public class CompressionBenchmarks {
             outputCompressedFilePath.Delete();
         }
         for ( int i = 0 ; i < FileCount ; i++ ) {
-            FileInfo         logFileInfo          = LogFileInfo[ i ];
+            FileInfo         logFileInfo          = _logFileInfo[ i ];
             using FileStream compressedFileStream = File.Open( outputCompressedFilePath.FullName, FileMode.OpenOrCreate, FileAccess.ReadWrite );
             using ZipArchive archive              = new ZipArchive( compressedFileStream, ZipArchiveMode.Update ); // this has to be ZipArchiveMode.Update otherwise it won't write to an existing directory.
             Stream           entry                = archive.CreateEntry( logFileInfo.Name + CompressionMethod.GetFileExtension(), CompressionMethod == CompressionMethod.Zip ? this.CompressionLevel : CompressionLevel.NoCompression ).Open();
@@ -293,22 +295,21 @@ public class CompressionBenchmarks {
                 stream.Seek( -1024, SeekOrigin.End );
             }
             using TarWriter writer          = new TarWriter( stream, TarEntryFormat.Pax );
-            TarEntry        entry           = new PaxTarEntry( TarEntryType.RegularFile, LogFileInfo[ entryCounter ].Name + CompressionMethod.GetFileExtension() );
-            using var       inputFileStream = LogFileInfo[ entryCounter ].OpenRead();
-            using ( var ms = new MemoryStream() ) {
-                using Stream compressor = CompressionMethod switch {
-                                              // CompressionMethod.Zip     => new ,
-                                              CompressionMethod.Brotli  => new BrotliStream( ms, this.CompressionLevel, leaveOpen: true ),
-                                              CompressionMethod.Gzip    => new GZipStream( ms, this.CompressionLevel, leaveOpen: true ),
-                                              CompressionMethod.Deflate => new DeflateStream( ms, this.CompressionLevel, leaveOpen: true ),
-                                              _                         => throw new System.ComponentModel.InvalidEnumArgumentException( nameof(General.CompressionMethod), ( int )CompressionMethod, typeof(CompressionMethod) )
-                                          };
-                inputFileStream.CopyTo( compressor );
-                compressor.Close();
-                entry.DataStream = ms;
-                ms.Seek( 0, SeekOrigin.Begin );
-                writer.WriteEntry( entry );
-            }
+            TarEntry        entry           = new PaxTarEntry( TarEntryType.RegularFile, _logFileInfo[ entryCounter ].Name + CompressionMethod.GetFileExtension() );
+            using var       inputFileStream = _logFileInfo[ entryCounter ].OpenRead();
+            using var       ms              = new MemoryStream();
+            using Stream compressor = CompressionMethod switch {
+                                          // CompressionMethod.Zip     => new ,
+                                          CompressionMethod.Brotli  => new BrotliStream( ms, this.CompressionLevel, leaveOpen: true ),
+                                          CompressionMethod.Gzip    => new GZipStream( ms, this.CompressionLevel, leaveOpen: true ),
+                                          CompressionMethod.Deflate => new DeflateStream( ms, this.CompressionLevel, leaveOpen: true ),
+                                          _                         => throw new System.ComponentModel.InvalidEnumArgumentException( nameof(General.CompressionMethod), ( int )CompressionMethod, typeof(CompressionMethod) )
+                                      };
+            inputFileStream.CopyTo( compressor );
+            compressor.Close();
+            entry.DataStream = ms;
+            ms.Seek( 0, SeekOrigin.Begin );
+            writer.WriteEntry( entry );
         }
 #if TRACK_FILE_SIZE_STATS
         outputCompressedFilePath.Refresh();
@@ -340,7 +341,7 @@ public class CompressionBenchmarks {
             MemoryStream archiveStream = new MemoryStream();
             using ( TarWriter writer = new TarWriter( archiveStream, TarEntryFormat.Pax, leaveOpen: true ) ) {
                 for ( int entryCounter = 0 ; entryCounter < FileCount ; entryCounter++ ) {
-                    writer.WriteEntry( LogFileInfo[ entryCounter ].FullName, LogFileInfo[ entryCounter ].Name );
+                    writer.WriteEntry( _logFileInfo[ entryCounter ].FullName, _logFileInfo[ entryCounter ].Name );
                 }
             }
             using FileStream compressedFileStream = outputCompressedFilePath.Create();
@@ -495,8 +496,8 @@ public class FileSizeOutputColumn : IColumn {
 
         string outputString = (
             discoveredOutputFile is { Exists: true }
-                ? ( discoveredOutputFile.Length / ( float )( summary.Style.SizeUnit?.ByteAmount ?? 1 ) ).ToString( "0.00" )
-                : "0" ) + ' ' + summary.Style.SizeUnit?.Name;
+                ? ( discoveredOutputFile.Length / ( float )( summary.Style.SizeUnit?.BaseUnits ?? 1 ) ).ToString( "0.00" )
+                : "0" ) + ' ' + summary.Style.SizeUnit?.FullName;
 //         Console.WriteLine( $"""
 //                             ---------------------------------------- START ----------------------------------------
 //                             FolderInfo                           : {benchmarkCase.FolderInfo}

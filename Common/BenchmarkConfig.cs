@@ -9,6 +9,8 @@ using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Reports;
 
+using Perfolizer.Metrology;
+
 namespace Benchmarks.Common;
 
 public class BenchmarkConfig : ManualConfig {
@@ -21,7 +23,8 @@ public class BenchmarkConfig : ManualConfig {
         WithSummaryStyle( new SummaryStyle(
                               // cultureInfo: CultureInfo.CurrentCulture,
                               cultureInfo: CultureInfo.CreateSpecificCulture( "en-US" ),
-                              sizeUnit: SizeUnit.B,
+                              // sizeUnit: SizeUnit.B,
+                              sizeUnit: SizeUnit.KB, 
                               printUnitsInHeader: true,
                               timeUnit: null!,
                               printUnitsInContent: true,
