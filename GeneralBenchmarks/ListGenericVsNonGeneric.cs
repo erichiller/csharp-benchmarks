@@ -57,12 +57,12 @@ public class GenericVsNonGenericListValueTypeHandlingWithInputValuesTyped {
 }
 
 /*
- * | Method                           | Mean      | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
-   |--------------------------------- |----------:|---------:|---------:|------:|--------:|--------:|-------:|----------:|------------:|
-   | GenericListAsGenericInterface    |  39.11 us | 0.090 us | 0.080 us |  1.00 |    0.00 |  8.4229 | 0.9155 |  39.12 KB |        1.00 |
-   | GenericList                      |  39.26 us | 0.166 us | 0.155 us |  1.00 |    0.01 |  8.4229 | 0.9155 |  39.12 KB |        1.00 |
-   | NonGenericList                   |  56.41 us | 0.231 us | 0.193 us |  1.44 |    0.01 | 16.9067 | 2.8076 |  78.18 KB |        2.00 |
-   | GenericListAsNonGenericInterface | 101.34 us | 0.831 us | 0.778 us |  2.58 |    0.02 | 59.4482 | 7.3242 | 273.49 KB |        6.99 |
+ * | Method                           | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
+   |--------------------------------- |---------:|---------:|---------:|------:|--------:|--------:|-------:|----------:|------------:|
+   | GenericList                      | 17.91 us | 0.072 us | 0.068 us |  1.00 |    0.01 |  8.4534 | 0.9155 |  39.12 KB |        1.00 |
+   | GenericListAsGenericInterface    | 17.99 us | 0.196 us | 0.184 us |  1.00 |    0.01 |  8.4534 | 0.9155 |  39.12 KB |        1.00 |
+   | GenericListAsNonGenericInterface | 39.77 us | 0.133 us | 0.124 us |  2.22 |    0.01 |  8.4229 | 0.9155 |  39.12 KB |        1.00 |
+   | NonGenericList                   | 41.57 us | 0.477 us | 0.446 us |  2.32 |    0.03 | 16.9067 | 2.8076 |  78.18 KB |        2.00 |
  */
 [ MemoryDiagnoser ]
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
@@ -82,8 +82,8 @@ public class GenericVsNonGenericListValueTypeHandlingWithInputValuesAsObjects {
         System.Collections.ArrayList list = new System.Collections.ArrayList( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _ints[ i ] );
-            Utils.AssertThat( ( ( int )list[ ^1 ]! ) == ( int )_ints[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -91,8 +91,8 @@ public class GenericVsNonGenericListValueTypeHandlingWithInputValuesAsObjects {
         IList list = new List<int>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _ints[ i ] );
-            Utils.AssertThat( ( ( int )list[ ^1 ]! ) == ( int )_ints[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark( Baseline = true ) ]
@@ -100,8 +100,8 @@ public class GenericVsNonGenericListValueTypeHandlingWithInputValuesAsObjects {
         List<int> list = new (capacity: _iterations);
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( ( int )_ints[ i ] );
-            Utils.AssertThat( list[ ^1 ] == ( int )_ints[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -109,18 +109,18 @@ public class GenericVsNonGenericListValueTypeHandlingWithInputValuesAsObjects {
         IList<int> list = new List<int>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( ( int )_ints[ i ] );
-            Utils.AssertThat( list[ ^1 ] == ( int )_ints[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 }
 
 /*
- * | Method                           | Mean     | Error    | StdDev   | Ratio | Gen0    | Gen1   | Allocated | Alloc Ratio |
-   |--------------------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
-   | GenericListAsGenericInterface    | 43.54 us | 0.199 us | 0.186 us |  1.00 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | GenericList                      | 43.61 us | 0.206 us | 0.183 us |  1.00 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | NonGenericList                   | 51.72 us | 0.609 us | 0.475 us |  1.19 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | GenericListAsNonGenericInterface | 76.16 us | 0.364 us | 0.341 us |  1.75 | 16.8457 | 2.8076 |  78.18 KB |        1.00 |
+ * | Method                           | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
+   |--------------------------------- |---------:|---------:|---------:|------:|--------:|--------:|-------:|----------:|------------:|
+   | GenericList                      | 28.82 us | 0.261 us | 0.244 us |  1.00 |    0.01 | 16.9373 | 2.8076 |  78.18 KB |        1.00 |
+   | GenericListAsGenericInterface    | 28.94 us | 0.217 us | 0.203 us |  1.00 |    0.01 | 16.9373 | 2.8076 |  78.18 KB |        1.00 |
+   | NonGenericList                   | 41.49 us | 0.262 us | 0.233 us |  1.44 |    0.01 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
+   | GenericListAsNonGenericInterface | 57.87 us | 0.273 us | 0.242 us |  2.01 |    0.02 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
  */
 [ MemoryDiagnoser ]
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
@@ -140,8 +140,8 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesTyped {
         System.Collections.ArrayList list = new System.Collections.ArrayList( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( ( ( string )list[ ^1 ]! ) == _strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -149,17 +149,17 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesTyped {
         IList list = new List<string>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( ( ( string )list[ ^1 ]! ) == _strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
-    [ Benchmark( Baseline = true, Description = "Hello?" ) ]
+    [ Benchmark( Baseline = true ) ]
     public void GenericList( ) {
         List<string> list = new (capacity: _iterations);
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( list[ ^1 ] == _strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -167,18 +167,18 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesTyped {
         IList<string> list = new List<string>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( list[ ^1 ] == _strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 }
 
 /*
- * | Method                           | Mean     | Error    | StdDev   | Ratio | Gen0    | Gen1   | Allocated | Alloc Ratio |
-   |--------------------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
-   | GenericListAsGenericInterface    | 51.04 us | 0.161 us | 0.151 us |  0.99 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | GenericList                      | 51.75 us | 0.360 us | 0.320 us |  1.00 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | NonGenericList                   | 54.39 us | 0.769 us | 0.642 us |  1.05 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
-   | GenericListAsNonGenericInterface | 83.03 us | 0.628 us | 0.524 us |  1.60 | 16.8457 | 2.8076 |  78.18 KB |        1.00 |
+ * | Method                           | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
+   |--------------------------------- |---------:|---------:|---------:|------:|--------:|--------:|-------:|----------:|------------:|
+   | GenericListAsGenericInterface    | 31.34 us | 0.224 us | 0.209 us |  0.99 |    0.02 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
+   | GenericList                      | 31.75 us | 0.573 us | 0.589 us |  1.00 |    0.03 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
+   | NonGenericList                   | 44.14 us | 0.185 us | 0.173 us |  1.39 |    0.03 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
+   | GenericListAsNonGenericInterface | 57.68 us | 0.275 us | 0.257 us |  1.82 |    0.03 | 16.9067 | 2.8076 |  78.18 KB |        1.00 |
  */
 [ MemoryDiagnoser ]
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
@@ -198,8 +198,8 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesAsObject
         System.Collections.ArrayList list = new System.Collections.ArrayList( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( ( ( string )list[ ^1 ]! ) == ( string )_strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -207,8 +207,8 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesAsObject
         IList list = new List<string>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( _strings[ i ] );
-            Utils.AssertThat( ( ( string )list[ ^1 ]! ) == ( string )_strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark( Baseline = true ) ]
@@ -216,8 +216,8 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesAsObject
         List<string> list = new (capacity: _iterations);
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( ( string )_strings[ i ] );
-            Utils.AssertThat( list[ ^1 ] == ( string )_strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 
     [ Benchmark ]
@@ -225,7 +225,7 @@ public class GenericVsNonGenericListReferenceTypeHandlingWithInputValuesAsObject
         IList<string> list = new List<string>( capacity: _iterations );
         for ( int i = 0 ; i < _iterations ; i++ ) {
             list.Add( ( string )_strings[ i ] );
-            Utils.AssertThat( list[ ^1 ] == ( string )_strings[ i ] );
         }
+        Utils.AssertThat( list.Count == _iterations );
     }
 }
