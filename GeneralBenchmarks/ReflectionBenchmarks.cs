@@ -26,13 +26,11 @@ namespace Benchmarks.General;
    | CreateTypeUsing_GetConstructors_Invoke_NoParams                          | 39.462 ns | 0.6636 ns | 0.6208 ns |  4.24 |    0.07 | 0.0136 |      64 B |        2.00 |
    | CreateTypeUsing_NonGeneric_Activator_NoParams_GetConstructors_Any_Before | 41.936 ns | 0.0890 ns | 0.0789 ns |  4.50 |    0.03 | 0.0136 |      64 B |        2.00 |
 
-
-
  */
 
 [ MemoryDiagnoser ]
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
-public class ReflectionBenchmarks {
+public class ConstructInstanceByReflectionBenchmarks {
     [ Benchmark( Baseline = true ) ]
     public void CreateTypeUsing_NonGeneric_Activator_NoParams( ) {
         if ( Activator.CreateInstance( typeof(TypeToCreate_ParameterlessConstructor) ) is not { } ) {
@@ -165,8 +163,9 @@ public class TypeofCachingBenchmarks {
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
 public class ListCheckBenchmarks {
     private static readonly int       _iterations = 1_000;
-    private static readonly Type[]    _types      = [ typeof(string[]), typeof(List<string>), typeof(string[]), typeof(List<string>) ];
-    private static readonly object?[] _instance   = [ Array.Empty<string>(), new List<int>(), null, null ];
+    private static readonly Type[]    _types      = [ typeof(string[]), typeof(List<string>), typeof(string[]), typeof(List<string>), typeof(IList<string>) ];
+    private static readonly object?[] _instance   = [ Array.Empty<string>(), new List<int>(), null, null, new List<string>() ];
+    private static readonly bool[]    _isList     = [ true, true, false, false, true ];
 
 
     [ Benchmark ]
@@ -730,14 +729,13 @@ public class NullableValueTypeDetectionBenchmarks {
     }
 }
 
-
 /*
  * | Method                 | Mean     | Error   | StdDev  | Gen0    | Gen1    | Allocated |
    |----------------------- |---------:|--------:|--------:|--------:|--------:|----------:|
    | DirectParse            | 172.7 us | 0.74 us | 0.69 us | 60.3027 | 23.9258 | 312.52 KB |
    | SecondHand             | 177.4 us | 1.17 us | 1.10 us | 60.3027 | 23.9258 | 312.52 KB |
    | SecondHandWithTryParse | 185.9 us | 0.45 us | 0.43 us | 60.3027 | 23.9258 | 312.52 KB |
-   
+
  */
 
 [ MemoryDiagnoser ]

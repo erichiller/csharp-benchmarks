@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BroadcastChannelMux", "Inte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTests", "InterThread\ConsoleTests\ConsoleTests.csproj", "{CE78F864-992C-4C77-9ED7-BF70821154EE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoggingBenchmarks", "LoggingBenchmarks\LoggingBenchmarks.csproj", "{61115C04-2145-4D70-AE7F-B667ACC54916}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -110,6 +112,10 @@ Global
 		{CE78F864-992C-4C77-9ED7-BF70821154EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE78F864-992C-4C77-9ED7-BF70821154EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE78F864-992C-4C77-9ED7-BF70821154EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61115C04-2145-4D70-AE7F-B667ACC54916}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61115C04-2145-4D70-AE7F-B667ACC54916}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61115C04-2145-4D70-AE7F-B667ACC54916}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61115C04-2145-4D70-AE7F-B667ACC54916}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{399C3EE3-0FC6-4C6C-B7AF-1E90C1CFC44B} = {5A9F401A-9294-4DD3-87C8-D11FA7BBED8A}
