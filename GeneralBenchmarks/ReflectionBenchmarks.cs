@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -221,6 +222,90 @@ public class ListCheckBenchmarks {
             bool isList = type.IsArray || type.IsAssignableTo( typeof(IList) );
             Utils.AssertThat( isList );
         }
+    }
+}
+
+/*
+ * | Method                  | Mean        | Error     | StdDev    | Gen0   | Allocated |
+   |------------------------ |------------:|----------:|----------:|-------:|----------:|
+   | TypeEqualsIList         |   0.7214 ns | 0.0030 ns | 0.0026 ns |      - |         - |
+   | InstanceIsList          |   0.7312 ns | 0.0024 ns | 0.0022 ns |      - |         - |
+   | TypeIsAssignableToIList |  17.0230 ns | 0.0186 ns | 0.0174 ns |      - |         - |
+   | TypeGetInterfaceIList   |  72.5801 ns | 0.1296 ns | 0.1212 ns |      - |         - |
+   | ImplementsIListT        | 121.0737 ns | 2.2522 ns | 2.1067 ns | 0.0391 |     184 B |
+ */
+[ MemoryDiagnoser ]
+[ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
+public class ListDictCheckBenchmarks {
+    private static readonly object _listInstance = new List<string>();
+
+    private static readonly object _dictionaryKvInstance         = new Dictionary<string, string>();
+    private static readonly object _readOnlyDictionaryKvInstance = ReadOnlyDictionary<string, string>.Empty;
+
+    private static readonly Type _listInterfaceType   = typeof(IList);
+    private static readonly Type _listTType           = typeof(List<>);
+    private static readonly Type _listTInterfaceType  = typeof(IList<>);
+    private static readonly Type _listTInterfaceType2 = typeof(IList<>);
+
+    private static readonly Type _dictionaryKvInterfaceType         = typeof(IDictionary<,>);
+    private static readonly Type _readOnlyDictionaryKvInterfaceType = typeof(IReadOnlyDictionary<,>);
+
+
+    [ Benchmark ]
+    public void InstanceIsList( ) {
+        // do 1 success and one fail.
+        Utils.AssertThat( _listInstance is IList ^ _dictionaryKvInstance is IList );
+    }
+
+    [ Benchmark ]
+    public void TypeEqualsIList( ) {
+        Utils.AssertThat( ( _listTInterfaceType == _listTInterfaceType2 ) ^ ( _dictionaryKvInterfaceType == _listInterfaceType ) );
+    }
+
+    [ Benchmark ]
+    public void TypeIsAssignableToIList( ) {
+        Utils.AssertThat( _listTType.IsAssignableTo( _listInterfaceType ) ^ _dictionaryKvInterfaceType.IsAssignableTo( _listInterfaceType ) );
+    }
+
+    [ Benchmark ]
+    public void TypeGetInterfaceIList( ) {
+        Utils.AssertThat( ( _listTType.GetInterface( _listInterfaceType.Name ) is { } ) ^ ( _dictionaryKvInterfaceType.GetInterface( _listInterfaceType.Name ) is { } ) );
+    }
+
+    [Benchmark]
+    public void ImplementsIListT( ) {
+        Utils.AssertThat( Implements(_listTType, _listInterfaceType )  ^ Implements( _dictionaryKvInterfaceType, _listInterfaceType )  );
+    }
+
+    public static bool Implements( Type type, Type checkType ) {
+        ArgumentNullException.ThrowIfNull( checkType );
+        if ( type.IsInterface && !checkType.IsInterface ) {
+            // an interface can't implement a concrete type
+            throw new ArgumentException( $"An interface can not implement a concrete type. {nameof(type)}={type.FullName} is an interface and {nameof(checkType)}={checkType.FullName} is not" );
+        }
+
+        if ( type == checkType ) {
+            return true;
+        }
+
+        // for when the checkType is a generic type definition
+        if ( checkType.IsGenericTypeDefinition ) {
+            Type? genericTypeLoopVar = type;
+            do {
+                // checks BaseType recursively
+                if ( genericTypeLoopVar.IsGenericType && genericTypeLoopVar.GetGenericTypeDefinition() == checkType ) {
+                    return true;
+                }
+            } while ( ( genericTypeLoopVar = genericTypeLoopVar.BaseType ) is { } );
+            return type.GetInterfaces().Any( i => i.IsGenericType && i.GetGenericTypeDefinition() == checkType ); // checks interface types
+        }
+
+        // for closed generic types or non-generic types
+        if ( checkType.IsInterface && type.GetInterfaces().Contains( checkType ) ) {
+            return true;
+        }
+
+        return type.IsSubclassOf( checkType );
     }
 }
 
