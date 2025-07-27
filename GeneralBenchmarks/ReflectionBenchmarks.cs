@@ -233,48 +233,141 @@ public class ListCheckBenchmarks {
    | TypeIsAssignableToIList |  17.0230 ns | 0.0186 ns | 0.0174 ns |      - |         - |
    | TypeGetInterfaceIList   |  72.5801 ns | 0.1296 ns | 0.1212 ns |      - |         - |
    | ImplementsIListT        | 121.0737 ns | 2.2522 ns | 2.1067 ns | 0.0391 |     184 B |
+   
+   | Method                   | Mean       | Error     | StdDev    | Gen0   | Allocated |
+   |------------------------- |-----------:|----------:|----------:|-------:|----------:|
+   | GetGenericTypeDefinition |   3.151 ns | 0.0275 ns | 0.0257 ns |      - |         - |
+   | MakeGenericType          | 211.835 ns | 0.4796 ns | 0.4252 ns | 0.0136 |      64 B |
  */
 [ MemoryDiagnoser ]
 [ Orderer( SummaryOrderPolicy.FastestToSlowest ) ]
+[ SuppressMessage( "ReSharper", "InconsistentNaming" ) ]
 public class ListDictCheckBenchmarks {
+    private const string _non_generic = "NonGeneric";
+    private const string _generic     = "Generic";
+
+
+    /*
+     *
+     */
+
     private static readonly object _listInstance = new List<string>();
 
     private static readonly object _dictionaryKvInstance         = new Dictionary<string, string>();
     private static readonly object _readOnlyDictionaryKvInstance = ReadOnlyDictionary<string, string>.Empty;
 
-    private static readonly Type _listInterfaceType   = typeof(IList);
-    private static readonly Type _listTType           = typeof(List<>);
-    private static readonly Type _listTInterfaceType  = typeof(IList<>);
-    private static readonly Type _listTInterfaceType2 = typeof(IList<>);
+    private static readonly Type _list_InterfaceType           = typeof(IList);
+    private static readonly Type _list_InterfaceTypeCopy       = typeof(IList);
+    private static readonly Type _listT_ClosedType             = typeof(List<string>);
+    private static readonly Type _listT_OpenType               = typeof(List<>);
+    private static readonly Type _listT_Interface_OpenType     = typeof(IList<>);
+    private static readonly Type _listT_Interface_OpenTypeCopy = typeof(IList<>);
 
-    private static readonly Type _dictionaryKvInterfaceType         = typeof(IDictionary<,>);
+    private static readonly Type _ReadOnlyCollection_OpenType             = typeof(ReadOnlyCollection<>);
+    private static readonly Type _ReadOnlyCollection_Inheritor_OpenType   = typeof(ReadOnlyCollectionInheritor<>);
+    private static readonly Type _ReadOnlyCollection_Inheritor_ClosedType = typeof(ReadOnlyCollectionInheritor<string>);
+
+    private static readonly Type _dictionaryKvInterface_OpenType    = typeof(IDictionary<,>);
+    private static readonly Type _dictionaryKvInterface_ClosedType  = typeof(IDictionary<string, string>);
     private static readonly Type _readOnlyDictionaryKvInterfaceType = typeof(IReadOnlyDictionary<,>);
 
+    private class ReadOnlyCollectionInheritor<T>( IList<T> list ) : ReadOnlyCollection<T>( list );
+
+    /*
+     * Begin non-generic benchmarks
+     */
 
     [ Benchmark ]
-    public void InstanceIsList( ) {
+    [ Category( _non_generic ) ]
+    public void InstanceIsIList( ) {
         // do 1 success and one fail.
         Utils.AssertThat( _listInstance is IList ^ _dictionaryKvInstance is IList );
     }
 
     [ Benchmark ]
+    [ Category( _non_generic ) ]
     public void TypeEqualsIList( ) {
-        Utils.AssertThat( ( _listTInterfaceType == _listTInterfaceType2 ) ^ ( _dictionaryKvInterfaceType == _listInterfaceType ) );
+        Utils.AssertThat( ( _list_InterfaceType == _list_InterfaceTypeCopy ) ^ ( _dictionaryKvInterface_OpenType == _list_InterfaceType ) );
     }
 
     [ Benchmark ]
+    [ Category( _non_generic ) ]
     public void TypeIsAssignableToIList( ) {
-        Utils.AssertThat( _listTType.IsAssignableTo( _listInterfaceType ) ^ _dictionaryKvInterfaceType.IsAssignableTo( _listInterfaceType ) );
+        Utils.AssertThat( _listT_OpenType.IsAssignableTo( _list_InterfaceType ) ^ _dictionaryKvInterface_OpenType.IsAssignableTo( _list_InterfaceType ) );
     }
 
     [ Benchmark ]
+    [ Category( _non_generic ) ]
     public void TypeGetInterfaceIList( ) {
-        Utils.AssertThat( ( _listTType.GetInterface( _listInterfaceType.Name ) is { } ) ^ ( _dictionaryKvInterfaceType.GetInterface( _listInterfaceType.Name ) is { } ) );
+        Utils.AssertThat( ( _listT_OpenType.GetInterface( _list_InterfaceType.Name ) is { } ) ^ ( _dictionaryKvInterface_OpenType.GetInterface( _list_InterfaceType.Name ) is { } ) );
     }
 
-    [Benchmark]
-    public void ImplementsIListT( ) {
-        Utils.AssertThat( Implements(_listTType, _listInterfaceType )  ^ Implements( _dictionaryKvInterfaceType, _listInterfaceType )  );
+    [ Benchmark ]
+    [ Category( _non_generic ) ]
+    public void ImplementsIList( ) {
+        Utils.AssertThat( Implements( _listT_OpenType, _list_InterfaceType ) ^ Implements( _dictionaryKvInterface_OpenType, _list_InterfaceType ) );
+    }
+
+    /*
+     * generic
+     */
+    
+    /* note: instance is type does not work for open generics */
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void TypeEqualsIListT( ) {
+        Utils.AssertThat( ( _listT_Interface_OpenType == _listT_Interface_OpenTypeCopy ) ^ ( _dictionaryKvInterface_OpenType == _listT_Interface_OpenTypeCopy ) );
+    }
+
+    /* note: type is assignable to does not work for open generics */
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void OpenListT_GetInterface_OpenIListT( ) {
+        Utils.AssertThat( ( _listT_OpenType.GetInterface( _listT_Interface_OpenType.Name ) is { } ) ^ ( _dictionaryKvInterface_OpenType.GetInterface( _listT_Interface_OpenType.Name ) is { } ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void ClosedListT_GetInterface_OpenIListT( ) {
+        Utils.AssertThat( ( _listT_ClosedType.GetInterface( _listT_Interface_OpenType.Name ) is { } ) ^ ( _dictionaryKvInterface_ClosedType.GetInterface( _listT_Interface_OpenType.Name ) is { } ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void OpenListT_Implements_OpenIListT( ) {
+        Utils.AssertThat( Implements( _listT_OpenType, _listT_Interface_OpenType ) ^ Implements( _dictionaryKvInterface_OpenType, _listT_Interface_OpenType ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void ClosedListT_Implements_OpenIListT( ) {
+        Utils.AssertThat( Implements( _listT_OpenType, _listT_Interface_OpenType ) ^ Implements( _dictionaryKvInterface_OpenType, _listT_Interface_OpenType ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void ClosedReadOnlyCollectionInheritor_IsAssignableTo_OpenReadOnlyCollection( ) {
+        Utils.AssertThat( _ReadOnlyCollection_Inheritor_ClosedType.IsAssignableTo(_ReadOnlyCollection_OpenType.MakeGenericType( typeof(string )) ) ^ _dictionaryKvInterface_ClosedType.IsAssignableTo(_ReadOnlyCollection_OpenType.MakeGenericType( typeof(string )) ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void ClosedReadOnlyCollectionInheritor_Implements_OpenReadOnlyCollection( ) {
+        Utils.AssertThat( Implements( _ReadOnlyCollection_Inheritor_ClosedType, _ReadOnlyCollection_OpenType ) ^ Implements( _dictionaryKvInterface_OpenType, _listT_Interface_OpenType ) );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void GetGenericTypeDefinition( ) {
+        Utils.AssertThat(  _ReadOnlyCollection_Inheritor_ClosedType.GetGenericTypeDefinition() == _ReadOnlyCollection_Inheritor_OpenType );
+    }
+
+    [ Benchmark ]
+    [ Category( _generic ) ]
+    public void MakeGenericType( ) {
+        Utils.AssertThat(  _ReadOnlyCollection_Inheritor_OpenType.MakeGenericType(typeof(string)) == _ReadOnlyCollection_Inheritor_ClosedType );
     }
 
     public static bool Implements( Type type, Type checkType ) {
